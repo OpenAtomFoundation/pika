@@ -11,11 +11,15 @@
 #include "src/base_value_format.h"
 #include "storage/storage_define.h"
 
+
 namespace storage {
 /*
 * | type | value | reserve | cdate | timestamp |
 * |  1B  |       |   16B   |   8B  |     8B    |
+*  The first bit in reservse field is used to isolate string and hyperloglog  
 */
+ // 80H = 1000000B
+constexpr uint8_t hyperloglog_reserve_flag = 0x80;
 class StringsValue : public InternalValue {
  public:
   explicit StringsValue(const rocksdb::Slice& user_value) : InternalValue(DataType::kStrings, user_value) {}
@@ -29,6 +33,29 @@ class StringsValue : public InternalValue {
 
     memcpy(dst, user_value_.data(), usize);
     dst += usize;
+    memcpy(dst, reserve_, kSuffixReserveLength);
+    dst += kSuffixReserveLength;
+    EncodeFixed64(dst, ctime_);
+    dst += kTimestampLength;
+    EncodeFixed64(dst, etime_);
+    return {start_, needed};
+  }
+};
+
+class HyperloglogValue : public InternalValue {
+ public:
+  explicit HyperloglogValue(const rocksdb::Slice& user_value) : InternalValue(DataType::kStrings, user_value) {}
+  virtual rocksdb::Slice Encode() override {
+    size_t usize = user_value_.size();
+    size_t needed = usize + kSuffixReserveLength + 2 * kTimestampLength + kTypeLength;
+    char* dst = ReAllocIfNeeded(needed);
+    memcpy(dst, &type_, sizeof(type_));
+    dst += sizeof(type_);
+    char* start_pos = dst;
+
+    memcpy(dst, user_value_.data(), usize);
+    dst += usize;
+    reserve_[0] |= hyperloglog_reserve_flag;
     memcpy(dst, reserve_, kSuffixReserveLength);
     dst += kSuffixReserveLength;
     EncodeFixed64(dst, ctime_);

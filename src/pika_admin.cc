@@ -1513,7 +1513,11 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, "slow-cmd-list");
     EncodeString(&config_body, g_pika_conf->GetSlowCmd());
   }
-
+  if (pstd::stringmatch(pattern.data(), "admin-cmd-list", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "admin-cmd-list");
+    EncodeString(&config_body, g_pika_conf->GetAdminCmd());
+  }
   if (pstd::stringmatch(pattern.data(), "sync-thread-num", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "sync-thread-num");
@@ -2183,6 +2187,7 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
         "slave-priority",
         "sync-window-size",
         "slow-cmd-list",
+        "admin-cmd-list",
         // Options for storage engine
         // MutableDBOptions
         "max-cache-files",
@@ -2523,6 +2528,9 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "slow-cmd-list") {
     g_pika_conf->SetSlowCmd(value);
+    res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "admin-cmd-list") {
+    g_pika_conf->SetAdminCmd(value);
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "max-cache-files") {
     if (pstd::string2int(value.data(), value.size(), &ival) == 0) {

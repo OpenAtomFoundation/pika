@@ -445,6 +445,12 @@ class PikaConf : public pstd::BaseConf {
     return pstd::Set2String(slow_cmd_set_, ',');
   }
 
+  // Admin Commands configuration
+  const std::string GetAdminCmd() {
+    std::shared_lock l(rwlock_);
+    return pstd::Set2String(admin_cmd_set_, ',');
+  }
+
   const std::string GetUserBlackList() {
     std::shared_lock l(rwlock_);
     return userblacklist_;
@@ -453,6 +459,11 @@ class PikaConf : public pstd::BaseConf {
   bool is_slow_cmd(const std::string& cmd) {
     std::shared_lock l(rwlock_);
     return slow_cmd_set_.find(cmd) != slow_cmd_set_.end();
+  }
+
+  bool is_admin_cmd(const std::string& cmd) {
+    std::shared_lock l(rwlock_);
+    return admin_cmd_set_.find(cmd) != admin_cmd_set_.end();
   }
 
   // Immutable config items, we don't use lock.
@@ -823,6 +834,14 @@ class PikaConf : public pstd::BaseConf {
     pstd::StringSplit2Set(lower_value, ',', slow_cmd_set_);
   }
 
+  void SetAdminCmd(const std::string& value) {
+    std::lock_guard l(rwlock_);
+    std::string lower_value = value;
+    pstd::StringToLower(lower_value);
+    TryPushDiffCommands("admin-cmd-list", lower_value);
+    pstd::StringSplit2Set(lower_value, ',', slow_cmd_set_);
+  }
+
   void SetCacheType(const std::string &value);
   void SetCacheDisableFlag() { tmp_cache_disable_flag_ = true; }
   int zset_cache_start_direction() { return zset_cache_start_direction_; }
@@ -843,6 +862,7 @@ class PikaConf : public pstd::BaseConf {
   int slow_cmd_thread_pool_size_ = 0;
   int admin_thread_pool_size_ = 0;
   std::unordered_set<std::string> slow_cmd_set_;
+  std::unordered_set<std::string> admin_cmd_set_ = {"info", "ping", "monitor"};
   int sync_thread_num_ = 0;
   int sync_binlog_thread_num_ = 0;
   int expire_dump_days_ = 3;

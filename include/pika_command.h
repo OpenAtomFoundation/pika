@@ -546,7 +546,6 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool IsNeedUpdateCache() const;
   bool IsNeedReadCache() const;
   bool IsNeedCacheDo() const;
-  bool IsMonitorCmd() const;
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
   std::shared_ptr<DB> GetDB() const { return db_; };

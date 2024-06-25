@@ -63,7 +63,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePurgelogsto, std::move(purgelogsto)));
 
   std::unique_ptr<Cmd> pingptr =
-      std::make_unique<PingCmd>(kCmdNamePing, 1, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsFast | kCmdFlagsMonitor);
+      std::make_unique<PingCmd>(kCmdNamePing, 1, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePing, std::move(pingptr)));
 
   std::unique_ptr<Cmd> helloptr =
@@ -91,7 +91,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameShutdown, std::move(shutdownptr)));
 
   std::unique_ptr<Cmd> infoptr =
-      std::make_unique<InfoCmd>(kCmdNameInfo, -1, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSlow | kCmdFlagsMonitor);
+      std::make_unique<InfoCmd>(kCmdNameInfo, -1, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameInfo, std::move(infoptr)));
 
   std::unique_ptr<Cmd> configptr =
@@ -99,7 +99,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameConfig, std::move(configptr)));
 
   std::unique_ptr<Cmd> monitorptr =
-      std::make_unique<MonitorCmd>(kCmdNameMonitor, -1, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSlow | kCmdFlagsMonitor);
+      std::make_unique<MonitorCmd>(kCmdNameMonitor, -1, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameMonitor, std::move(monitorptr)));
 
   std::unique_ptr<Cmd> dbsizeptr =
@@ -703,7 +703,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePfCount, std::move(pfcountptr)));
   ////pfmergeCmd
   std::unique_ptr<Cmd> pfmergeptr = std::make_unique<PfMergeCmd>(
-      kCmdNamePfMerge, -3, kCmdFlagsWrite | kCmdFlagsHyperLogLog | kCmdFlagsSlow);
+      kCmdNamePfMerge, -2, kCmdFlagsWrite | kCmdFlagsHyperLogLog | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePfMerge, std::move(pfmergeptr)));
 
   // GEO
@@ -962,7 +962,6 @@ bool Cmd::HasSubCommand() const { return subCmdName_.size() > 0; };
 std::vector<std::string> Cmd::SubCommand() const { return subCmdName_; };
 bool Cmd::IsAdminRequire() const { return (flag_ & kCmdFlagsAdminRequire); }
 bool Cmd::IsNeedUpdateCache() const { return (flag_ & kCmdFlagsUpdateCache); }
-bool Cmd::IsMonitorCmd() const { return (flag_ & kCmdFlagsMonitor); }
 bool Cmd::IsNeedCacheDo() const {
   if (g_pika_conf->IsCacheDisabledTemporarily()) {
     return false;
