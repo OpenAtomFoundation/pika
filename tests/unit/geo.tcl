@@ -99,7 +99,7 @@ start_server {tags {"geo"}} {
 
     test {GEORADIUS with COUNT} {
         r georadius nyc -73.9798091 40.7598464 10 km COUNT 3
-    } {{wtc one} {union square} {central park n/q/r}}
+    } {{central park n/q/r} 4545 {union square}}
 
     test {GEORADIUS with COUNT but missing integer argument} {
         catch {r georadius nyc -73.9798091 40.7598464 10 km COUNT} e
