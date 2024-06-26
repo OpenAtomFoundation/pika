@@ -27,7 +27,8 @@ int ThreadPool::Worker::start() {
       return -1;
     } else {
       start_.store(true);
-      SetThreadName(thread_id_, thread_pool_->thread_pool_name() + "Worker");
+      std::string thread_id_str = std::to_string(reinterpret_cast<unsigned long>(thread_id_));
+      SetThreadName(thread_id_, thread_pool_->thread_pool_name() + "_Worker_" + thread_id_str);
     }
   }
   return 0;

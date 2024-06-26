@@ -155,6 +155,11 @@ Status Storage::GetWithTTL(const Slice& key, std::string* value, int64_t* ttl) {
   return inst->GetWithTTL(key, value, ttl);
 }
 
+Status Storage::MGetWithTTL(const Slice& key, std::string* value, int64_t* ttl) {
+  auto& inst = GetDBInstance(key);
+  return inst->MGetWithTTL(key, value, ttl);
+}
+
 Status Storage::GetSet(const Slice& key, const Slice& value, std::string* old_value) {
   auto& inst = GetDBInstance(key);
   return inst->GetSet(key, value, old_value);
@@ -208,7 +213,7 @@ Status Storage::MGetWithTTL(const std::vector<std::string>& keys, std::vector<Va
     auto& inst = GetDBInstance(key);
     std::string value;
     int64_t ttl;
-    s = inst->GetWithTTL(key, &value, &ttl);
+    s = inst->MGetWithTTL(key, &value, &ttl);
     if (s.ok()) {
       vss->push_back({value, Status::OK(), ttl});
     } else if (s.IsNotFound()) {
@@ -233,9 +238,8 @@ Status Storage::MSetnx(const std::vector<KeyValue>& kvs, int32_t* ret) {
   Status s;
   for (const auto& kv : kvs) {
     auto& inst = GetDBInstance(kv.key);
-    std::string value;
-    s = inst->Get(Slice(kv.key), &value);
-    if (s.ok() || !s.IsNotFound()) {
+    s = inst->IsExist(Slice(kv.key));
+    if (!s.IsNotFound()) {
       return s;
     }
   }
@@ -1397,11 +1401,14 @@ Status Storage::PKRScanRange(const DataType& data_type, const Slice& key_start, 
 
 Status Storage::PKPatternMatchDel(const DataType& data_type, const std::string& pattern, int32_t* ret) {
   Status s;
+  *ret = 0;
   for (const auto& inst : insts_) {
-    s = inst->PKPatternMatchDel(pattern, ret);
+    int32_t tmp_ret = 0;
+    s = inst->PKPatternMatchDel(pattern, &tmp_ret);
     if (!s.ok()) {
       return s;
     }
+    *ret += tmp_ret;
   }
   return s;
 }
@@ -1548,7 +1555,7 @@ Status Storage::PfAdd(const Slice& key, const std::vector<std::string>& values, 
   std::string registers;
   std::string result;
   auto& inst = GetDBInstance(key);
-  Status s = inst->Get(key, &value);
+  Status s = inst->HyperloglogGet(key, &value);
   if (s.ok()) {
     registers = value;
   } else if (s.IsNotFound()) {
@@ -1566,7 +1573,7 @@ Status Storage::PfAdd(const Slice& key, const std::vector<std::string>& values, 
   if (previous != now || (s.IsNotFound() && values.empty())) {
     *update = true;
   }
-  s = inst->Set(key, result);
+  s = inst->HyperloglogSet(key, result);
   return s;
 }
 
@@ -1578,19 +1585,20 @@ Status Storage::PfCount(const std::vector<std::string>& keys, int64_t* result) {
   std::string value;
   std::string first_registers;
   auto& inst = GetDBInstance(keys[0]);
-  Status s = inst->Get(keys[0], &value);
+  Status s = inst->HyperloglogGet(keys[0], &value);
   if (s.ok()) {
     first_registers = std::string(value.data(), value.size());
   } else if (s.IsNotFound()) {
     first_registers = "";
+  } else {
+    return s;
   }
-
   HyperLogLog first_log(kPrecision, first_registers);
   for (size_t i = 1; i < keys.size(); ++i) {
     std::string value;
     std::string registers;
     auto& inst = GetDBInstance(keys[i]);
-    s = inst->Get(keys[i], &value);
+    s = inst->HyperloglogGet(keys[i], &value);
     if (s.ok()) {
       registers = value;
     } else if (s.IsNotFound()) {
@@ -1615,7 +1623,7 @@ Status Storage::PfMerge(const std::vector<std::string>& keys, std::string& value
   std::string first_registers;
   std::string result;
   auto& inst = GetDBInstance(keys[0]);
-  s = inst->Get(keys[0], &value);
+  s = inst->HyperloglogGet(keys[0], &value);
   if (s.ok()) {
     first_registers = std::string(value.data(), value.size());
   } else if (s.IsNotFound()) {
@@ -1628,7 +1636,7 @@ Status Storage::PfMerge(const std::vector<std::string>& keys, std::string& value
     std::string value;
     std::string registers;
     auto& tmp_inst = GetDBInstance(keys[i]);
-    s = tmp_inst->Get(keys[i], &value);
+    s = tmp_inst->HyperloglogGet(keys[i], &value);
     if (s.ok()) {
       registers = std::string(value.data(), value.size());
     } else if (s.IsNotFound()) {
@@ -1640,7 +1648,7 @@ Status Storage::PfMerge(const std::vector<std::string>& keys, std::string& value
     result = first_log.Merge(log);
   }
   auto& ninst = GetDBInstance(keys[0]);
-  s = ninst->Set(keys[0], result);
+  s = ninst->HyperloglogSet(keys[0], result);
   value_to_dest = std::move(result);
   return s;
 }
@@ -1823,7 +1831,7 @@ uint64_t Storage::GetProperty(const std::string& property) {
 
 Status Storage::GetKeyNum(std::vector<KeyInfo>* key_infos) {
   KeyInfo key_info;
-  key_infos->resize(size_t(DataType::kNones));
+  key_infos->resize(DataTypeNum);
   for (const auto& db : insts_) {
     std::vector<KeyInfo> db_key_infos;
     // check the scanner was stopped or not, before scanning the next db
