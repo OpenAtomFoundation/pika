@@ -1449,8 +1449,8 @@ bool PikaServer::SlotsMigrateAsyncCancel() {
 void PikaServer::Bgslotsreload(const std::shared_ptr<DB>& db) {
   // Only one thread can go through
   {
-    std::lock_guard ml(bgsave_protector_);
-    if (bgslots_reload_.reloading || bgsave_info_.bgsaving) {
+    std::lock_guard ml(bgslots_protector_);
+    if (bgslots_reload_.reloading || db->IsBgSaving()) {
       return;
     }
     bgslots_reload_.reloading = true;
@@ -1514,8 +1514,8 @@ void DoBgslotsreload(void* arg) {
 void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots, const std::shared_ptr<DB>& db) {
   // Only one thread can go through
   {
-    std::lock_guard ml(bgsave_protector_);
-    if (bgslots_cleanup_.cleaningup || bgslots_reload_.reloading || bgsave_info_.bgsaving) {
+    std::lock_guard ml(bgslots_protector_);
+    if (bgslots_cleanup_.cleaningup || bgslots_reload_.reloading || db->IsBgSaving()) {
       return;
     }
     bgslots_cleanup_.cleaningup = true;

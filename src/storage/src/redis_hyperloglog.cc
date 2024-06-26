@@ -3,11 +3,18 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
-#include "src/redis_hyperloglog.h"
+
 #include <algorithm>
 #include <cmath>
 #include <string>
+#include <cstring>
+
 #include "src/storage_murmur3.h"
+#include "storage/storage_define.h"
+#include "src/redis.h"
+#include "src/mutex.h"
+#include "src/redis_hyperloglog.h"
+#include "src/scope_record_lock.h"
 
 namespace storage {
 
@@ -108,7 +115,59 @@ std::string HyperLogLog::Merge(const HyperLogLog& hll) {
   return result;
 }
 
-// ::__builtin_ctz(x): 返回右起第一个‘1’之后的0的个数
+// ::__builtin_ctz(x): return the first number of '0' after the first '1' from the right
 uint8_t HyperLogLog::Nctz(uint32_t x, int b) { return static_cast<uint8_t>(std::min(b, ::__builtin_ctz(x))) + 1; }
+
+
+bool IsHyperloglogObj(const std::string* internal_value_str) {
+    size_t kStringsValueSuffixLength = 2 * kTimestampLength + kSuffixReserveLength;
+    char reserve[16] = {0};
+    size_t offset = internal_value_str->size() - kStringsValueSuffixLength;
+    memcpy(reserve, internal_value_str->data() + offset, kSuffixReserveLength);
+
+    //if first bit in reserve is 0 , then this obj is string; else the obj is hyperloglog
+    return (reserve[0] & hyperloglog_reserve_flag) != 0;;
+}
+
+Status Redis::HyperloglogGet(const Slice &key, std::string* value) {
+    value->clear();
+
+    BaseKey base_key(key);
+    Status s = db_->Get(default_read_options_, base_key.Encode(), value);
+    std::string meta_value = *value;
+    if (!s.ok()) {
+        return s;
+    }
+    if (!ExpectedMetaValue(DataType::kStrings, meta_value)) {
+        if (ExpectedStale(meta_value)) {
+            s = Status::NotFound();
+        } else {
+            return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() +
+                                           ", expect type: " + "hyperloglog " + "get type: " +
+                                           DataTypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
+        }
+    } else if (!IsHyperloglogObj(value)) {
+        return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() +
+                                       ",expect type: " + "hyperloglog " + "get type: " +
+                                       DataTypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
+    } else {
+        ParsedStringsValue parsed_strings_value(value);
+        if (parsed_strings_value.IsStale()) {
+            value->clear();
+            return Status::NotFound("Stale");
+        } else {
+            parsed_strings_value.StripSuffix();
+        }
+    }
+    return s;
+}
+
+Status Redis::HyperloglogSet(const Slice &key, const Slice &value) {
+    HyperloglogValue hyperloglog_value(value);
+    ScopeRecordLock l(lock_mgr_, key);
+
+    BaseKey base_key(key);
+    return db_->Put(default_write_options_, base_key.Encode(), hyperloglog_value.Encode());
+}
 
 }  // namespace storage

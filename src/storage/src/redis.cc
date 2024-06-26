@@ -352,7 +352,7 @@ void Redis::SetCompactRangeOptions(const bool is_canceled) {
     default_compact_range_options_.canceled = new std::atomic<bool>(is_canceled);
   } else {
     default_compact_range_options_.canceled->store(is_canceled);
-  } 
+  }
 }
 
 Status Redis::GetProperty(const std::string& property, uint64_t* out) {
@@ -365,7 +365,7 @@ Status Redis::GetProperty(const std::string& property, uint64_t* out) {
 }
 
 Status Redis::ScanKeyNum(std::vector<KeyInfo>* key_infos) {
-  key_infos->resize(5);
+  key_infos->resize(DataTypeNum);
   rocksdb::Status s;
   s = ScanStringsKeyNum(&((*key_infos)[0]));
   if (!s.ok()) {
