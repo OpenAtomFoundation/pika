@@ -131,9 +131,14 @@ void ThreadPool::cur_time_queue_size(size_t* qsize) {
 std::string ThreadPool::thread_pool_name() { return thread_pool_name_; }
 
 void ThreadPool::runInThread() {
+    bool rsignal_wait = true;
   while (!should_stop()) {
     std::unique_lock lock(mu_);
-    rsignal_.wait(lock, [this]() { return !queue_.empty() || !time_queue_.empty() || should_stop(); });
+    if (rsignal_wait){
+        rsignal_.wait(lock, [this]() { return !queue_.empty() || !time_queue_.empty() || should_stop(); });
+    }else{
+        rsignal_wait = true;
+    }
 
     if (should_stop()) {
       break;
@@ -151,6 +156,10 @@ void ThreadPool::runInThread() {
       } else if (queue_.empty() && !should_stop()) {
         rsignal_.wait_for(lock, std::chrono::microseconds(exec_time - unow));
         lock.unlock();
+
+        //timer task is time out or enqueue queue_, should run task immediately
+        rsignal_wait = false;
+
         continue;
       }
     }
