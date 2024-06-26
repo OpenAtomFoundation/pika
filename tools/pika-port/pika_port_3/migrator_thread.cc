@@ -60,8 +60,8 @@ void MigratorThread::MigrateStringsDB() {
     std::string cmd;
 
     argv.push_back("SET");
-    argv.push_back(iter->key().ToString().c_str());
-    argv.push_back(parsed_strings_value.value().ToString().c_str());
+    argv.push_back(iter->key().ToString());
+    argv.push_back(parsed_strings_value.value().ToString());
     if (ts != 0 && ttl > 0) {
       argv.push_back("EX");
       argv.push_back(std::to_string(ttl));
