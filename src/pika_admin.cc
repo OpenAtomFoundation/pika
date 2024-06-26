@@ -1533,6 +1533,13 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, "slow-cmd-thread-pool-size");
     EncodeNumber(&config_body, g_pika_conf->slow_cmd_thread_pool_size());
   }
+
+  if (pstd::stringmatch(pattern.data(), "admin-thread-pool-size", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "admin-thread-pool-size");
+    EncodeNumber(&config_body, g_pika_conf->admin_thread_pool_size());
+  }
+
   if (pstd::stringmatch(pattern.data(), "userblacklist", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "userblacklist");
@@ -1543,7 +1550,11 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, "slow-cmd-list");
     EncodeString(&config_body, g_pika_conf->GetSlowCmd());
   }
-
+  if (pstd::stringmatch(pattern.data(), "admin-cmd-list", 1) != 0) {
+    elements += 2;
+    EncodeString(&config_body, "admin-cmd-list");
+    EncodeString(&config_body, g_pika_conf->GetAdminCmd());
+  }
   if (pstd::stringmatch(pattern.data(), "sync-thread-num", 1) != 0) {
     elements += 2;
     EncodeString(&config_body, "sync-thread-num");
