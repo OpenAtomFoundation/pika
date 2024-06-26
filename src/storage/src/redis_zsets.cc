@@ -499,7 +499,7 @@ Status Redis::ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<
         DataTypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
     }
   }
-    if (s.ok()) {
+  if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
       return Status::NotFound("Stale");
@@ -1187,7 +1187,7 @@ Status Redis::ZScore(const Slice& key, const Slice& member, double* score) {
         const void* ptr_tmp = reinterpret_cast<const void*>(&tmp);
         *score = *reinterpret_cast<const double*>(ptr_tmp);
       } else if (s.IsNotFound()) {
-        return Status::NotFound("Invaild member");
+        return Status::NotFound("Invalid member");
       } else {
         return s;
       }

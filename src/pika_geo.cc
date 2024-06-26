@@ -366,8 +366,9 @@ static void GetAllNeighbors(const std::shared_ptr<DB>& db, std::string& key, Geo
     int32_t count = 0;
     int32_t card = db->storage()->Exists({range.storekey});
     if (card) {
-      db->storage()->Del({range.storekey});
-      db->cache()->Del({range.storekey});
+      if (db->storage()->Del({range.storekey}) > 0){
+        db->cache()->Del({range.storekey});
+      }
     }
     s = db->storage()->ZAdd(range.storekey, score_members, &count);
     if (!s.ok()) {
@@ -573,7 +574,7 @@ void GeoRadiusByMemberCmd::DoInitial() {
 void GeoRadiusByMemberCmd::Do() {
   double score = 0.0;
   rocksdb::Status s = db_->storage()->ZScore(key_, range_.member, &score);
-  if (s.IsNotFound() && !s.ToString().compare("NotFound: Invaild member")) {
+  if (s.IsNotFound() && !s.ToString().compare("NotFound: Invalid member")) {
     res_.SetRes(CmdRes::kErrOther, "could not decode requested zset member");
     return;
   }
