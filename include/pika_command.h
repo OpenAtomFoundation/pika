@@ -290,7 +290,6 @@ enum CmdFlags {
   kCmdFlagsStream = (1 << 20),
   kCmdFlagsFast = (1 << 21),
   kCmdFlagsSlow = (1 << 22),
-  kCmdFlagsMonitor = (1 << 23),
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);

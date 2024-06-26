@@ -180,7 +180,7 @@ class PikaServer : public pstd::noncopyable {
   /*
    * PikaClientProcessor Process Task
    */
-  void ScheduleClientPool(net::TaskFunc func, void* arg, bool is_slow_cmd, bool is_monitor_cmd);
+  void ScheduleClientPool(net::TaskFunc func, void* arg, bool is_slow_cmd, bool is_admin_cmd);
 
   // for info debug
   size_t ClientProcessorThreadPoolCurQueueSize();

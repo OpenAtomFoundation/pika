@@ -178,6 +178,13 @@ int PikaConf::Load() {
   GetConfStr("slow-cmd-list", &slow_cmd_list);
   SetSlowCmd(slow_cmd_list);
 
+  std::string admin_cmd_list;
+  GetConfStr("admin-cmd-list", &admin_cmd_list);
+  if (admin_cmd_list == ""){
+    admin_cmd_list = "info, monitor, ping";
+    SetAdminCmd(admin_cmd_list);
+  }
+
   GetConfInt("sync-thread-num", &sync_thread_num_);
   if (sync_thread_num_ <= 0) {
     sync_thread_num_ = 3;
@@ -772,7 +779,6 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("consensus-level", consensus_level_.load());
   SetConfInt("replication-num", replication_num_.load());
   SetConfStr("slow-cmd-list", pstd::Set2String(slow_cmd_set_, ','));
-  SetConfStr("admin-cmd-list", pstd::Set2String(admin_cmd_set_, ','));
   SetConfInt("max-conn-rbuf-size", max_conn_rbuf_size_.load());
   // options for storage engine
   SetConfInt("max-cache-files", max_cache_files_);

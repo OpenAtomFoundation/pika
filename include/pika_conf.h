@@ -462,7 +462,6 @@ class PikaConf : public pstd::BaseConf {
   }
 
   bool is_admin_cmd(const std::string& cmd) {
-    std::shared_lock l(rwlock_);
     return admin_cmd_set_.find(cmd) != admin_cmd_set_.end();
   }
 
@@ -839,7 +838,7 @@ class PikaConf : public pstd::BaseConf {
     std::string lower_value = value;
     pstd::StringToLower(lower_value);
     TryPushDiffCommands("admin-cmd-list", lower_value);
-    pstd::StringSplit2Set(lower_value, ',', slow_cmd_set_);
+    pstd::StringSplit2Set(lower_value, ',', admin_cmd_set_);
   }
 
   void SetCacheType(const std::string &value);

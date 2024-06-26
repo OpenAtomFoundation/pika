@@ -735,12 +735,12 @@ void PikaServer::SetFirstMetaSync(bool v) {
   first_meta_sync_ = v;
 }
 
-void PikaServer::ScheduleClientPool(net::TaskFunc func, void* arg, bool is_slow_cmd, bool is_monitor_cmd) {
-  if (is_slow_cmd) {
+void PikaServer::ScheduleClientPool(net::TaskFunc func, void* arg, bool is_slow_cmd, bool is_admin_cmd) {
+  if (is_slow_cmd && g_pika_conf->slow_cmd_pool()) {
     pika_slow_cmd_thread_pool_->Schedule(func, arg);
     return;
   }
-  if (is_monitor_cmd) {
+  if (is_admin_cmd) {
     pika_admin_cmd_thread_pool_->Schedule(func, arg);
     return;
   }
