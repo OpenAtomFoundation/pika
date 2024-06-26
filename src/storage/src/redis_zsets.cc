@@ -1116,6 +1116,8 @@ Status RedisZSets::ZScore(const Slice& key, const Slice& member, double* score) 
         uint64_t tmp = DecodeFixed64(data_value.data());
         const void* ptr_tmp = reinterpret_cast<const void*>(&tmp);
         *score = *reinterpret_cast<const double*>(ptr_tmp);
+      } else if (s.IsNotFound()) {
+        return Status::NotFound("Invalid member");
       } else {
         return s;
       }
