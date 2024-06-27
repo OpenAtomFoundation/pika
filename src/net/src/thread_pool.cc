@@ -131,10 +131,10 @@ void ThreadPool::cur_time_queue_size(size_t* qsize) {
 std::string ThreadPool::thread_pool_name() { return thread_pool_name_; }
 
 void ThreadPool::runInThread() {
-    bool rsignal_wait = true;
+  bool rsignal_wait = true;
   while (!should_stop()) {
     std::unique_lock lock(mu_);
-    if (rsignal_wait){
+    if (rsignal_wait) {
         rsignal_.wait(lock, [this]() { return !queue_.empty() || !time_queue_.empty() || should_stop(); });
     } else {
         rsignal_wait = true;
