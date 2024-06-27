@@ -136,7 +136,7 @@ void ThreadPool::runInThread() {
     std::unique_lock lock(mu_);
     if (rsignal_wait){
         rsignal_.wait(lock, [this]() { return !queue_.empty() || !time_queue_.empty() || should_stop(); });
-    }else{
+    } else {
         rsignal_wait = true;
     }
 
