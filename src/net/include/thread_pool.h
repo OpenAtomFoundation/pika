@@ -94,6 +94,9 @@ class ThreadPool : public pstd::noncopyable {
     inline Node* Next() { return link_newer; }
   };
 
+  // re-push some timer tasks which has been poped
+  void ReDelaySchedule(Node* nodes);
+
   static inline void AsmVolatilePause() {
 #if defined(__i386__) || defined(__x86_64__)
     asm volatile("pause");

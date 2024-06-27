@@ -291,8 +291,16 @@ void ThreadPool::runInThread(const int idx) {
           time_first->Exec();
         } else {
           lock.lock();
-          rsignal.wait_for(lock, std::chrono::microseconds(exec_time - unow));
+          // if task is coming now, do task immediately
+          auto res = rsignal.wait_for(lock, std::chrono::microseconds(exec_time - unow), [this, &newest_node]() {
+            return newest_node.load(std::memory_order_relaxed) != nullptr || UNLIKELY(should_stop());
+          });
           lock.unlock();
+          if (res) {
+            // re-push the timer tasks
+            ReDelaySchedule(time_first);
+            goto retry;
+          }
           time_first->Exec();
         }
         tmp = time_first;
@@ -302,6 +310,19 @@ void ThreadPool::runInThread(const int idx) {
       } while (time_first != nullptr);
     }
     goto retry;
+  }
+}
+
+void ThreadPool::ReDelaySchedule(Node* nodes) {
+  while (LIKELY(!should_stop()) && nodes != nullptr) {
+    auto idx = ++task_idx_;
+    auto nxt = nodes->Next();
+    nodes->link_newer = nullptr;
+    // auto node = new Node(exec_time, func, arg);
+    LinkOne(nodes, &newest_node_[idx % nlinks_]);
+    time_node_cnt_++;
+    rsignal_[idx % nlinks_].notify_all();
+    nodes = nxt;
   }
 }
 
