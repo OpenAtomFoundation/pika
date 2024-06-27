@@ -1795,6 +1795,42 @@ var _ = Describe("Zset Commands", func() {
 		}}))
 	})
 
+	It("should  ZREVRANK", func() {
+		err := client.ZAdd(ctx, "key", redis.Z{Score: 100, Member: "a1b2C3d4E5"}).Err()
+		Expect(err).NotTo(HaveOccurred())
+
+		err = client.Del(ctx, "key").Err()
+		Expect(err).NotTo(HaveOccurred())
+
+		err = client.ZAdd(ctx, "key", redis.Z{Score: 101, Member: "F6g7H8i9J0"}).Err()
+		Expect(err).NotTo(HaveOccurred())
+
+		rank, err := client.ZRank(ctx, "key", "a1b2C3d4E5").Result()
+		Expect(err).To(Equal(redis.Nil))
+		Expect(rank).To(Equal(int64(0))) // Not actually checked since err is redis.Nil
+
+		revrank, err := client.ZRevRank(ctx, "key", "a1b2C3d4E5").Result()
+		Expect(err).To(Equal(redis.Nil))
+		Expect(revrank).To(Equal(int64(0))) // Not actually checked since err is redis.Nil
+
+		// Add the correct member to test ZRevRank properly
+		err = client.ZAdd(ctx, "key", redis.Z{Score: 100, Member: "a1b2C3d4E5"}).Err()
+		Expect(err).NotTo(HaveOccurred())
+
+		revrank, err = client.ZRevRank(ctx, "key", "a1b2C3d4E5").Result()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(revrank).To(Equal(int64(1)))
+
+		scanResult, cursor, err := client.ZScan(ctx, "key", 0, "", 10).Result()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(cursor).To(Equal(uint64(0)))
+		Expect(scanResult).To(Equal([]string{"F6g7H8i9J0", "101"}))
+
+		card, err := client.ZCard(ctx, "key").Result()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(card).To(Equal(int64(2))) // After adding a1b2C3d4E5 back, the count should be 2
+	})
+
 	//It("should ZRandMember", func() {
 	//	err := client.ZAdd(ctx, "zset", redis.Z{Score: 1, Member: "one"}).Err()
 	//	Expect(err).NotTo(HaveOccurred())

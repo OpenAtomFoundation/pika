@@ -1129,7 +1129,7 @@ Status Redis::ZRevrank(const Slice& key, const Slice& member, int32_t* rank) {
       ZSetsScoreKey zsets_score_key(key, version, std::numeric_limits<double>::max(), Slice());
       KeyStatisticsDurationGuard guard(this, DataType::kZSets, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[kZsetsScoreCF]);
-      for (iter->SeekForPrev(zsets_score_key.Encode()); iter->Valid() && left >= 0; iter->Prev(), --left, ++rev_index) {
+      for (iter->SeekForPrev(zsets_score_key.Encode()); iter->Valid() && left > 0; iter->Prev(), --left, ++rev_index) {
         ParsedZSetsScoreKey parsed_zsets_score_key(iter->key());
         if (parsed_zsets_score_key.member().compare(member) == 0) {
           found = true;
