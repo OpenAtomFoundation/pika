@@ -804,7 +804,7 @@ Status RedisLists::RPop(const Slice& key, int64_t count, std::vector<std::string
       int32_t cur_index = 0;
       ListsDataKey lists_data_key(key, version, parsed_lists_meta_value.right_index()-1);
       rocksdb::Iterator* iter = db_->NewIterator(default_read_options_, handles_[1]);
-      for (iter->SeekForPrev(lists_data_key.Encode()); iter->Valid() && cur_index <= stop_index; iter->Prev(), ++cur_index) {
+      for (iter->SeekForPrev(lists_data_key.Encode()); iter->Valid() && cur_index < stop_index; iter->Prev(), ++cur_index) {
         statistic++;
         elements->push_back(iter->value().ToString());
         batch.Delete(handles_[1],iter->key());
