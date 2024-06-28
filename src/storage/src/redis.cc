@@ -318,7 +318,6 @@ void Redis::GetRocksDBInfo(std::string& info, const char* prefix, bool open_tick
 
     // background errors
     write_aggregated_int_property(rocksdb::DB::Properties::kBackgroundErrors, "background_errors");
-    write_ticker_count(rocksdb::Tickers::STALL_MICROS, "stall_micros");
 
     // memtables size
     write_aggregated_int_property(rocksdb::DB::Properties::kCurSizeActiveMemTable, "cur_size_active_mem_table");
@@ -420,6 +419,9 @@ void Redis::GetRocksDBInfo(std::string& info, const char* prefix, bool open_tick
       write_ticker_count(rocksdb::Tickers::LAST_LEVEL_READ_COUNT, "last_level_read_count");
       write_ticker_count(rocksdb::Tickers::NON_LAST_LEVEL_READ_BYTES, "non_last_level_read_bytes");
       write_ticker_count(rocksdb::Tickers::NON_LAST_LEVEL_READ_COUNT, "non_last_level_read_count");
+
+      // background errors
+      write_ticker_count(rocksdb::Tickers::STALL_MICROS, "stall_micros");
 
       // sst files
       write_ticker_count(rocksdb::Tickers::NO_FILE_OPENS, "no_file_opens");
