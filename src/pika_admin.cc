@@ -2152,6 +2152,12 @@ void ConfigCmd::ConfigGet(std::string& ret) {
                                       : EncodeString(&config_body, "resetchannels");
   }
 
+  if (pstd::stringmatch(pattern.data(), "open-rocksdb-statistics-tickers", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "open-rocksdb-statistics-tickers");
+    EncodeNumber(&config_body, g_pika_conf->open_rocksdb_statistics_tickers());
+  }
+
   std::stringstream resp;
   resp << "*" << std::to_string(elements) << "\r\n" << config_body;
   ret = resp.str();

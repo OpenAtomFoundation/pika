@@ -694,6 +694,11 @@ int PikaConf::Load() {
     max_rsync_parallel_num_ = kMaxRsyncParallelNum;
   }
 
+  // rocksdb_statistics_tickers
+  std::string open_tickers;
+  GetConfStr("open-rocksdb-statistics-tickers", &open_tickers);
+  open_rocksdb_statistics_tickers_ = open_tickers == "yes";
+
   int64_t tmp_rsync_timeout_ms = -1;
   GetConfInt64("rsync-timeout-ms", &tmp_rsync_timeout_ms);
   if(tmp_rsync_timeout_ms <= 0){
@@ -797,6 +802,7 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("slotmigrate", slotmigrate_.load() ? "yes" : "no");
   SetConfInt64("slotmigrate-thread-num", slotmigrate_thread_num_);
   SetConfInt64("thread-migrate-keys-num", thread_migrate_keys_num_);
+  SetConfStr("open-rocksdb-statistics-tickers", open_rocksdb_statistics_tickers_ ? "yes" : "no");
   // slaveof config item is special
   SetConfStr("slaveof", slaveof_);
   // cache config
