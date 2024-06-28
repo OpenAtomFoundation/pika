@@ -92,7 +92,7 @@ func (s *Topom) checkAndUpdateGroupServerState(conf *Config, group *models.Group
 			groupServer.Role = models.GroupServerRole(state.Replication.Role)
 			groupServer.DbBinlogFileNum = state.Replication.DbBinlogFileNum
 			groupServer.DbBinlogOffset = state.Replication.DbBinlogOffset
-			groupServer.ReplicationID = state.Replication.ReplicationID
+			groupServer.IsEligibleForMasterElection = state.Replication.IsEligibleForMasterElection
 			groupServer.Action.State = models.ActionSynced
 		}
 	}
