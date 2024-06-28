@@ -2,7 +2,9 @@
 
 ## New features
 
-- Pika 支持在 FreeBSD14 平台上进行编译打包[#2711](https://github.com/OpenAtomFoundation/pika/pull/2603)@[lqxhub](https://github.com/lqxhub)
+- Pika Geo 数据类型增加 TCL 测试，并修复测试过程中遇到的缺陷[#2753](https://github.com/OpenAtomFoundation/pika/pull/2753)@[saz97](https://github.com/saz97)
+
+- Pika 支持在 FreeBSD14 平台上进行编译打包[#2711](https://github.com/OpenAtomFoundation/pika/pull/2711)@[lqxhub](https://github.com/lqxhub)
 
 - Pika 线程整理，避免启动过多无用线程，对不同的线程进行命名，方便问题定位[#2697](https://github.com/OpenAtomFoundation/pika/pull/2697)@[chejinge](https://github.com/chejinge)
 
@@ -20,6 +22,8 @@
 
 - Pika 不支持不同类型的重复 key, 写入重复 key 返回非法类型[#2609](https://github.com/OpenAtomFoundation/pika/pull/2609)@[Mixficsol](https://github.com/Mixficsol)
 
+- 添加支持分区索引过滤的功能[#2601](https://github.com/OpenAtomFoundation/pika/pull/2601)@[vacheli](https://github.com/vacheli)
+
 - Pika 支持第三代存储引擎 Floyd, 通过支持多 rocksdb 实例、对 Blob 的使用进行优化、对过期数据的清理进行优化，提升了 Pika 实例的读写性能[#2413](https://github.com/OpenAtomFoundation/pika/pull/2413)@[wangshao1](https://github.com/wangshao1)
 
 ## Improvement
@@ -36,15 +40,21 @@
 
 - 重构主从复制模式 slave 节点的主从同步线程模型，尽可能减少 binlog 消费阻塞问题[#2638](https://github.com/OpenAtomFoundation/pika/pull/2638)@[cheniujh](https://github.com/cheniujh)
 
+- 新增 RocksDB Compaction 策略动态调整参数，用户可以根据业务调整 Compaction 策略，降低  Compaction 操作对服务性能的损耗[#2538](https://github.com/OpenAtomFoundation/pika/pull/2538)@[MalikHou](https://github.com/MalikHou)
+
 ## Bugfix
+
+- 修复 config 参数 min-blob-size 带单位时解析错误的问题[#2767](https://github.com/OpenAtomFoundation/pika/pull/2767)@[wangshao1](https://github.com/wangshao1)
 
 - 修复 zverank 返回值异常的问题[#2763](https://github.com/OpenAtomFoundation/pika/pull/2763)@[chejinge](https://github.com/chejinge)
 
+- 修复 Pika-port 传输数据过程中报错的问题[#2758](https://github.com/OpenAtomFoundation/pika/pull/2758)@[guangkun123](https://github.com/guangkun123)
+
 - 修复因为堆上分配的缓冲区越界导致 Dbsize 命令运行时崩溃的问题 [#2749](https://github.com/OpenAtomFoundation/pika/pull/2749)@[wangshao1](https://github.com/wangshao1)
 
-- 修复参数未初始化导致 slotsscan 等命令不能和 bgsave 命令相互制衡的问题[#2745](https://github.com/OpenAtomFoundation/pika/pull/2745)@[chejinge](https://github.com/chejinge)
+- 修复批量扩容时，多个 slave 同时连接 master, 短时间多次 bgsave 导致部分从节点数据不完整的问题[#2746](https://github.com/OpenAtomFoundation/pika/pull/2746)@[cheniujh](https://github.com/cheniujh)
 
-- 修复批量扩容时，多个 slave 同时连接 master, 短时间多次 bgsave 导致部分从节点数据不完整的问题[#2742](https://github.com/OpenAtomFoundation/pika/pull/2742)@[cheniujh](https://github.com/cheniujh)
+- 修复参数未初始化导致 slotsscan 等命令不能和 bgsave 命令相互制衡的问题[#2745](https://github.com/OpenAtomFoundation/pika/pull/2745)@[chejinge](https://github.com/chejinge)
 
 - 修复 Slotmigrate 迁移数据的过程中，返回值设置错误，异常场景下会终止数据迁移的问题[#2741](https://github.com/OpenAtomFoundation/pika/pull/2741)@[chejinge](https://github.com/chejinge)
 
@@ -52,32 +62,34 @@
 
 - 修复 pkpatternmatchdel 命令使用错误导致的 stream 类型数据删除异常的问题[#2726](https://github.com/OpenAtomFoundation/pika/pull/2726)@[wangshao1](https://github.com/wangshao1)
 
+- 修复 pkpatternmatchdel 不能正确删除掉对应的 keys 的问题[#2717](https://github.com/OpenAtomFoundation/pika/pull/2717)@[wangshao1](https://github.com/wangshao1)
+
+- 修复 ACL 密码验证错误问题[#2714](https://github.com/OpenAtomFoundation/pika/pull/2714)@[luky116](https://github.com/luky116)
+
 - 修复 Keyspace 命令未计算 Stream 类型数据的问题[#2705](https://github.com/OpenAtomFoundation/pika/pull/2705)@[wangshao1](https://github.com/wangshao1)
 
 - 对部分命令定制化处理逻辑，避免写 binlog 导致从节点的 binlog 解析失败的问题[#2693](https://github.com/OpenAtomFoundation/pika/pull/2693)@[cheniujh ](https://github.com/cheniujh)
 
 - 修复 Pika cmdID 赋值在 Cmd 初始函数中，可能会导致并发构造的时候出现内存泄漏的问题[#2692](https://github.com/OpenAtomFoundation/pika/pull/2692)@[gukj-spel](https://github.com/gukj-spel)
 
-- 修复 ExpectedStale 未考虑 String 类型, 如果存在已经过期的 String 类型的 key, ExpectedStale 会返回错误的问题
-  [#2682](https://github.com/OpenAtomFoundation/pika/pull/2682)@[wangshao1](https://github.com/wangshao1)
+- 修复 ExpectedStale 未考虑 String 类型, 如果存在已经过期的 String 类型的 key, ExpectedStale 会返回错误的问题[#2682](https://github.com/OpenAtomFoundation/pika/pull/2682)@[wangshao1](https://github.com/wangshao1)
 
-- 修复 Spop 在写 binlog 时可能会出现竞态问题
-  [#2674](https://github.com/OpenAtomFoundation/pika/pull/2674)@[cheniujh](https://github.com/cheniujh)
+- 修复 Spop 在写 binlog 时可能会出现竞态问题[#2674](https://github.com/OpenAtomFoundation/pika/pull/2674)@[cheniujh](https://github.com/cheniujh)
 
-- db instance 设置不合理时，给用户错误提示
-  [#2672](https://github.com/OpenAtomFoundation/pika/pull/2672)@[Mixficsol](https://github.com/Mixficsol)
+- db instance 设置不合理时，给用户错误提示[#2672](https://github.com/OpenAtomFoundation/pika/pull/2672)@[Mixficsol](https://github.com/Mixficsol)
 
-- 修复 server_stat 中的数据竞态问题
-  [#2671](https://github.com/OpenAtomFoundation/pika/pull/2671)@[cheniujh](https://github.com/cheniujh)
+- 修复 server_stat 中的数据竞态问题[#2671](https://github.com/OpenAtomFoundation/pika/pull/2671)@[cheniujh](https://github.com/cheniujh)
 
-- 修复多 DB 下全量同步超时后不重试的问题
-  [#2667](https://github.com/OpenAtomFoundation/pika/pull/2667)@[cheniujh](https://github.com/cheniujh)
+- 修复多 DB 下全量同步超时后不重试的问题[#2667](https://github.com/OpenAtomFoundation/pika/pull/2667)@[cheniujh](https://github.com/cheniujh)
 
-- 修复多 DB 主从超时场景下，可能会出现窗口崩溃的问题
-  [#2666](https://github.com/OpenAtomFoundation/pika/pull/2666)@[cheniujh](https://github.com/cheniujh)
+- 修复多 DB 主从超时场景下，可能会出现窗口崩溃的问题[#2666](https://github.com/OpenAtomFoundation/pika/pull/2666)@[cheniujh](https://github.com/cheniujh)
 
-- 修复主从同步限速逻辑中重复解锁的问题
-  [#2657](https://github.com/OpenAtomFoundation/pika/pull/2657)@[cheniujh](https://github.com/cheniujh)
+- 修复主从同步限速逻辑中重复解锁的问题[#2657](https://github.com/OpenAtomFoundation/pika/pull/2657)@[cheniujh](https://github.com/cheniujh)
+
+- 发版支持自动打包 centos7 和 centos8 平台的二进制编译包[#2535](https://github.com/OpenAtomFoundation/pika/pull/2535)@[baerwang](https://github.com/baerwang)
+
+- 修复Codis 侧的 getrange 命令没有返回预期结果的问题[#2510](https://github.com/OpenAtomFoundation/pika/pull/2510)@[luky116](https://github.com/luky116)
+
 
 # v3.5.4
 

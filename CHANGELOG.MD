@@ -2,7 +2,9 @@
 
 ## New features
 
-- Pika now supports compilation and packaging on the FreeBSD14 platform.[#2711](https://github.com/OpenAtomFoundation/pika/pull/2603)@[lqxhub](https://github.com/lqxhub)
+- Added TCL tests for Pika Geo data type and fixed defects found during testing.[#2753](https://github.com/OpenAtomFoundation/pika/pull/2753)@[saz97](https://github.com/saz97)
+
+- Pika now supports compilation and packaging on the FreeBSD14 platform.[#2711](https://github.com/OpenAtomFoundation/pika/pull/2711)@[lqxhub](https://github.com/lqxhub)
 
 - Pika thread reorganization to avoid starting too many unnecessary threads, Threads are named for easier issue localization. [#2697](https://github.com/OpenAtomFoundation/pika/pull/2697)@[chejinge](https://github.com/chejinge)
 
@@ -20,13 +22,15 @@
 
 - Pika does not support duplicate keys of different types. Writing a duplicate key returns an invalid type error. [#2609](https://github.com/OpenAtomFoundation/pika/pull/2609)@[Mixficsol](https://github.com/Mixficsol)
 
+- Added support for partition index filtering.[#2601](https://github.com/OpenAtomFoundation/pika/pull/2601)@[vacheli](https://github.com/vacheli)
+
 - Pika supports the third-generation storage engine Floyd, optimizing the use of multiple rocksdb instances, the use of Blobs, and the cleanup of expired data to improve the read and write performance of Pika instances.[#2413](https://github.com/OpenAtomFoundation/pika/pull/2413)@[wangshao1](https://github.com/wangshao1)
 
 ## Improvement
 
 - Updated the Pika Docker Readme to allow deploying Pika services in Docker according to the Readme. [#2743](https://github.com/OpenAtomFoundation/pika/pull/2743)@[luky116](https://github.com/luky116)
 
-- Optimized the issue of repeated meta value queries affecting Pika service read and write performance.[#2735](https://github.com/OpenAtomFoundation/pika/pull/2735)@[wangshao1](https://github.com/wangshao1)
+- Improved query-caching mechanisms to reduce redundant meta value queries, enhancing both read and write performance of Pika services.[#2735](https://github.com/OpenAtomFoundation/pika/pull/2735)@[wangshao1](https://github.com/wangshao1)
 
 - Supports dynamic adjustment of more RocksDB parameters. Users can adjust parameters according to different business usage scenarios to improve Pika's read and write performance.[#2728](https://github.com/OpenAtomFoundation/pika/pull/2728)@[cheniujh](https://github.com/cheniujh)
 
@@ -36,15 +40,21 @@
 
 - Refactored the master-slave synchronization thread model for slave nodes in master-slave replication mode to minimize binlog consumption blocking issues.[#2638](https://github.com/OpenAtomFoundation/pika/pull/2638)@[cheniujh](https://github.com/cheniujh)
 
+- Added dynamic adjustment parameters for RocksDB Compaction strategy, allowing users to adjust the strategy based on their business needs to reduce the performance impact of Compaction operations.[#2538](https://github.com/OpenAtomFoundation/pika/pull/2538)@[MalikHou](https://github.com/MalikHou)
+
 ## Bugfix
+
+- Fixed an issue with parsing the config parameter min-blob-size when it includes units.[#2767](https://github.com/OpenAtomFoundation/pika/pull/2767)@[wangshao1](https://github.com/wangshao1)
 
 - Fixed an issue with abnormal return values in ZREVRANK.[#2763](https://github.com/OpenAtomFoundation/pika/pull/2763)@[chejinge](https://github.com/chejinge)
 
+- Fixed an error occurring during data migration with Pika-port.[#2758](https://github.com/OpenAtomFoundation/pika/pull/2758)@[guangkun123](https://github.com/guangkun123)
+
 - Fixed an issue causing the Dbsize command to crash at runtime due to buffer overrun on heap allocation.  [#2749](https://github.com/OpenAtomFoundation/pika/pull/2749)@[wangshao1](https://github.com/wangshao1)
 
-- Fixed an issue where uninitialized parameters caused slotsscan and bgsave commands not to balance each other.[#2745](https://github.com/OpenAtomFoundation/pika/pull/2745)@[chejinge](https://github.com/chejinge)
+- Fixed an issue where multiple slaves connecting to the master during batch scaling could cause incomplete data on some slave nodes due to multiple bgsave operations in a short time.[#2746](https://github.com/OpenAtomFoundation/pika/pull/2746)@[cheniujh](https://github.com/cheniujh)
 
-- Fixed an issue where multiple slaves connecting to the master during batch scaling could cause incomplete data on some slave nodes due to multiple bgsave operations in a short time.[#2742](https://github.com/OpenAtomFoundation/pika/pull/2742)@[cheniujh](https://github.com/cheniujh)
+- Fixed an issue where uninitialized parameters caused slotsscan and bgsave commands not to balance each other.[#2745](https://github.com/OpenAtomFoundation/pika/pull/2745)@[chejinge](https://github.com/chejinge)
 
 - Fixed an issue in Slotmigrate where return values were set incorrectly, terminating data migration in exceptional scenarios. [#2741](https://github.com/OpenAtomFoundation/pika/pull/2741)@[chejinge](https://github.com/chejinge)
 
@@ -52,32 +62,33 @@
 
 - Fixed an issue where the pkpatternmatchdel command caused anomalies in stream data deletion due to incorrect usage.[#2726](https://github.com/OpenAtomFoundation/pika/pull/2726)@[wangshao1](https://github.com/wangshao1)
 
+- Fixed an issue where pkpatternmatchdel could not correctly delete the corresponding keys.[#2717](https://github.com/OpenAtomFoundation/pika/pull/2717)@[wangshao1](https://github.com/wangshao1)
+
+- Fixed an ACL password verification error.[#2714](https://github.com/OpenAtomFoundation/pika/pull/2714)@[luky116](https://github.com/luky116)
+
 - Fixed an issue where the Keyspace command did not count Stream type data. [#2705](https://github.com/OpenAtomFoundation/pika/pull/2705)@[wangshao1](https://github.com/wangshao1)
 
 - Customized processing logic for some commands to avoid binlog write issues that caused binlog parsing failures on slave nodes. [#2693](https://github.com/OpenAtomFoundation/pika/pull/2693)@[cheniujh ](https://github.com/cheniujh)
 
 - Fixed an issue where Pika cmdID assignment in the Cmd initialization function could cause data  race  during concurrent construction.[#2692](https://github.com/OpenAtomFoundation/pika/pull/2692)@[gukj-spel](https://github.com/gukj-spel)
 
-- Fixed an issue where ExpectedStale did not consider String types, causing incorrect returns if there were expired String type keys.
-  [#2682](https://github.com/OpenAtomFoundation/pika/pull/2682)@[wangshao1](https://github.com/wangshao1)
+- Fixed an issue where ExpectedStale did not consider String types, causing incorrect returns if there were expired String type keys.[#2682](https://github.com/OpenAtomFoundation/pika/pull/2682)@[wangshao1](https://github.com/wangshao1)
 
-- Fixed a potential race condition in Spop when writing binlog.
-  [#2674](https://github.com/OpenAtomFoundation/pika/pull/2674)@[cheniujh](https://github.com/cheniujh)
+- Fixed a potential race condition in Spop when writing binlog.[#2674](https://github.com/OpenAtomFoundation/pika/pull/2674)@[cheniujh](https://github.com/cheniujh)
 
-- Added error messages for unreasonable db instance settings.
-  [#2672](https://github.com/OpenAtomFoundation/pika/pull/2672)@[Mixficsol](https://github.com/Mixficsol)
+- Added error messages for unreasonable db instance settings.[#2672](https://github.com/OpenAtomFoundation/pika/pull/2672)@[Mixficsol](https://github.com/Mixficsol)
 
-- Added error messages for unreasonable db instance settings.
-  [#2671](https://github.com/OpenAtomFoundation/pika/pull/2671)@[cheniujh](https://github.com/cheniujh)
+- Fixed a data race issue in server_stat.[#2671](https://github.com/OpenAtomFoundation/pika/pull/2671)@[cheniujh](https://github.com/cheniujh)
 
-- Fixed an issue where full sync did not retry after timeout in multi-DB environments.
-  [#2667](https://github.com/OpenAtomFoundation/pika/pull/2667)@[cheniujh](https://github.com/cheniujh)
+- Fixed an issue where full sync did not retry after timeout in multi-DB environments.[#2667](https://github.com/OpenAtomFoundation/pika/pull/2667)@[cheniujh](https://github.com/cheniujh)
 
-- Fixed a potential window crash issue under timeout scenarios in multi-DB master-slave environments.
-  [#2666](https://github.com/OpenAtomFoundation/pika/pull/2666)@[cheniujh](https://github.com/cheniujh)
+- Fixed a potential window crash issue under timeout scenarios in multi-DB master-slave environments.[#2666](https://github.com/OpenAtomFoundation/pika/pull/2666)@[cheniujh](https://github.com/cheniujh)
 
-- Fixed repeated unlocking issues in master-slave sync rate limiting logic.
-  [#2657](https://github.com/OpenAtomFoundation/pika/pull/2657)@[cheniujh](https://github.com/cheniujh)
+- Fixed repeated unlocking issues in master-slave sync rate limiting logic.[#2657](https://github.com/OpenAtomFoundation/pika/pull/2657)@[cheniujh](https://github.com/cheniujh)
+
+- Release now supports automatic packaging of binary compilation packages for CentOS7 and CentOS8 platforms.[#2535](https://github.com/OpenAtomFoundation/pika/pull/2535)@[baerwang](https://github.com/baerwang)
+
+- Fixed an issue where the getrange command on the Codis side did not return the expected result.[#2510](https://github.com/OpenAtomFoundation/pika/pull/2510)@[luky116](https://github.com/luky116)
 
 
 # v3.5.4
