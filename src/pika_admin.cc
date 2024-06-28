@@ -2198,6 +2198,7 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
         "slave-priority",
         "sync-window-size",
         "slow-cmd-list",
+        "open-rocksdb-statistics-tickers",
         // Options for storage engine
         // MutableDBOptions
         "max-cache-files",
@@ -2855,6 +2856,21 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
     g_pika_conf->SetAclLogMaxLen(static_cast<int>(ival));
     res_.AppendStringRaw("+OK\r\n");
   } else if (set_item == "max-conn-rbuf-size") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0 || ival < PIKA_MAX_CONN_RBUF_LB || ival > PIKA_MAX_CONN_RBUF_HB * 2) {
+      res_.AppendStringRaw( "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-conn-rbuf-size'\r\n");
+      return;
+    }
+    g_pika_conf->SetMaxConnRbufSize(static_cast<int>(ival));
+    res_.AppendStringRaw("+OK\r\n");
+  } else if (set_item == "open-rocksdb-statistics-tickers") {
+    std::string v(value);
+    pstd::StringToLower(v);
+    if (v != "yes" && v != "no") {
+      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'open-rocksdb-statistics-tickers'\r\n");
+      return;
+    }
+    g_pika_conf->SetOpenRocksdbStatisticsTickers(value);
+    res_.AppendStringRaw("+OK\r\n");
     if (pstd::string2int(value.data(), value.size(), &ival) == 0 || ival < PIKA_MAX_CONN_RBUF_LB || ival > PIKA_MAX_CONN_RBUF_HB * 2) {
       res_.AppendStringRaw( "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-conn-rbuf-size'\r\n");
       return;

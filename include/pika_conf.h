@@ -844,6 +844,12 @@ class PikaConf : public pstd::BaseConf {
     pstd::StringSplit2Set(lower_value, ',', admin_cmd_set_);
   }
 
+  void SetOpenRocksdbStatisticsTickers(const std::string& value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("open-rocksdb-statistics-tickers", value);
+    open_rocksdb_statistics_tickers_ = value == "true";
+  }
+
   void SetCacheType(const std::string &value);
   void SetCacheDisableFlag() { tmp_cache_disable_flag_ = true; }
   int zset_cache_start_direction() { return zset_cache_start_direction_; }
