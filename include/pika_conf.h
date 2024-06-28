@@ -847,7 +847,7 @@ class PikaConf : public pstd::BaseConf {
   void SetOpenRocksdbStatisticsTickers(const std::string& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("open-rocksdb-statistics-tickers", value);
-    open_rocksdb_statistics_tickers_ = value == "true";
+    open_rocksdb_statistics_tickers_ = value == "yes";
   }
 
   void SetCacheType(const std::string &value);
