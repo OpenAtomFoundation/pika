@@ -1920,11 +1920,11 @@ Status Storage::EnableAutoCompaction(const OptionType& option_type,
   return s;
 }
 
-void Storage::GetRocksDBInfo(std::string& info) {
+void Storage::GetRocksDBInfo(std::string& info, bool open_ticker) {
   char temp[12] = {0};
   for (const auto& inst : insts_) {
     snprintf(temp, sizeof(temp), "instance%d_", inst->GetIndex());
-    inst->GetRocksDBInfo(info, temp);
+    inst->GetRocksDBInfo(info, temp, open_ticker);
   }
 }
 

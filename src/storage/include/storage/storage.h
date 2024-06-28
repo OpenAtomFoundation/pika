@@ -1091,7 +1091,7 @@ class Storage {
                     const std::string& db_type, const std::unordered_map<std::string, std::string>& options);
   Status EnableAutoCompaction(const OptionType& option_type,
                     const std::string& db_type, const std::unordered_map<std::string, std::string>& options);
-  void GetRocksDBInfo(std::string& info);
+  void GetRocksDBInfo(std::string& info, bool open_ticker);
 
  private:
   std::vector<std::unique_ptr<Redis>> insts_;

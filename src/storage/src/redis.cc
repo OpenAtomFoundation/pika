@@ -266,7 +266,7 @@ Status Redis::SetOptions(const OptionType& option_type, const std::unordered_map
   return s;
 }
 
-void Redis::GetRocksDBInfo(std::string& info, const char* prefix) {
+void Redis::GetRocksDBInfo(std::string& info, const char* prefix, bool open_ticker) {
     std::ostringstream string_stream;
     string_stream << "#" << prefix << "RocksDB" << "\r\n";
 
@@ -290,7 +290,7 @@ void Redis::GetRocksDBInfo(std::string& info, const char* prefix) {
       }
     };
 
-    auto write_ticker_count = [&](uint32_t, const char *metric) {
+    auto write_ticker_count = [&](uint32_t tick_type, const char *metric) {
       if (db_statistics_ == nullptr) {
         return;
       }
@@ -311,32 +311,10 @@ void Redis::GetRocksDBInfo(std::string& info, const char* prefix) {
     write_aggregated_int_property(rocksdb::DB::Properties::kNumImmutableMemTableFlushed, "num_immutable_mem_table_flushed");
     write_aggregated_int_property(rocksdb::DB::Properties::kMemTableFlushPending, "mem_table_flush_pending");
     write_aggregated_int_property(rocksdb::DB::Properties::kNumRunningFlushes, "num_running_flushes");
-    write_ticker_count(rocksdb::Tickers::MEMTABLE_HIT, "memtable_hit");
-    write_ticker_count(rocksdb::Tickers::MEMTABLE_MISS, "memtable_miss");
-
-    write_ticker_count(rocksdb::Tickers::BYTES_WRITTEN, "bytes_written");
-    write_ticker_count(rocksdb::Tickers::BYTES_READ, "bytes_read");
-    write_ticker_count(rocksdb::Tickers::ITER_BYTES_READ, "iter_bytes_read");
-    write_ticker_count(rocksdb::Tickers::GET_HIT_L0, "get_hit_l0");
-    write_ticker_count(rocksdb::Tickers::GET_HIT_L1, "get_hit_l1");
-    write_ticker_count(rocksdb::Tickers::GET_HIT_L2_AND_UP, "get_hit_l2_and_up");
-
-    write_ticker_count(rocksdb::Tickers::BLOOM_FILTER_USEFUL, "bloom_filter_useful");
-    write_ticker_count(rocksdb::Tickers::BLOOM_FILTER_FULL_POSITIVE, "bloom_filter_full_positive");
-    write_ticker_count(rocksdb::Tickers::BLOOM_FILTER_FULL_TRUE_POSITIVE, "bloom_filter_full_true_positive");
-    write_ticker_count(rocksdb::Tickers::BLOOM_FILTER_PREFIX_CHECKED, "bloom_filter_prefix_checked");
-    write_ticker_count(rocksdb::Tickers::BLOOM_FILTER_PREFIX_USEFUL, "bloom_filter_prefix_useful");
 
     // compaction
     write_aggregated_int_property(rocksdb::DB::Properties::kCompactionPending, "compaction_pending");
     write_aggregated_int_property(rocksdb::DB::Properties::kNumRunningCompactions, "num_running_compactions");
-    write_ticker_count(rocksdb::Tickers::COMPACTION_KEY_DROP_NEWER_ENTRY, "compaction_key_drop_newer_entry");
-    write_ticker_count(rocksdb::Tickers::COMPACTION_KEY_DROP_OBSOLETE, "compaction_key_drop_obsolete");
-    write_ticker_count(rocksdb::Tickers::COMPACTION_KEY_DROP_USER, "compaction_key_drop_user");
-    write_ticker_count(rocksdb::Tickers::COMPACTION_OPTIMIZED_DEL_DROP_OBSOLETE, "compaction_optimized_del_drop_obsolete");
-    write_ticker_count(rocksdb::Tickers::COMPACT_READ_BYTES, "compact_read_bytes");
-    write_ticker_count(rocksdb::Tickers::COMPACT_WRITE_BYTES, "compact_write_bytes");
-    write_ticker_count(rocksdb::Tickers::FLUSH_WRITE_BYTES, "flush_write_bytes");
 
     // background errors
     write_aggregated_int_property(rocksdb::DB::Properties::kBackgroundErrors, "background_errors");
@@ -349,21 +327,6 @@ void Redis::GetRocksDBInfo(std::string& info, const char* prefix) {
 
     // keys
     write_aggregated_int_property(rocksdb::DB::Properties::kEstimateNumKeys, "estimate_num_keys");
-    write_ticker_count(rocksdb::Tickers::NUMBER_KEYS_READ, "number_keys_read");
-    write_ticker_count(rocksdb::Tickers::NUMBER_KEYS_WRITTEN, "number_keys_written");
-    write_ticker_count(rocksdb::Tickers::NUMBER_KEYS_UPDATED, "number_keys_updated");
-    write_ticker_count(rocksdb::Tickers::NUMBER_OF_RESEEKS_IN_ITERATION, "number_of_reseeks_in_iteration");
-
-    write_ticker_count(rocksdb::Tickers::NUMBER_DB_SEEK, "number_db_seek");
-    write_ticker_count(rocksdb::Tickers::NUMBER_DB_NEXT, "number_db_next");
-    write_ticker_count(rocksdb::Tickers::NUMBER_DB_PREV, "number_db_prev");
-    write_ticker_count(rocksdb::Tickers::NUMBER_DB_SEEK_FOUND, "number_db_seek_found");
-    write_ticker_count(rocksdb::Tickers::NUMBER_DB_NEXT_FOUND, "number_db_next_found");
-    write_ticker_count(rocksdb::Tickers::NUMBER_DB_PREV_FOUND, "number_db_prev_found");
-    write_ticker_count(rocksdb::Tickers::LAST_LEVEL_READ_BYTES, "last_level_read_bytes");
-    write_ticker_count(rocksdb::Tickers::LAST_LEVEL_READ_COUNT, "last_level_read_count");
-    write_ticker_count(rocksdb::Tickers::NON_LAST_LEVEL_READ_BYTES, "non_last_level_read_bytes");
-    write_ticker_count(rocksdb::Tickers::NON_LAST_LEVEL_READ_COUNT, "non_last_level_read_count");
 
     // table readers mem
     write_aggregated_int_property(rocksdb::DB::Properties::kEstimateTableReadersMem, "estimate_table_readers_mem");
@@ -395,8 +358,6 @@ void Redis::GetRocksDBInfo(std::string& info, const char* prefix) {
     write_property(rocksdb::DB::Properties::kCompressionRatioAtLevelPrefix+"6", "compression_ratio_at_level6");
     write_aggregated_int_property(rocksdb::DB::Properties::kTotalSstFilesSize, "total_sst_files_size");
     write_aggregated_int_property(rocksdb::DB::Properties::kLiveSstFilesSize, "live_sst_files_size");
-    write_ticker_count(rocksdb::Tickers::NO_FILE_OPENS, "no_file_opens");
-    write_ticker_count(rocksdb::Tickers::NO_FILE_ERRORS, "no_file_errors");
 
     // pending compaction bytes
     write_aggregated_int_property(rocksdb::DB::Properties::kEstimatePendingCompactionBytes, "estimate_pending_compaction_bytes");
@@ -405,43 +366,96 @@ void Redis::GetRocksDBInfo(std::string& info, const char* prefix) {
     write_aggregated_int_property(rocksdb::DB::Properties::kBlockCacheCapacity, "block_cache_capacity");
     write_aggregated_int_property(rocksdb::DB::Properties::kBlockCacheUsage, "block_cache_usage");
     write_aggregated_int_property(rocksdb::DB::Properties::kBlockCachePinnedUsage, "block_cache_pinned_usage");
-    write_ticker_count(rocksdb::Tickers::BLOCK_CACHE_INDEX_HIT, "block_cache_index_hit");
-    write_ticker_count(rocksdb::Tickers::BLOCK_CACHE_INDEX_MISS, "block_cache_index_miss");
-    write_ticker_count(rocksdb::Tickers::BLOCK_CACHE_FILTER_HIT, "block_cache_filter_hit");
-    write_ticker_count(rocksdb::Tickers::BLOCK_CACHE_FILTER_MISS, "block_cache_filter_miss");
-    write_ticker_count(rocksdb::Tickers::BLOCK_CACHE_DATA_HIT, "block_cache_data_hit");
-    write_ticker_count(rocksdb::Tickers::BLOCK_CACHE_DATA_MISS, "block_cache_data_miss");
-    write_ticker_count(rocksdb::Tickers::BLOCK_CACHE_BYTES_READ, "block_cache_bytes_read");
-    write_ticker_count(rocksdb::Tickers::BLOCK_CACHE_BYTES_WRITE, "block_cache_bytes_write");
 
     // blob files
     write_aggregated_int_property(rocksdb::DB::Properties::kNumBlobFiles, "num_blob_files");
     write_aggregated_int_property(rocksdb::DB::Properties::kBlobStats, "blob_stats");
     write_aggregated_int_property(rocksdb::DB::Properties::kTotalBlobFileSize, "total_blob_file_size");
     write_aggregated_int_property(rocksdb::DB::Properties::kLiveBlobFileSize, "live_blob_file_size");
-    write_ticker_count(rocksdb::Tickers::BLOB_DB_NUM_KEYS_WRITTEN, "blob_db_num_keys_written");
-    write_ticker_count(rocksdb::Tickers::BLOB_DB_NUM_KEYS_READ, "blob_db_num_keys_read");
-    write_ticker_count(rocksdb::Tickers::BLOB_DB_BYTES_WRITTEN, "blob_db_bytes_written");
-    write_ticker_count(rocksdb::Tickers::BLOB_DB_BYTES_READ, "blob_db_bytes_read");
-    write_ticker_count(rocksdb::Tickers::BLOB_DB_NUM_SEEK, "blob_db_num_seek");
-    write_ticker_count(rocksdb::Tickers::BLOB_DB_NUM_NEXT, "blob_db_num_next");
-    write_ticker_count(rocksdb::Tickers::BLOB_DB_NUM_PREV, "blob_db_num_prev");
-    write_ticker_count(rocksdb::Tickers::BLOB_DB_BLOB_FILE_BYTES_WRITTEN, "blob_db_blob_file_bytes_written");
-    write_ticker_count(rocksdb::Tickers::BLOB_DB_BLOB_FILE_BYTES_READ, "blob_db_blob_file_bytes_read");
-
-    write_ticker_count(rocksdb::Tickers::BLOB_DB_GC_NUM_FILES, "blob_db_gc_num_files");
-    write_ticker_count(rocksdb::Tickers::BLOB_DB_GC_NUM_NEW_FILES, "blob_db_gc_num_new_files");
-    write_ticker_count(rocksdb::Tickers::BLOB_DB_GC_NUM_KEYS_RELOCATED, "blob_db_gc_num_keys_relocated");
-    write_ticker_count(rocksdb::Tickers::BLOB_DB_GC_BYTES_RELOCATED, "blob_db_gc_bytes_relocated");
 
     write_aggregated_int_property(rocksdb::DB::Properties::kBlobCacheCapacity, "blob_cache_capacity");
     write_aggregated_int_property(rocksdb::DB::Properties::kBlobCacheUsage, "blob_cache_usage");
     write_aggregated_int_property(rocksdb::DB::Properties::kBlobCachePinnedUsage, "blob_cache_pinned_usage");
-    write_ticker_count(rocksdb::Tickers::BLOB_DB_CACHE_MISS, "blob_db_cache_miss");
-    write_ticker_count(rocksdb::Tickers::BLOB_DB_CACHE_HIT, "blob_db_cache_hit");
-    write_ticker_count(rocksdb::Tickers::BLOB_DB_CACHE_BYTES_READ, "blob_db_cache_bytes_read");
-    write_ticker_count(rocksdb::Tickers::BLOB_DB_CACHE_BYTES_WRITE, "blob_db_cache_bytes_write");
 
+    if (open_ticker) {
+      // memtables num
+      write_ticker_count(rocksdb::Tickers::MEMTABLE_HIT, "memtable_hit");
+      write_ticker_count(rocksdb::Tickers::MEMTABLE_MISS, "memtable_miss");
+
+      write_ticker_count(rocksdb::Tickers::BYTES_WRITTEN, "bytes_written");
+      write_ticker_count(rocksdb::Tickers::BYTES_READ, "bytes_read");
+      write_ticker_count(rocksdb::Tickers::ITER_BYTES_READ, "iter_bytes_read");
+      write_ticker_count(rocksdb::Tickers::GET_HIT_L0, "get_hit_l0");
+      write_ticker_count(rocksdb::Tickers::GET_HIT_L1, "get_hit_l1");
+      write_ticker_count(rocksdb::Tickers::GET_HIT_L2_AND_UP, "get_hit_l2_and_up");
+
+      write_ticker_count(rocksdb::Tickers::BLOOM_FILTER_USEFUL, "bloom_filter_useful");
+      write_ticker_count(rocksdb::Tickers::BLOOM_FILTER_FULL_POSITIVE, "bloom_filter_full_positive");
+      write_ticker_count(rocksdb::Tickers::BLOOM_FILTER_FULL_TRUE_POSITIVE, "bloom_filter_full_true_positive");
+      write_ticker_count(rocksdb::Tickers::BLOOM_FILTER_PREFIX_CHECKED, "bloom_filter_prefix_checked");
+      write_ticker_count(rocksdb::Tickers::BLOOM_FILTER_PREFIX_USEFUL, "bloom_filter_prefix_useful");
+
+      // compaction
+      write_ticker_count(rocksdb::Tickers::COMPACTION_KEY_DROP_NEWER_ENTRY, "compaction_key_drop_newer_entry");
+      write_ticker_count(rocksdb::Tickers::COMPACTION_KEY_DROP_OBSOLETE, "compaction_key_drop_obsolete");
+      write_ticker_count(rocksdb::Tickers::COMPACTION_KEY_DROP_USER, "compaction_key_drop_user");
+      write_ticker_count(rocksdb::Tickers::COMPACTION_OPTIMIZED_DEL_DROP_OBSOLETE, "compaction_optimized_del_drop_obsolete");
+      write_ticker_count(rocksdb::Tickers::COMPACT_READ_BYTES, "compact_read_bytes");
+      write_ticker_count(rocksdb::Tickers::COMPACT_WRITE_BYTES, "compact_write_bytes");
+      write_ticker_count(rocksdb::Tickers::FLUSH_WRITE_BYTES, "flush_write_bytes");
+
+      // keys
+      write_ticker_count(rocksdb::Tickers::NUMBER_KEYS_READ, "number_keys_read");
+      write_ticker_count(rocksdb::Tickers::NUMBER_KEYS_WRITTEN, "number_keys_written");
+      write_ticker_count(rocksdb::Tickers::NUMBER_KEYS_UPDATED, "number_keys_updated");
+      write_ticker_count(rocksdb::Tickers::NUMBER_OF_RESEEKS_IN_ITERATION, "number_of_reseeks_in_iteration");
+
+      write_ticker_count(rocksdb::Tickers::NUMBER_DB_SEEK, "number_db_seek");
+      write_ticker_count(rocksdb::Tickers::NUMBER_DB_NEXT, "number_db_next");
+      write_ticker_count(rocksdb::Tickers::NUMBER_DB_PREV, "number_db_prev");
+      write_ticker_count(rocksdb::Tickers::NUMBER_DB_SEEK_FOUND, "number_db_seek_found");
+      write_ticker_count(rocksdb::Tickers::NUMBER_DB_NEXT_FOUND, "number_db_next_found");
+      write_ticker_count(rocksdb::Tickers::NUMBER_DB_PREV_FOUND, "number_db_prev_found");
+      write_ticker_count(rocksdb::Tickers::LAST_LEVEL_READ_BYTES, "last_level_read_bytes");
+      write_ticker_count(rocksdb::Tickers::LAST_LEVEL_READ_COUNT, "last_level_read_count");
+      write_ticker_count(rocksdb::Tickers::NON_LAST_LEVEL_READ_BYTES, "non_last_level_read_bytes");
+      write_ticker_count(rocksdb::Tickers::NON_LAST_LEVEL_READ_COUNT, "non_last_level_read_count");
+
+      // sst files
+      write_ticker_count(rocksdb::Tickers::NO_FILE_OPENS, "no_file_opens");
+      write_ticker_count(rocksdb::Tickers::NO_FILE_ERRORS, "no_file_errors");
+
+      // block cache
+      write_ticker_count(rocksdb::Tickers::BLOCK_CACHE_INDEX_HIT, "block_cache_index_hit");
+      write_ticker_count(rocksdb::Tickers::BLOCK_CACHE_INDEX_MISS, "block_cache_index_miss");
+      write_ticker_count(rocksdb::Tickers::BLOCK_CACHE_FILTER_HIT, "block_cache_filter_hit");
+      write_ticker_count(rocksdb::Tickers::BLOCK_CACHE_FILTER_MISS, "block_cache_filter_miss");
+      write_ticker_count(rocksdb::Tickers::BLOCK_CACHE_DATA_HIT, "block_cache_data_hit");
+      write_ticker_count(rocksdb::Tickers::BLOCK_CACHE_DATA_MISS, "block_cache_data_miss");
+      write_ticker_count(rocksdb::Tickers::BLOCK_CACHE_BYTES_READ, "block_cache_bytes_read");
+      write_ticker_count(rocksdb::Tickers::BLOCK_CACHE_BYTES_WRITE, "block_cache_bytes_write");
+
+      // blob files
+      write_ticker_count(rocksdb::Tickers::BLOB_DB_NUM_KEYS_WRITTEN, "blob_db_num_keys_written");
+      write_ticker_count(rocksdb::Tickers::BLOB_DB_NUM_KEYS_READ, "blob_db_num_keys_read");
+      write_ticker_count(rocksdb::Tickers::BLOB_DB_BYTES_WRITTEN, "blob_db_bytes_written");
+      write_ticker_count(rocksdb::Tickers::BLOB_DB_BYTES_READ, "blob_db_bytes_read");
+      write_ticker_count(rocksdb::Tickers::BLOB_DB_NUM_SEEK, "blob_db_num_seek");
+      write_ticker_count(rocksdb::Tickers::BLOB_DB_NUM_NEXT, "blob_db_num_next");
+      write_ticker_count(rocksdb::Tickers::BLOB_DB_NUM_PREV, "blob_db_num_prev");
+      write_ticker_count(rocksdb::Tickers::BLOB_DB_BLOB_FILE_BYTES_WRITTEN, "blob_db_blob_file_bytes_written");
+      write_ticker_count(rocksdb::Tickers::BLOB_DB_BLOB_FILE_BYTES_READ, "blob_db_blob_file_bytes_read");
+
+      write_ticker_count(rocksdb::Tickers::BLOB_DB_GC_NUM_FILES, "blob_db_gc_num_files");
+      write_ticker_count(rocksdb::Tickers::BLOB_DB_GC_NUM_NEW_FILES, "blob_db_gc_num_new_files");
+      write_ticker_count(rocksdb::Tickers::BLOB_DB_GC_NUM_KEYS_RELOCATED, "blob_db_gc_num_keys_relocated");
+      write_ticker_count(rocksdb::Tickers::BLOB_DB_GC_BYTES_RELOCATED, "blob_db_gc_bytes_relocated");
+
+      write_ticker_count(rocksdb::Tickers::BLOB_DB_CACHE_MISS, "blob_db_cache_miss");
+      write_ticker_count(rocksdb::Tickers::BLOB_DB_CACHE_HIT, "blob_db_cache_hit");
+      write_ticker_count(rocksdb::Tickers::BLOB_DB_CACHE_BYTES_READ, "blob_db_cache_bytes_read");
+      write_ticker_count(rocksdb::Tickers::BLOB_DB_CACHE_BYTES_WRITE, "blob_db_cache_bytes_write");
+    }
     // column family stats
     std::map<std::string, std::string> mapvalues;
     db_->rocksdb::DB::GetMapProperty(rocksdb::DB::Properties::kCFStats,&mapvalues);

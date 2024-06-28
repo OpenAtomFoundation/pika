@@ -1306,7 +1306,12 @@ void InfoCmd::InfoRocksDB(std::string& info) {
     }
     std::string rocksdb_info;
     db_item.second->DBLockShared();
-    db_item.second->storage()->GetRocksDBInfo(rocksdb_info);
+    if (g_pika_conf->open_rocksdb_statistics_tickers()) {
+      db_item.second->storage()->GetRocksDBInfo(rocksdb_info, true);
+    } else {
+      db_item.second->storage()->GetRocksDBInfo(rocksdb_info, false);
+    }
+
     db_item.second->DBUnlockShared();
     tmp_stream << rocksdb_info;
   }
