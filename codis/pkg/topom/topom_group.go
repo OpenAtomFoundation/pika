@@ -403,6 +403,7 @@ func (s *Topom) tryFixReplicationRelationship(group *models.Group, groupServer *
 	groupServer.Role = models.GroupServerRole(state.Replication.Role)
 	groupServer.DbBinlogFileNum = state.Replication.DbBinlogFileNum
 	groupServer.DbBinlogOffset = state.Replication.DbBinlogOffset
+	groupServer.IsEligibleForMasterElection = state.Replication.IsEligibleForMasterElection
 	groupServer.Action.State = models.ActionSynced
 	err = s.storeUpdateGroup(group)
 	// clean cache whether err is nil or not
