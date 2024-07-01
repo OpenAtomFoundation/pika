@@ -19,6 +19,7 @@ struct TimeStat {
   void Reset() {
     enqueue_ts_ = dequeue_ts_ = 0;
     process_done_ts_ = 0;
+    before_queue_ts_ = 0;
   }
 
   uint64_t start_ts() const {
@@ -37,8 +38,13 @@ struct TimeStat {
     return process_done_ts_ > dequeue_ts_ ? process_done_ts_ - dequeue_ts_ : 0;
   }
 
+  uint64_t before_queue_time() const {
+    return process_done_ts_ > dequeue_ts_ ? before_queue_ts_ - enqueue_ts_ : 0;
+  }
+
   uint64_t enqueue_ts_;
   uint64_t dequeue_ts_;
+  uint64_t before_queue_ts_;
   uint64_t process_done_ts_;
 };
 

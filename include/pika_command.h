@@ -247,6 +247,8 @@ const std::string kCmdNameXInfo = "xinfo";
 
 const std::string kClusterPrefix = "pkcluster";
 
+const std::unordered_set<std::string> interceptCmds = {kCmdNameGet, kCmdNameHGet, kCmdNameHGetall};
+
 /*
  * If a type holds a key, a new data structure
  * that uses the key will use this error

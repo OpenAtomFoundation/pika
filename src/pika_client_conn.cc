@@ -238,6 +238,7 @@ void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t do_dur
       LOG(ERROR) << "ip_port: " << ip_port() << ", db: " << current_db_ << ", command:" << slow_log
                  << ", command_size: " << cmd_size - 1 << ", arguments: " << argv.size()
                  << ", total_time(ms): " << time_stat_->total_time() / 1000
+                 << ", before_queue_time(ms): " << time_stat_->before_queue_time() / 1000
                  << ", queue_time(ms): " << time_stat_->queue_time() / 1000
                  << ", process_time(ms): " << time_stat_->process_time() / 1000
                  << ", cmd_time(ms): " << do_duration / 1000;
@@ -262,7 +263,7 @@ void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& 
   if (async) {
     auto arg = new BgTaskArg();
     arg->redis_cmds = argvs;
-    time_stat_->enqueue_ts_ = pstd::NowMicros();
+    time_stat_->enqueue_ts_ = time_stat_->before_queue_ts_ = pstd::NowMicros();
     arg->conn_ptr = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
     /**
      * If using the pipeline method to transmit batch commands to Pika, it is unable to
@@ -277,14 +278,15 @@ void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& 
     bool read_status = false;
     std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
 
-    if (PIKA_CACHE_NONE != g_pika_conf->cache_mode() && c_ptr && c_ptr->isCacheRead()){
-        // read in cache
-        if (BatchReadCmdInCache(argvs)){
-          delete arg;
-          arg = nullptr;
-          return;
-        }
-    }
+   if (PIKA_CACHE_NONE != g_pika_conf->cache_mode() && !IsInTxn() && interceptCmds.find(opt) != interceptCmds.end()){
+       // read in cache
+       if (BatchReadCmdInCache(argvs)){
+         delete arg;
+         arg = nullptr;
+         return;
+       }
+       time_stat_->before_queue_ts_ = pstd::NowMicros();
+   }
 
     g_pika_server->ScheduleClientPool(&DoBackgroundTask, arg, is_slow_cmd, is_admin_cmd);
     return;

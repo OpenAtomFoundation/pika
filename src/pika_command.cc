@@ -282,7 +282,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameAppend, std::move(appendptr)));
   ////MgetCmd
   std::unique_ptr<Cmd> mgetptr =
-      std::make_unique<MgetCmd>(kCmdNameMget, -2, kCmdFlagsRead | kCmdFlagsKv  | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsReadCache | kCmdReadBeforeQueue | kCmdFlagsFast);
+      std::make_unique<MgetCmd>(kCmdNameMget, -2, kCmdFlagsRead | kCmdFlagsKv  | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsReadCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameMget, std::move(mgetptr)));
   ////KeysCmd
   std::unique_ptr<Cmd> keysptr =
@@ -420,7 +420,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHLen, std::move(hlenptr)));
   ////HMgetCmd
   std::unique_ptr<Cmd> hmgetptr =
-      std::make_unique<HMgetCmd>(kCmdNameHMget, -3, kCmdFlagsRead |  kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdReadBeforeQueue |kCmdFlagsFast);
+      std::make_unique<HMgetCmd>(kCmdNameHMget, -3, kCmdFlagsRead |  kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsReadCache |kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHMget, std::move(hmgetptr)));
   ////HMsetCmd
   std::unique_ptr<Cmd> hmsetptr =
