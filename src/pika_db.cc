@@ -402,6 +402,7 @@ bool DB::TryUpdateMasterOffset() {
       g_pika_rm->GetSyncSlaveDBByName(DBInfo(db_name_));
   if (!slave_db) {
     LOG(ERROR) << "Slave DB: " << db_name_ << " not exist";
+    slave_db->SetReplState(ReplState::kError);
     return false;
   }
 
@@ -409,7 +410,7 @@ bool DB::TryUpdateMasterOffset() {
   if (!pstd::FileExists(info_path)) {
     LOG(WARNING) << "info path: " << info_path << " not exist, Slave DB:" << GetDBName() << " will restart the sync process...";
     // May failed in RsyncClient, thus the complete snapshot dir got deleted
-    slave_db->SetReplState(kTryConnect);
+    slave_db->SetReplState(ReplState::kTryConnect);
     return false;
   }
 
@@ -477,6 +478,7 @@ bool DB::TryUpdateMasterOffset() {
       g_pika_rm->GetSyncMasterDBByName(DBInfo(db_name_));
   if (!master_db) {
     LOG(WARNING) << "Master DB: " << db_name_ << " not exist";
+    slave_db->SetReplState(ReplState::kError);
     return false;
   }
   master_db->Logger()->SetProducerStatus(filenum, offset);
