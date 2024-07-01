@@ -554,17 +554,17 @@ func (s *Topom) doSwitchGroupMaster(g *models.Group, newMasterAddr string, newMa
 }
 
 func updateMasterToNewOne(serverAddr, masterAddr string, auth string) (err error) {
-	log.Warnf("[%s] switch master to server [%s]", serverAddr, masterAddr)
+	log.Infof("[%s] switch master to server [%s]", serverAddr, masterAddr)
 	return setNewRedisMaster(serverAddr, masterAddr, auth, false)
 }
 
 func promoteServerToNewMaster(serverAddr, auth string) (err error) {
-	log.Warnf("[%s] switch master to NO:ONE", serverAddr)
+	log.Infof("[%s] switch master to NO:ONE", serverAddr)
 	return setNewRedisMaster(serverAddr, "NO:ONE", auth, false)
 }
 
 func updateMasterToNewOneForcefully(serverAddr, masterAddr string, auth string) (err error) {
-	log.Warnf("[%s] switch master to server [%s] forcefully", serverAddr, masterAddr)
+	log.Infof("[%s] switch master to server [%s] forcefully", serverAddr, masterAddr)
 	return setNewRedisMaster(serverAddr, masterAddr, auth, true)
 }
 
