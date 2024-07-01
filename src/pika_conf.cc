@@ -166,9 +166,24 @@ int PikaConf::Load() {
     slow_cmd_thread_pool_size_ = 50;
   }
 
+  GetConfInt("admin-thread-pool-size", &admin_thread_pool_size_);
+  if (admin_thread_pool_size_ <= 0) {
+    admin_thread_pool_size_ = 2;
+  }
+  if (admin_thread_pool_size_ > 4) {
+    admin_thread_pool_size_ = 4;
+  }
+
   std::string slow_cmd_list;
   GetConfStr("slow-cmd-list", &slow_cmd_list);
   SetSlowCmd(slow_cmd_list);
+
+  std::string admin_cmd_list;
+  GetConfStr("admin-cmd-list", &admin_cmd_list);
+  if (admin_cmd_list == ""){
+    admin_cmd_list = "info, monitor, ping";
+    SetAdminCmd(admin_cmd_list);
+  }
 
   GetConfInt("sync-thread-num", &sync_thread_num_);
   if (sync_thread_num_ <= 0) {
@@ -647,7 +662,7 @@ int PikaConf::Load() {
 
   // rocksdb blob configure
   GetConfBool("enable-blob-files", &enable_blob_files_);
-  GetConfInt64("min-blob-size", &min_blob_size_);
+  GetConfInt64Human("min-blob-size", &min_blob_size_);
   if (min_blob_size_ <= 0) {
     min_blob_size_ = 4096;
   }
