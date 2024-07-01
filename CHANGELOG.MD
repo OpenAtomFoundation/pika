@@ -54,7 +54,7 @@
 
 - Fixed an issue where multiple slaves connecting to the master during batch scaling could cause incomplete data on some slave nodes due to multiple bgsave operations in a short time.[#2746](https://github.com/OpenAtomFoundation/pika/pull/2746)@[cheniujh](https://github.com/cheniujh)
 
-- Fixed an issue where uninitialized parameters caused slotsscan and bgsave commands not to balance each other.[#2745](https://github.com/OpenAtomFoundation/pika/pull/2745)@[chejinge](https://github.com/chejinge)
+- Corrected uninitialized parameters in slotsscan and bgsave commands to ensure proper balancing.[#2745](https://github.com/OpenAtomFoundation/pika/pull/2745)@[chejinge](https://github.com/chejinge)
 
 - Fixed an issue in Slotmigrate where return values were set incorrectly, terminating data migration in exceptional scenarios. [#2741](https://github.com/OpenAtomFoundation/pika/pull/2741)@[chejinge](https://github.com/chejinge)
 
@@ -80,7 +80,7 @@
 
 - Fixed a data race issue in server_stat.[#2671](https://github.com/OpenAtomFoundation/pika/pull/2671)@[cheniujh](https://github.com/cheniujh)
 
-- Fixed an issue where full sync did not retry after timeout in multi-DB environments.[#2667](https://github.com/OpenAtomFoundation/pika/pull/2667)@[cheniujh](https://github.com/cheniujh)
+- Enhanced the full sync process to automatically retry after a timeout in multi-DB environments..[#2667](https://github.com/OpenAtomFoundation/pika/pull/2667)@[cheniujh](https://github.com/cheniujh)
 
 - Fixed a potential window crash issue under timeout scenarios in multi-DB master-slave environments.[#2666](https://github.com/OpenAtomFoundation/pika/pull/2666)@[cheniujh](https://github.com/cheniujh)
 
