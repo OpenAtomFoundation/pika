@@ -12,7 +12,7 @@
 
 - Codis supports the info command, allowing querying of Codis-proxy's info information. [#2688](https://github.com/OpenAtomFoundation/pika/pull/2688)@[chienguo](https://github.com/chienguo)
 
-- Added Gtest for Floyd's compaction-filter.[#2669](https://github.com/OpenAtomFoundation/pika/pull/2669)@[Mixficsol ](https://github.com/Mixficsol)
+- Added Gtest for Floyd's compaction-filter.[#2669](https://github.com/OpenAtomFoundation/pika/pull/2669)@[Mixficsol](https://github.com/Mixficsol)
 
 - Codis-proxy adds new monitoring metrics such as P99 and P95 response times. [#2668](https://github.com/OpenAtomFoundation/pika/pull/2668)@[chejinge](https://github.com/chejinge)
 
