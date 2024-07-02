@@ -86,6 +86,8 @@ jobs:
     steps:
       - name: Install deps
         run: |
+          # disable the cache
+          echo 'exclude=fastestmirror' >> /etc/yum/pluginconf.d/fastestmirror.conf
           sed -i.bak -e 's|^mirrorlist=|#mirrorlist=|g' \
             -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009|g" \
             -e 's|^baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.aliyun.com/centos-vault/\$releasever|g' \
