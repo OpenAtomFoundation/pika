@@ -84,6 +84,8 @@ jobs:
       image: centos:7
 
     steps:
+      - name: Install EPEL release
+        run: yum install -y epel-release || exit 1
       - name: Install deps
         run: |
           yum install -y wget git autoconf centos-release-scl gcc
