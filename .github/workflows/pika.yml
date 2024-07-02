@@ -86,6 +86,7 @@ jobs:
     steps:
       - name: Set yum Upstream
         run: |
+          curl -I https://www.baidu.com  
           ping -c 5 baidu.com
           ping -c 5 google.com
           sed -e 's|^mirrorlist=|#mirrorlist=|g' \
