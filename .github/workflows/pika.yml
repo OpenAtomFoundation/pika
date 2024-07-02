@@ -91,7 +91,6 @@ jobs:
           -e 's|^baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.aliyun.com/centos-vault/\$releasever|g' \
           /etc/yum.repos.d/CentOS-*.repo
           yum clean all
-          yum makecache
           
           yum install -y wget git autoconf centos-release-scl gcc
           yum install -y devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-make devtoolset-10-bin-util
