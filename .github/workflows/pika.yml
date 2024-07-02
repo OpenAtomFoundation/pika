@@ -86,10 +86,6 @@ jobs:
     steps:
       - name: set up mirror
         run: |
-#          sed -i.bak -e 's|^mirrorlist=|#mirrorlist=|g' \
-#          -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009|g" \
-#          -e 's|^baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.aliyun.com/centos-vault/\$releasever|g' \
-#          /etc/yum.repos.d/CentOS-*.repo
           rm -rf /etc/yum.repos.d/CentOS-Base.repo 
           cat > /etc/yum.repos.d/CentOS-Base.repo << EOL
           [base]
@@ -118,7 +114,6 @@ jobs:
           gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
           EOL
           
-          # 创建并配置 CentOS-SCLo-scl.repo
           cat > /etc/yum.repos.d/CentOS-SCLo-scl.repo << EOL
           [centos-sclo-sclo]
           name=CentOS-7 - SCLo sclo
@@ -135,7 +130,6 @@ jobs:
           gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-SCLo
           EOL
           
-          # 创建并配置 CentOS-SCLo-scl-rh.repo
           cat > /etc/yum.repos.d/CentOS-SCLo-scl-rh.repo << EOL
           [centos-sclo-rh]
           name=CentOS-7 - SCLo rh
@@ -152,15 +146,11 @@ jobs:
           gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-SCLo
           EOL
           
-          # 导入正确的 GPG 密钥
           rpm --import https://www.centos.org/keys/RPM-GPG-KEY-CentOS-7
           rpm --import https://www.centos.org/keys/RPM-GPG-KEY-CentOS-SIG-SCLo
           
-          # 清理并重新生成 yum 缓存
           yum clean all
           yum makecache
-
-
 
       - name: Install deps
         run: |
