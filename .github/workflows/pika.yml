@@ -86,6 +86,8 @@ jobs:
     steps:
       - name: Set yum Upstream
         run: |
+          ping -c 5 google.com
+          ping -c 5 baidu.com
           sed -e 's|^mirrorlist=|#mirrorlist=|g' \
               -e 's|^#baseurl=http://mirror.centos.org|baseurl=http://mirror.aliyun.com|g' \
               -i.bak \
