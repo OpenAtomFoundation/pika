@@ -86,7 +86,7 @@ jobs:
     steps:
       - name: Set yum Upstream
         run: |
-          sudo sed -i.bak \
+           sed -i.bak \
             -e 's|^mirrorlist=|#mirrorlist=|g' \
             -e 's|^#baseurl=http://mirror.centos.org/centos/$releasever/os/$basearch/|baseurl=http://mirrors.tuna.tsinghua.edu.cn/centos/$releasever/os/$basearch/|g' \
             -e 's|^#baseurl=http://mirror.centos.org/centos/$releasever/updates/$basearch/|baseurl=http://mirrors.tuna.tsinghua.edu.cn/centos/$releasever/updates/$basearch/|g' \
