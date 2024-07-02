@@ -276,7 +276,6 @@ void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& 
     bool is_slow_cmd = g_pika_conf->is_slow_cmd(opt);
     bool is_admin_cmd = g_pika_conf->is_admin_cmd(opt);
     bool read_status = false;
-    std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
 
    if (PIKA_CACHE_NONE != g_pika_conf->cache_mode() && !IsInTxn() && interceptCmds.find(opt) != interceptCmds.end()){
        // read in cache
