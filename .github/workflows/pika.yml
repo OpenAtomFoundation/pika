@@ -86,9 +86,15 @@ jobs:
     steps:
       - name: Install deps
         run: |
+          minorver=7.9.2009
           sed -i.bak -e 's|^mirrorlist=|#mirrorlist=|g' \
-            -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009|g" \
-            /etc/yum.repos.d/CentOS-Base.repo
+          -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.aliyun.com/centos-vault/$minorver|g" \
+          -e 's|^baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.aliyun.com/centos-vault/\$releasever|g' \
+          /etc/yum.repos.d/CentOS-*.repo
+
+          sed -i.bak -e 's|^mirrorlist=|#mirrorlist=|g' \
+          -e 's|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.aliyun.com/centos-vault/\$releasever|g' \
+          /etc/yum.repos.d/CentOS-SCLo-scl*.repo
           yum clean all
           yum makecache
           yum install -y wget git autoconf centos-release-scl gcc
