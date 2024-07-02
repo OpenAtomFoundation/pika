@@ -94,10 +94,6 @@ jobs:
             -e 's|^baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.aliyun.com/centos-vault/\$releasever|g' \
             /etc/yum.repos.d/CentOS-*.repo
 
-          sed -i.bak -e 's|^mirrorlist=|#mirrorlist=|g' \
-            -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.aliyun.com/centos/\$releasever|g" \
-            -e 's|^baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.aliyun.com/centos/\$releasever|g' \
-            /etc/yum.repos.d/CentOS-SCLo-scl.repo 
 
           sed -i.bak -e 's|^mirrorlist=|#mirrorlist=|g' \
             -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.aliyun.com/centos/\$releasever|g" \
