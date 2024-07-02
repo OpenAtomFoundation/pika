@@ -86,8 +86,9 @@ jobs:
     steps:
       - name: Set yum Upstream
         run: |
-          chmod +x ../tests/integration/set_upstream_centos.sh
-          ../tests/integration/set_upstream_centos.sh
+          cd ${{ github.workspace }}
+          chmod +x ./tests/integration/set_upstream_centos.sh
+          ./tests/integration/set_upstream_centos.sh
           sudo yum clean all
           sudo yum makecache
       - name: Install deps
