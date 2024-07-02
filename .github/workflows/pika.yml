@@ -87,7 +87,7 @@ jobs:
       - name: Install deps
         run: |
           sed -i.bak -e 's|^mirrorlist=|#mirrorlist=|g' \
-            -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.aliyun.com/centos-vault/7.9|g" \
+            -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009|g" \
             /etc/yum.repos.d/CentOS-Base.repo
           yum clean all
           yum makecache
