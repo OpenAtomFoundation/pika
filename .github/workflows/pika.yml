@@ -88,11 +88,24 @@ jobs:
         run: |
           # disable the cache
           echo 'exclude=fastestmirror' >> /etc/yum/pluginconf.d/fastestmirror.conf
+          
           sed -i.bak -e 's|^mirrorlist=|#mirrorlist=|g' \
-            -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009|g" \
+            -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.aliyun.com/centos-vault/$7.9.2009|g" \
             -e 's|^baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.aliyun.com/centos-vault/\$releasever|g' \
-            -e 's|^mirrorlist|#mirrorlist|g' \
-            /etc/yum.repos.d/*.repo
+            /etc/yum.repos.d/CentOS-*.repo
+
+          sed -i.bak -e 's|^mirrorlist=|#mirrorlist=|g' \
+            -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.aliyun.com/centos/\$releasever|g" \
+            -e 's|^baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.aliyun.com/centos/\$releasever|g' \
+            /etc/yum.repos.d/CentOS-SCLo-scl.repo 
+
+          sed -i.bak -e 's|^mirrorlist=|#mirrorlist=|g' \
+            -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.aliyun.com/centos/\$releasever|g" \
+            -e 's|^baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.aliyun.com/centos/\$releasever|g' \
+            /etc/yum.repos.d/CentOS-SCLo-scl-rh.repo
+          
+          yum clean all
+          yum makecache
           
           yum install -y wget git autoconf centos-release-scl gcc
           yum install -y devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-make devtoolset-10-bin-util
