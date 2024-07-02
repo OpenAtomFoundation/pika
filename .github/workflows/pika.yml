@@ -84,6 +84,12 @@ jobs:
       image: centos:7
 
     steps:
+      - name: Set yum Upstream
+        run: |
+          sed -e 's|^mirrorlist=|#mirrorlist=|g' \
+              -e 's|^#baseurl=http://mirror.centos.org|baseurl=http://mirror.aliyun.com|g' \
+              -i.bak \
+              /etc/yum.repos.d/CentOS-*.repo
       - name: Install deps
         run: |
           yum install -y wget git autoconf centos-release-scl gcc
