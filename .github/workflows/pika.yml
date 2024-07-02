@@ -85,7 +85,7 @@ jobs:
 
     steps:
       - name: Install EPEL release
-        run: yum install -y epel-release || exit 1
+        run: yum install -y epel-release --disablerepo=base,updates
       - name: Install deps
         run: |
           yum install -y wget git autoconf centos-release-scl gcc
