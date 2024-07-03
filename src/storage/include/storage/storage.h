@@ -987,6 +987,8 @@ class Storage {
   // the pattern
   Status PKPatternMatchDel(const DataType& data_type, const std::string& pattern, int32_t* ret);
 
+  int64_t PKPatternMatchDelWithRemoveKeys(const DataType& data_type, const std::string& pattern, std::vector<std::string>* remove_keys);
+
   // Iterate over a collection of elements
   // return next_key that the user need to use as the start_key argument
   // in the next call

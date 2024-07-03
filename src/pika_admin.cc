@@ -3132,11 +3132,27 @@ void PKPatternMatchDelCmd::DoInitial() {
 //TODO: may lead to inconsistent between rediscache and db, because currently it only cleans db
 void PKPatternMatchDelCmd::Do() {
   int ret = 0;
-  rocksdb::Status s = db_->storage()->PKPatternMatchDel(type_, pattern_, &ret);
-  if (s.ok()) {
-    res_.AppendInteger(ret);
+  int64_t count = db_->storage()->PKPatternMatchDelWithRemoveKeys(type_, pattern_, &remove_keys_);
+  if (count >= 0) {
+    res_.AppendInteger(count);
+    s_ = rocksdb::Status::OK();
+    std::vector<std::string>::const_iterator it;
+    for (it = remove_keys_.begin(); it != remove_keys_.end(); it++) {
+      RemSlotKey(*it, db_);
+    }
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, "delete error");
+    s_ = rocksdb::Status::Corruption("delete error");
+  }
+}
+
+void PKPatternMatchDelCmd::DoThroughDB() {
+  Do();
+}
+
+void PKPatternMatchDelCmd::DoUpdateCache() {
+  if(s_.ok()) {
+    db_->cache()->Del(remove_keys_);
   }
 }
 

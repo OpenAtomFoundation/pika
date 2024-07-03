@@ -1764,4 +1764,86 @@ rocksdb::Status Redis::PKPatternMatchDel(const std::string& pattern, int32_t* re
   *ret = total_delete;
   return s;
 }
+
+rocksdb::Status Redis::PKPatternMatchDelWithRemoveKeys(const std::string& pattern, int64_t* ret, std::vector<std::string>* remove_keys) {
+  rocksdb::ReadOptions iterator_options;
+  const rocksdb::Snapshot* snapshot;
+  ScopeSnapshot ss(db_, &snapshot);
+  iterator_options.snapshot = snapshot;
+  iterator_options.fill_cache = false;
+
+  std::string key;
+  std::string meta_value;
+  int32_t total_delete = 0;
+  rocksdb::Status s;
+  rocksdb::WriteBatch batch;
+  rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kMetaCF]);
+  iter->SeekToFirst();
+  while (iter->Valid()) {
+    auto meta_type = static_cast<enum DataType>(static_cast<uint8_t>(iter->value()[0]));
+    ParsedBaseMetaKey parsed_meta_key(iter->key().ToString());
+    key = iter->key().ToString();
+    meta_value = iter->value().ToString();
+
+    if (meta_type == DataType::kStrings) {
+      ParsedStringsValue parsed_strings_value(&meta_value);
+      if (!parsed_strings_value.IsStale() &&
+          (StringMatch(pattern.data(), pattern.size(), parsed_meta_key.Key().data(), parsed_meta_key.Key().size(), 0) != 0)) {
+        batch.Delete(key);
+        remove_keys->push_back(key);
+      }
+    } else if (meta_type == DataType::kLists) {
+      ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
+      if (!parsed_lists_meta_value.IsStale() && (parsed_lists_meta_value.Count() != 0U) &&
+          (StringMatch(pattern.data(), pattern.size(), parsed_meta_key.Key().data(), parsed_meta_key.Key().size(), 0) !=
+           0)) {
+        parsed_lists_meta_value.InitialMetaValue();
+        batch.Put(handles_[kMetaCF], iter->key(), meta_value);
+        remove_keys->push_back(key);
+      }
+    } else if (meta_type == DataType::kStreams) {
+      StreamMetaValue stream_meta_value;
+      stream_meta_value.ParseFrom(meta_value);
+      if ((stream_meta_value.length() != 0) &&
+          (StringMatch(pattern.data(), pattern.size(), parsed_meta_key.Key().data(), parsed_meta_key.Key().size(), 0) != 0)) {
+        stream_meta_value.InitMetaValue();
+        batch.Put(handles_[kMetaCF], key, stream_meta_value.value());
+        remove_keys->push_back(key);
+      }
+    } else {
+      ParsedBaseMetaValue parsed_meta_value(&meta_value);
+      if (!parsed_meta_value.IsStale() && (parsed_meta_value.Count() != 0) &&
+          (StringMatch(pattern.data(), pattern.size(), parsed_meta_key.Key().data(), parsed_meta_key.Key().size(), 0) !=
+           0)) {
+        parsed_meta_value.InitialMetaValue();
+        batch.Put(handles_[kMetaCF], iter->key(), meta_value);
+        remove_keys->push_back(key);
+      }
+    }
+
+    if (static_cast<size_t>(batch.Count()) >= BATCH_DELETE_LIMIT) {
+      s = db_->Write(default_write_options_, &batch);
+      if (s.ok()) {
+        total_delete += static_cast<int32_t>(batch.Count());
+        batch.Clear();
+      } else {
+        remove_keys->erase(remove_keys->end() - batch.Count(), remove_keys->end());
+        *ret = total_delete;
+        return s;
+      }
+    }
+    iter->Next();
+  }
+  if (batch.Count() != 0U) {
+    s = db_->Write(default_write_options_, &batch);
+    if (s.ok()) {
+      total_delete += static_cast<int32_t>(batch.Count());
+      batch.Clear();
+    }
+  }
+
+  *ret = total_delete;
+  return s;
+}
+
 }  //  namespace storage
