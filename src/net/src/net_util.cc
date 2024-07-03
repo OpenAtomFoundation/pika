@@ -35,31 +35,31 @@ uint32_t TimerTaskManager::AddTimerTask(const std::string& task_name, int interv
   int64_t next_expired_time = NowInMs() + interval_ms;
   exec_queue_.insert({next_expired_time, new_task.task_id});
 
-  if (min_interval_ms_ > interval_ms || min_interval_ms_ == -1) {
-    min_interval_ms_ = interval_ms;
-  }
   // return the id of this task
   return new_task.task_id;
 }
+
 int64_t TimerTaskManager::NowInMs() {
   auto now = std::chrono::system_clock::now();
   return std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count();
 }
-int TimerTaskManager::ExecTimerTask() {
+
+int32_t TimerTaskManager::ExecTimerTask() {
   std::vector<ExecTsWithId> fired_tasks_;
   int64_t now_in_ms = NowInMs();
-  // traverse in ascending order
-  for (auto pair = exec_queue_.begin(); pair != exec_queue_.end(); pair++) {
-    if (pair->exec_ts <= now_in_ms) {
-      auto it = id_to_task_.find(pair->id);
+  // traverse in ascending order, and exec expired tasks
+  for (auto pair : exec_queue_) {
+    if (pair.exec_ts <= now_in_ms) {
+      auto it = id_to_task_.find(pair.id);
       assert(it != id_to_task_.end());
       it->second.fun();
-      fired_tasks_.push_back({pair->exec_ts, pair->id});
+      fired_tasks_.push_back({pair.exec_ts, pair.id});
       now_in_ms = NowInMs();
     } else {
       break;
     }
   }
+
   for (auto task : fired_tasks_) {
     exec_queue_.erase(task);
     auto it = id_to_task_.find(task.id);
@@ -69,15 +69,19 @@ int TimerTaskManager::ExecTimerTask() {
       exec_queue_.insert({now_in_ms + it->second.interval_ms, task.id});
     } else {
       // this task only need to be exec once, completely remove this task
-      int interval_del = it->second.interval_ms;
       id_to_task_.erase(task.id);
-      if (interval_del == min_interval_ms_) {
-        RenewMinIntervalMs();
-      }
     }
   }
-  return min_interval_ms_;
+
+  if (exec_queue_.empty()) {
+    //no task to exec, epoll will use -1 as timeout value, and sink into endless wait
+    return -1;
+  }
+  int32_t gap_between_now_and_next_task = static_cast<int32_t>(exec_queue_.begin()->exec_ts - NowInMs());
+  gap_between_now_and_next_task = gap_between_now_and_next_task < 0 ? 0 : gap_between_now_and_next_task;
+  return gap_between_now_and_next_task;
 }
+
 bool TimerTaskManager::DelTimerTaskByTaskId(uint32_t task_id) {
   // remove the task
   auto task_to_del = id_to_task_.find(task_id);
@@ -86,11 +90,6 @@ bool TimerTaskManager::DelTimerTaskByTaskId(uint32_t task_id) {
   }
   int interval_del = task_to_del->second.interval_ms;
   id_to_task_.erase(task_to_del);
-
-  // renew the min_interval_ms_
-  if (interval_del == min_interval_ms_) {
-    RenewMinIntervalMs();
-  }
 
   // remove from exec queue
   ExecTsWithId target_key = {-1, 0};
@@ -104,15 +103,6 @@ bool TimerTaskManager::DelTimerTaskByTaskId(uint32_t task_id) {
     exec_queue_.erase(target_key);
   }
   return true;
-}
-
-void TimerTaskManager::RenewMinIntervalMs() {
-  min_interval_ms_ = -1;
-  for (auto pair : id_to_task_) {
-    if (pair.second.interval_ms < min_interval_ms_ || min_interval_ms_ == -1) {
-      min_interval_ms_ = pair.second.interval_ms;
-    }
-  }
 }
 
 TimerTaskThread::~TimerTaskThread() {
