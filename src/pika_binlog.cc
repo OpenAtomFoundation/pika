@@ -145,6 +145,13 @@ void Binlog::InitLogFile() {
   opened_.store(true);
 }
 
+Status Binlog::IsOpened() {
+  if (!opened_.load()) {
+    return Status::Busy("Binlog is not open yet");
+  }
+  return Status::OK();
+}
+
 Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint32_t* term, uint64_t* logic_id) {
   if (!opened_.load()) {
     return Status::Busy("Binlog is not open yet");

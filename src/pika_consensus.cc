@@ -374,9 +374,7 @@ Status ConsensusCoordinator::InternalAppendBinlog(const std::shared_ptr<Cmd>& cm
     }
     return s;
   }
-  uint32_t filenum = 0;
-  uint64_t offset = 0;
-  return stable_logger_->Logger()->GetProducerStatus(&filenum, &offset);
+  return stable_logger_->Logger()->IsOpened();
 }
 
 Status ConsensusCoordinator::AddSlaveNode(const std::string& ip, int port, int session_id) {
