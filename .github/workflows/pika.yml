@@ -84,6 +84,74 @@ jobs:
       image: rockylinux:9
 
     steps:
+      - name: set up mirror
+        run: |
+          rm -rf /etc/yum.repos.d/CentOS-Base.repo 
+          cat > /etc/yum.repos.d/CentOS-Base.repo << EOL
+          [base]
+          name=CentOS-\$releasever - Base
+          baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009/os/\$basearch/
+          gpgcheck=1
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+          
+          [updates]
+          name=CentOS-\$releasever - Updates
+          baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009/updates/\$basearch/
+          gpgcheck=1
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+          
+          [extras]
+          name=CentOS-\$releasever - Extras
+          baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009/extras/\$basearch/
+          gpgcheck=1
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+          
+          [centosplus]
+          name=CentOS-\$releasever - Plus
+          baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009/centosplus/\$basearch/
+          gpgcheck=1
+          enabled=0
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+          EOL
+          
+          cat > /etc/yum.repos.d/CentOS-SCLo-scl.repo << EOL
+          [centos-sclo-sclo]
+          name=CentOS-7 - SCLo sclo
+          baseurl=https://mirrors.aliyun.com/centos/7/sclo/x86_64/sclo/
+          gpgcheck=1
+          enabled=1
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-SCLo
+          
+          [centos-sclo-sclo-source]
+          name=CentOS-7 - SCLo sclo Source
+          baseurl=https://mirrors.aliyun.com/centos/7/sclo/Source/sclo/
+          gpgcheck=1
+          enabled=0
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-SCLo
+          EOL
+          
+          cat > /etc/yum.repos.d/CentOS-SCLo-scl-rh.repo << EOL
+          [centos-sclo-rh]
+          name=CentOS-7 - SCLo rh
+          baseurl=https://mirrors.aliyun.com/centos/7/sclo/x86_64/rh/
+          gpgcheck=1
+          enabled=1
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-SCLo
+          
+          [centos-sclo-rh-source]
+          name=CentOS-7 - SCLo rh Source
+          baseurl=https://mirrors.aliyun.com/centos/7/sclo/Source/rh/
+          gpgcheck=1
+          enabled=0
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-SCLo
+          EOL
+          
+          rpm --import https://www.centos.org/keys/RPM-GPG-KEY-CentOS-7
+          rpm --import https://www.centos.org/keys/RPM-GPG-KEY-CentOS-SIG-SCLo
+          
+          yum clean all
+          yum makecache
+
       - name: Install deps
         run: |
           dnf update -y
