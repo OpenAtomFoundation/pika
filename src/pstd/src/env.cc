@@ -1,15 +1,11 @@
 #include "pstd/include/env.h"
 
-#include <dirent.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/resource.h>
-#include <sys/stat.h>
-#include <sys/time.h>
 #include <cassert>
 
 #include <cstdio>
-#include <fstream>
 #include <sstream>
 #include <utility>
 #include <thread>

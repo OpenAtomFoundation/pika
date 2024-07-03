@@ -120,13 +120,27 @@ Binlog::Binlog(std::string  binlog_path, const int file_size)
     uint64_t filesize = queue_->Filesize();
     DLOG(INFO) << "Binlog: filesize is " << filesize;
   }
-
   InitLogFile();
+
+  timer_task_thread_.AddTimerTask("flush_binlog_task", 500, true,
+                                [this] { this->FlushBufferedFile(); });
+  timer_task_thread_.StartThread();
 }
 
 Binlog::~Binlog() {
   std::lock_guard l(mutex_);
+  timer_task_thread_.StopThread();
   Close();
+}
+
+void Binlog::FlushBufferedFile() {
+  std::lock_guard l(mutex_);
+  if (!opened_.load()) {
+    return;
+  }
+  if (queue_) {
+    queue_->Flush();
+  }
 }
 
 void Binlog::Close() {
