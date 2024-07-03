@@ -670,7 +670,7 @@ int PikaConf::Load() {
 
   // rocksdb blob configure
   GetConfBool("enable-blob-files", &enable_blob_files_);
-  GetConfInt64("min-blob-size", &min_blob_size_);
+  GetConfInt64Human("min-blob-size", &min_blob_size_);
   if (min_blob_size_ <= 0) {
     min_blob_size_ = 4096;
   }
