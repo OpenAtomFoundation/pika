@@ -66,6 +66,7 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
 
   rocksdb::DBOptions db_ops(storage_options.options);
   db_ops.create_missing_column_families = true;
+  db_ops.statistics = rocksdb::CreateDBStatistics();
   // db_ops.env = env_;
 
   /*

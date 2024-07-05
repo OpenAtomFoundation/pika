@@ -2220,7 +2220,6 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
         "zset-cache-field-num-per-key",
         "cache-lfu-decay-time",
         "max-conn-rbuf-size",
-        "open-rocksdb-statistics-tickers",
     });
     res_.AppendStringVector(replyVt);
     return;
@@ -2861,15 +2860,6 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
       return;
     }
     g_pika_conf->SetMaxConnRbufSize(static_cast<int>(ival));
-    res_.AppendStringRaw("+OK\r\n");
-  } else if (set_item == "open-rocksdb-statistics-tickers") {
-    std::string v(value);
-    pstd::StringToLower(v);
-    if (v != "yes" && v != "no") {
-      res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'open-rocksdb-statistics-tickers'\r\n");
-      return;
-    }
-    g_pika_conf->SetOpenRocksdbStatisticsTickers(value);
     res_.AppendStringRaw("+OK\r\n");
   } else {
     res_.AppendStringRaw("-ERR Unsupported CONFIG parameter: " + set_item + "\r\n");
