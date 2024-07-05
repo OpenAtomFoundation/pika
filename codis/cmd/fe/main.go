@@ -202,7 +202,11 @@ Options:
 	if n, ok := utils.ArgumentInteger(d, "--tls"); ok && n == 1 {
 
 		// Load server certificate and key
-		cert, err := tls.LoadX509KeyPair(utils.ArgumentMust(d, "--tls-cert"), utils.ArgumentMust(d, "--tls-key"))
+		certFile, keyFile := utils.ArgumentMust(d, "--tls-cert"), utils.ArgumentMust(d, "--tls-key")
+		if certFile == "" || keyFile == "" {
+			log.Panic("TLS certificate or key file path must be provided")
+		}
+		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 		if err != nil {
 			log.PanicErrorf(err, "failed to load key pair: %s", err)
 		}
