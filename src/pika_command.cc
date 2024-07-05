@@ -10,7 +10,6 @@
 #include "include/pika_acl.h"
 #include "include/pika_admin.h"
 #include "include/pika_bit.h"
-#include "include/pika_cmd_table_manager.h"
 #include "include/pika_command.h"
 #include "include/pika_geo.h"
 #include "include/pika_hash.h"
@@ -57,7 +56,7 @@ void InitCmdTable(CmdTable* cmd_table) {
       std::make_unique<CompactCmd>(kCmdNameCompact, -1, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSlow | kCmdFlagsSuspend);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameCompact, std::move(compactptr)));
 
-  std::unique_ptr<Cmd> compactrangeptr = std::make_unique<CompactRangeCmd>(kCmdNameCompactRange, 5, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend);
+  std::unique_ptr<Cmd> compactrangeptr = std::make_unique<CompactRangeCmd>(kCmdNameCompactRange, 4, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameCompactRange, std::move(compactrangeptr)));
   std::unique_ptr<Cmd> purgelogsto =
       std::make_unique<PurgelogstoCmd>(kCmdNamePurgelogsto, -2, kCmdFlagsRead | kCmdFlagsAdmin);
@@ -131,7 +130,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePadding, std::move(paddingptr)));
 
   std::unique_ptr<Cmd> pkpatternmatchdelptr =
-      std::make_unique<PKPatternMatchDelCmd>(kCmdNamePKPatternMatchDel, 3, kCmdFlagsWrite | kCmdFlagsAdmin);
+      std::make_unique<PKPatternMatchDelCmd>(kCmdNamePKPatternMatchDel, 2, kCmdFlagsWrite | kCmdFlagsAdmin);
   cmd_table->insert(
       std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePKPatternMatchDel, std::move(pkpatternmatchdelptr)));
   std::unique_ptr<Cmd> dummyptr = std::make_unique<DummyCmd>(kCmdDummy, 0, kCmdFlagsWrite);
@@ -361,10 +360,6 @@ void InitCmdTable(CmdTable* cmd_table) {
   std::unique_ptr<Cmd> typeptr =
       std::make_unique<TypeCmd>(kCmdNameType, 2, kCmdFlagsRead |  kCmdFlagsOperateKey  | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameType, std::move(typeptr)));
-  ////PTypeCmd
-  std::unique_ptr<Cmd> pTypeptr =
-      std::make_unique<PTypeCmd>(kCmdNamePType, 2, kCmdFlagsRead |  kCmdFlagsOperateKey | kCmdFlagsFast);
-  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePType, std::move(pTypeptr)));
   ////ScanCmd
   std::unique_ptr<Cmd> scanptr =
       std::make_unique<ScanCmd>(kCmdNameScan, -2, kCmdFlagsRead | kCmdFlagsOperateKey | kCmdFlagsSlow);
@@ -375,7 +370,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameScanx, std::move(scanxptr)));
   ////PKSetexAtCmd
   std::unique_ptr<Cmd> pksetexatptr = std::make_unique<PKSetexAtCmd>(
-      kCmdNamePKSetexAt, 4, kCmdFlagsWrite |  kCmdFlagsKv | kCmdFlagsSlow);
+      kCmdNamePKSetexAt, 4, kCmdFlagsWrite |  kCmdFlagsKv | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePKSetexAt, std::move(pksetexatptr)));
   ////PKScanRange
   std::unique_ptr<Cmd> pkscanrangeptr = std::make_unique<PKScanRangeCmd>(
@@ -682,7 +677,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBitSet, std::move(bitsetptr)));
   ////bitgetCmd
   std::unique_ptr<Cmd> bitgetptr =
-      std::make_unique<BitGetCmd>(kCmdNameBitGet, 3, kCmdFlagsRead | kCmdFlagsBit | kCmdFlagsSlow | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache);
+      std::make_unique<BitGetCmd>(kCmdNameBitGet, 3, kCmdFlagsRead | kCmdFlagsBit | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBitGet, std::move(bitgetptr)));
   ////bitcountCmd
   std::unique_ptr<Cmd> bitcountptr =
@@ -690,7 +685,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBitCount, std::move(bitcountptr)));
   ////bitposCmd
   std::unique_ptr<Cmd> bitposptr =
-      std::make_unique<BitPosCmd>(kCmdNameBitPos, -3, kCmdFlagsRead | kCmdFlagsBit | kCmdFlagsSlow | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache);
+      std::make_unique<BitPosCmd>(kCmdNameBitPos, -3, kCmdFlagsRead | kCmdFlagsBit | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameBitPos, std::move(bitposptr)));
   ////bitopCmd
   std::unique_ptr<Cmd> bitopptr =
@@ -708,7 +703,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePfCount, std::move(pfcountptr)));
   ////pfmergeCmd
   std::unique_ptr<Cmd> pfmergeptr = std::make_unique<PfMergeCmd>(
-      kCmdNamePfMerge, -3, kCmdFlagsWrite | kCmdFlagsHyperLogLog | kCmdFlagsSlow);
+      kCmdNamePfMerge, -2, kCmdFlagsWrite | kCmdFlagsHyperLogLog | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePfMerge, std::move(pfmergeptr)));
 
   // GEO
@@ -834,8 +829,6 @@ bool Cmd::CheckArg(uint64_t num) const { return !((arity_ > 0 && num != arity_) 
 
 Cmd::Cmd(std::string name, int arity, uint32_t flag, uint32_t aclCategory)
     : name_(std::move(name)), arity_(arity), flag_(flag), aclCategory_(aclCategory) {
-  // assign cmd id
-  cmdId_ = g_pika_cmd_table_manager->GetCmdId();
 }
 
 void Cmd::Initial(const PikaCmdArgsType& argv, const std::string& db_name) {

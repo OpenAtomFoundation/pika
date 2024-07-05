@@ -30,6 +30,8 @@
 #define PIKA_SERVER_ID_MAX 65535
 
 class PikaServer;
+/* Global Const */
+constexpr int MAX_DB_NUM = 8;
 
 /* Port shift */
 const int kPortShiftRSync = 1000;
@@ -41,6 +43,7 @@ const std::string kDefaultRsyncAuth = "default";
 
 /* Rsync */
 const int kMaxRsyncParallelNum = 4;
+constexpr int kMaxRsyncInitReTryTimes = 64;
 
 struct DBStruct {
   DBStruct(std::string tn, int32_t inst_num)
@@ -371,14 +374,6 @@ const uint32_t kDBSyncMaxGap = 50;
 const std::string kDBSyncModule = "document";
 
 const std::string kBgsaveInfoFile = "info";
-
-// prefix of pika cache
-const std::string PCacheKeyPrefixK = "K";
-const std::string PCacheKeyPrefixH = "H";
-const std::string PCacheKeyPrefixS = "S";
-const std::string PCacheKeyPrefixZ = "Z";
-const std::string PCacheKeyPrefixL = "L";
-
 
 /*
  * cache status

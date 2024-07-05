@@ -61,9 +61,17 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return slow_cmd_thread_pool_size_;
   }
+  int admin_thread_pool_size() {
+    std::shared_lock l(rwlock_);
+    return admin_thread_pool_size_;
+  }
   int sync_thread_num() {
     std::shared_lock l(rwlock_);
     return sync_thread_num_;
+  }
+  int sync_binlog_thread_num() {
+    std::shared_lock l(rwlock_);
+    return sync_binlog_thread_num_;
   }
   std::string log_path() {
     std::shared_lock l(rwlock_);
@@ -182,6 +190,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return slotmigrate_;
   }
+  bool slow_cmd_pool() {
+    std::shared_lock l(rwlock_);
+    return slow_cmd_pool_;
+  }
   std::string server_id() {
     std::shared_lock l(rwlock_);
     return server_id_;
@@ -251,6 +263,12 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return target_file_size_base_;
   }
+
+  uint64_t max_compaction_bytes() {
+    std::shared_lock l(rwlock_);
+    return static_cast<uint64_t>(max_compaction_bytes_);
+  }
+
   int max_cache_statistic_keys() {
     std::shared_lock l(rwlock_);
     return max_cache_statistic_keys_;
@@ -274,6 +292,10 @@ class PikaConf : public pstd::BaseConf {
   int max_background_jobs() {
     std::shared_lock l(rwlock_);
     return max_background_jobs_;
+  }
+  uint64_t delayed_write_rate(){
+    std::shared_lock l(rwlock_);
+    return static_cast<uint64_t>(delayed_write_rate_);
   }
   int max_cache_files() {
     std::shared_lock l(rwlock_);
@@ -423,6 +445,12 @@ class PikaConf : public pstd::BaseConf {
     return pstd::Set2String(slow_cmd_set_, ',');
   }
 
+  // Admin Commands configuration
+  const std::string GetAdminCmd() {
+    std::shared_lock l(rwlock_);
+    return pstd::Set2String(admin_cmd_set_, ',');
+  }
+
   const std::string GetUserBlackList() {
     std::shared_lock l(rwlock_);
     return userblacklist_;
@@ -431,6 +459,10 @@ class PikaConf : public pstd::BaseConf {
   bool is_slow_cmd(const std::string& cmd) {
     std::shared_lock l(rwlock_);
     return slow_cmd_set_.find(cmd) != slow_cmd_set_.end();
+  }
+
+  bool is_admin_cmd(const std::string& cmd) {
+    return admin_cmd_set_.find(cmd) != admin_cmd_set_.end();
   }
 
   // Immutable config items, we don't use lock.
@@ -469,6 +501,11 @@ class PikaConf : public pstd::BaseConf {
   void SetLowLevelThreadPoolSize(const int value) {
     std::lock_guard l(rwlock_);
     slow_cmd_thread_pool_size_ = value;
+  }
+
+  void SetAdminThreadPoolSize(const int value) {
+    std::lock_guard l(rwlock_);
+    admin_thread_pool_size_ = value;
   }
 
   void SetSlaveof(const std::string& value) {
@@ -569,6 +606,11 @@ class PikaConf : public pstd::BaseConf {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("slotmigrate", value ? "yes" : "no");
     slotmigrate_.store(value);
+  }
+  void SetSlowCmdPool(const bool value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("slow-cmd-pool", value ? "yes" : "no");
+    slow_cmd_pool_.store(value);
   }
   void SetSlotMigrateThreadNum(const int value) {
     std::lock_guard l(rwlock_);
@@ -719,6 +761,24 @@ class PikaConf : public pstd::BaseConf {
     arena_block_size_ = value;
   }
 
+  void SetRateLmiterBandwidth(int64_t value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("rate-limiter-bandwidth", std::to_string(value));
+    rate_limiter_bandwidth_ = value;
+  }
+
+  void SetDelayedWriteRate(int64_t value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("delayed-write-rate", std::to_string(value));
+    delayed_write_rate_ = value;
+  }
+
+  void SetMaxCompactionBytes(int64_t value) {
+    std::lock_guard l(rwlock_);
+    TryPushDiffCommands("max-compaction-bytes", std::to_string(value));
+    max_compaction_bytes_ = value;
+  }
+
   void SetLogLevel(const std::string& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("loglevel", value);
@@ -773,6 +833,14 @@ class PikaConf : public pstd::BaseConf {
     pstd::StringSplit2Set(lower_value, ',', slow_cmd_set_);
   }
 
+  void SetAdminCmd(const std::string& value) {
+    std::lock_guard l(rwlock_);
+    std::string lower_value = value;
+    pstd::StringToLower(lower_value);
+    TryPushDiffCommands("admin-cmd-list", lower_value);
+    pstd::StringSplit2Set(lower_value, ',', admin_cmd_set_);
+  }
+
   void SetCacheType(const std::string &value);
   void SetCacheDisableFlag() { tmp_cache_disable_flag_ = true; }
   int zset_cache_start_direction() { return zset_cache_start_direction_; }
@@ -791,8 +859,11 @@ class PikaConf : public pstd::BaseConf {
   int thread_num_ = 0;
   int thread_pool_size_ = 0;
   int slow_cmd_thread_pool_size_ = 0;
+  int admin_thread_pool_size_ = 0;
   std::unordered_set<std::string> slow_cmd_set_;
+  std::unordered_set<std::string> admin_cmd_set_ = {"info", "ping", "monitor"};
   int sync_thread_num_ = 0;
+  int sync_binlog_thread_num_ = 0;
   int expire_dump_days_ = 3;
   int db_sync_speed_ = 0;
   std::string slaveof_;
@@ -839,6 +910,7 @@ class PikaConf : public pstd::BaseConf {
   std::string bgsave_path_;
   std::string bgsave_prefix_;
   std::string pidfile_;
+  std::atomic<bool> slow_cmd_pool_;
 
   std::string compression_;
   std::string compression_per_level_;
@@ -857,9 +929,10 @@ class PikaConf : public pstd::BaseConf {
   int max_cache_statistic_keys_ = 0;
   int small_compaction_threshold_ = 0;
   int small_compaction_duration_threshold_ = 0;
-  int max_background_flushes_ = 1;
-  int max_background_compactions_ = 2;
+  int max_background_flushes_ = -1;
+  int max_background_compactions_ = -1;
   int max_background_jobs_ = 0;
+  int64_t delayed_write_rate_ = 0;
   int max_cache_files_ = 0;
   std::atomic<uint64_t> rocksdb_ttl_second_ = 0;
   std::atomic<uint64_t> rocksdb_periodic_second_ = 0;
@@ -903,6 +976,7 @@ class PikaConf : public pstd::BaseConf {
   //
   bool write_binlog_ = false;
   int target_file_size_base_ = 0;
+  int64_t max_compaction_bytes_ = 0;
   int binlog_file_size_ = 0;
 
   // cache
@@ -937,7 +1011,7 @@ class PikaConf : public pstd::BaseConf {
   std::shared_mutex rwlock_;
 
   // Rsync Rate limiting configuration
-  int throttle_bytes_per_second_ = 207200000;
+  int throttle_bytes_per_second_ = 200 << 20; // 200MB/s
   int max_rsync_parallel_num_ = kMaxRsyncParallelNum;
   std::atomic_int64_t rsync_timeout_ms_ = 1000;
 };

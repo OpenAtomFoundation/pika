@@ -17,13 +17,34 @@
 #include "pstd/include/env.h"
 
 namespace storage {
+
+enum class DataType : uint8_t { kStrings = 0, kHashes = 1, kSets = 2, kLists = 3, kZSets = 4, kStreams = 5, kNones = 6, kAll = 7 };
+constexpr int DataTypeNum = int(DataType::kNones);
+
+constexpr char DataTypeTag[] = { 'k', 'h', 's', 'l', 'z', 'x', 'n', 'a'};
+constexpr char* DataTypeStrings[] = { "string", "hash", "set", "list", "zset", "streams", "none", "all"};
+
+constexpr char* DataTypeToString(DataType type) {
+  if (type < DataType::kStrings || type > DataType::kNones) {
+    return DataTypeStrings[static_cast<int>(DataType::kNones)];
+  }
+  return DataTypeStrings[static_cast<int>(type)];
+}
+
+constexpr char DataTypeToTag(DataType type) {
+  if (type < DataType::kStrings || type > DataType::kNones) {
+    return DataTypeTag[static_cast<int>(DataType::kNones)];
+  }
+  return DataTypeTag[static_cast<int>(type)];
+}
+
 class InternalValue {
 public:
-  explicit InternalValue(const rocksdb::Slice& user_value)
-      :  user_value_(user_value) {
-        ctime_ = pstd::NowMicros() / 1000000;
-      }
-  virtual ~InternalValue() {
+ explicit InternalValue(DataType type, const rocksdb::Slice& user_value) : type_(type), user_value_(user_value) {
+   ctime_ = pstd::NowMicros() / 1e6;
+ }
+
+ virtual ~InternalValue() {
     if (start_ != space_) {
       delete[] start_;
     }
@@ -61,6 +82,7 @@ protected:
   uint64_t version_ = 0;
   uint64_t etime_ = 0;
   uint64_t ctime_ = 0;
+  DataType type_;
   char reserve_[16] = {0};
 };
 
@@ -133,6 +155,7 @@ protected:
   uint64_t version_ = 0 ;
   uint64_t ctime_ = 0;
   uint64_t etime_ = 0;
+  DataType type_;
   char reserve_[16] = {0}; //unused
 };
 

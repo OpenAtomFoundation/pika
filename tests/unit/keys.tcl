@@ -31,7 +31,7 @@ start_server {tags {"keys"}} {
     assert_equal {list_1 list_2} [r keys * list]
     assert_equal {zset_1 zset_2} [r keys * zset]
     assert_equal {set_1 set_2} [r keys * set]
-    assert_equal {kv_1 kv_2 hash_1 hash_2 zset_1 zset_2 set_1 set_2 list_1 list_2} [r keys *]
+    assert_equal {kv_1 kv_2 hash_1 hash_2 set_1 set_2 list_1 list_2 zset_1 zset_2} [r keys *]
     assert_equal {kv_1 kv_2} [r keys * STRING]
     assert_equal {hash_1 hash_2} [r keys * HASH]
     assert_equal {list_1 list_2} [r keys * LIST]

@@ -66,6 +66,11 @@ int PikaConf::Load() {
   GetConfStr("slotmigrate", &smgrt);
   slotmigrate_.store(smgrt == "yes" ? true : false);
 
+  // slow cmd thread pool
+  std::string slowcmdpool;
+  GetConfStr("slow-cmd-pool", &slowcmdpool);
+  slow_cmd_pool_.store(slowcmdpool == "yes" ? true : false);
+
   int binlog_writer_num = 1;
   GetConfInt("binlog-writer-num", &binlog_writer_num);
   if (binlog_writer_num <= 0 || binlog_writer_num > 24) {
@@ -126,6 +131,9 @@ int PikaConf::Load() {
   GetConfStr("loglevel", &log_level_);
   GetConfStr("db-path", &db_path_);
   GetConfInt("db-instance-num", &db_instance_num_);
+  if (db_instance_num_ <= 0) {
+    LOG(FATAL) << "db-instance-num load error";
+  }
   int64_t t_val = 0;
   GetConfInt64("rocksdb-ttl-second", &t_val);
   rocksdb_ttl_second_.store(uint64_t(t_val));
@@ -151,16 +159,31 @@ int PikaConf::Load() {
   }
 
   GetConfInt("slow-cmd-thread-pool-size", &slow_cmd_thread_pool_size_);
-  if (slow_cmd_thread_pool_size_ <= 0) {
-    slow_cmd_thread_pool_size_ = 12;
+  if (slow_cmd_thread_pool_size_ < 0) {
+    slow_cmd_thread_pool_size_ = 8;
   }
-  if (slow_cmd_thread_pool_size_ > 100) {
-    slow_cmd_thread_pool_size_ = 100;
+  if (slow_cmd_thread_pool_size_ > 50) {
+    slow_cmd_thread_pool_size_ = 50;
+  }
+
+  GetConfInt("admin-thread-pool-size", &admin_thread_pool_size_);
+  if (admin_thread_pool_size_ <= 0) {
+    admin_thread_pool_size_ = 2;
+  }
+  if (admin_thread_pool_size_ > 4) {
+    admin_thread_pool_size_ = 4;
   }
 
   std::string slow_cmd_list;
   GetConfStr("slow-cmd-list", &slow_cmd_list);
   SetSlowCmd(slow_cmd_list);
+
+  std::string admin_cmd_list;
+  GetConfStr("admin-cmd-list", &admin_cmd_list);
+  if (admin_cmd_list == ""){
+    admin_cmd_list = "info, monitor, ping";
+    SetAdminCmd(admin_cmd_list);
+  }
 
   GetConfInt("sync-thread-num", &sync_thread_num_);
   if (sync_thread_num_ <= 0) {
@@ -176,7 +199,7 @@ int PikaConf::Load() {
 
   if (classic_mode_.load()) {
     GetConfInt("databases", &databases_);
-    if (databases_ < 1 || databases_ > 8) {
+    if (databases_ < 1 || databases_ > MAX_DB_NUM) {
       LOG(FATAL) << "config databases error, limit [1 ~ 8], the actual is: " << databases_;
     }
     for (int idx = 0; idx < databases_; ++idx) {
@@ -184,6 +207,15 @@ int PikaConf::Load() {
     }
   }
   default_db_ = db_structs_[0].db_name;
+
+  // sync_binlog_thread_num_ must be set after the setting of databases_
+  GetConfInt("sync-binlog-thread-num", &sync_binlog_thread_num_);
+  if (sync_binlog_thread_num_ <= 0) {
+      sync_binlog_thread_num_ = databases_;
+  } else {
+      // final value is MIN(sync_binlog_thread_num, databases_)
+      sync_binlog_thread_num_ = sync_binlog_thread_num_ > databases_ ?  databases_ : sync_binlog_thread_num_;
+  }
 
   int tmp_replication_num = 0;
   GetConfInt("replication-num", &tmp_replication_num);
@@ -327,6 +359,12 @@ int PikaConf::Load() {
     max_write_buffer_size_ = PIKA_CACHE_SIZE_DEFAULT;  // 10Gb
   }
 
+  // max-total-wal-size
+  GetConfInt64("max-total-wal-size", &max_total_wal_size_);
+  if (max_total_wal_size_ < 0) {
+    max_total_wal_size_ = 0;
+  }
+
   // rate-limiter-mode
   rate_limiter_mode_ = 1;
   GetConfInt("rate-limiter-mode", &rate_limiter_mode_);
@@ -337,7 +375,7 @@ int PikaConf::Load() {
   // rate-limiter-bandwidth
   GetConfInt64("rate-limiter-bandwidth", &rate_limiter_bandwidth_);
   if (rate_limiter_bandwidth_ <= 0) {
-    rate_limiter_bandwidth_ = 2000 * 1024 * 1024;  // 2000MB/s
+    rate_limiter_bandwidth_ = 1024LL << 30;  // 1024GB/s
   }
 
   // rate-limiter-refill-period-us
@@ -354,6 +392,7 @@ int PikaConf::Load() {
 
   std::string at;
   GetConfStr("rate-limiter-auto-tuned", &at);
+  // rate_limiter_auto_tuned_ will be true if user didn't config
   rate_limiter_auto_tuned_ = at == "yes" || at.empty();
 
   // max_write_buffer_num
@@ -373,6 +412,12 @@ int PikaConf::Load() {
   GetConfIntHuman("target-file-size-base", &target_file_size_base_);
   if (target_file_size_base_ <= 0) {
     target_file_size_base_ = 1048576;  // 10Mb
+  }
+
+  GetConfInt64("max-compaction-bytes", &max_compaction_bytes_);
+  if (max_compaction_bytes_ <= 0) {
+    // RocksDB's default is 25 * target_file_size_base_
+    max_compaction_bytes_ = target_file_size_base_ * 25;
   }
 
   max_cache_statistic_keys_ = 0;
@@ -400,8 +445,9 @@ int PikaConf::Load() {
     small_compaction_duration_threshold_ = 1000000;
   }
 
+  // max-background-flushes and max-background-compactions should both be -1 or both not
   GetConfInt("max-background-flushes", &max_background_flushes_);
-  if (max_background_flushes_ <= 0) {
+  if (max_background_flushes_ <= 0 && max_background_flushes_ != -1) {
     max_background_flushes_ = 1;
   }
   if (max_background_flushes_ >= 6) {
@@ -409,7 +455,7 @@ int PikaConf::Load() {
   }
 
   GetConfInt("max-background-compactions", &max_background_compactions_);
-  if (max_background_compactions_ <= 0) {
+  if (max_background_compactions_ <= 0 && max_background_compactions_ != -1) {
     max_background_compactions_ = 2;
   }
   if (max_background_compactions_ >= 8) {
@@ -423,6 +469,13 @@ int PikaConf::Load() {
   }
   if (max_background_jobs_ >= (8 + 6)) {
     max_background_jobs_ = (8 + 6);
+  }
+
+  GetConfInt64("delayed-write-rate", &delayed_write_rate_);
+  if (delayed_write_rate_ <= 0) {
+    // set 0 means let rocksDB infer from rate-limiter(by default, rate-limiter is 1024GB, delayed_write_rate will be 512GB)
+    // if rate-limiter is nullptr, it would be set to 16MB by RocksDB
+    delayed_write_rate_ = 0;
   }
 
   max_cache_files_ = 5000;
@@ -609,7 +662,7 @@ int PikaConf::Load() {
 
   // rocksdb blob configure
   GetConfBool("enable-blob-files", &enable_blob_files_);
-  GetConfInt64("min-blob-size", &min_blob_size_);
+  GetConfInt64Human("min-blob-size", &min_blob_size_);
   if (min_blob_size_ <= 0) {
     min_blob_size_ = 4096;
   }
@@ -633,7 +686,7 @@ int PikaConf::Load() {
   // throttle-bytes-per-second
   GetConfInt("throttle-bytes-per-second", &throttle_bytes_per_second_);
   if (throttle_bytes_per_second_ <= 0) {
-    throttle_bytes_per_second_ = 207200000;
+    throttle_bytes_per_second_ = 200LL << 20; //200 MB
   }
 
   GetConfInt("max-rsync-parallel-num", &max_rsync_parallel_num_);
@@ -731,6 +784,9 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("max-cache-files", max_cache_files_);
   SetConfInt("max-background-compactions", max_background_compactions_);
   SetConfInt("max-background-jobs", max_background_jobs_);
+  SetConfInt64("rate-limiter-bandwidth", rate_limiter_bandwidth_);
+  SetConfInt64("delayed-write-rate", delayed_write_rate_);
+  SetConfInt64("max-compaction-bytes", max_compaction_bytes_);
   SetConfInt("max-write-buffer-num", max_write_buffer_num_);
   SetConfInt64("write-buffer-size", write_buffer_size_);
   SetConfInt("min-write-buffer-number-to-merge", min_write_buffer_number_to_merge_);

@@ -45,6 +45,15 @@ wait_master_registered() {
   done
 }
 
+wait_all_master_registered() {
+  for ((group_id = 1; group_id <= GROUP_ID; group_id++)); do
+    until $CODIS_ADMIN --list-group | jq -r '.[] | select(.id == '${group_id}') | .servers[] | select(.role == "master") | .server'; do
+      echo "Waiting for master to be registered in group $group_id"
+      sleep 2
+    done
+  done
+}
+
 # confirm group has the max index of all groups
 confirm_max_group() {
     max_group_id=0
@@ -72,7 +81,7 @@ reload_until_success() {
 
 register_server() {
   reload_until_success
-  if [ ${POD_ID} -gt 0 ]; then wait_master_registered; fi
+  if [ ${POD_ID} -gt 0 ]; then wait_all_master_registered; fi
   $CODIS_ADMIN --create-group --gid=${GROUP_ID} 1>/dev/null 2>&1
   $CODIS_ADMIN --group-add --gid=${GROUP_ID} --addr=${KB_POD_FQDN}:9221
   $CODIS_ADMIN --sync-action --create --addr=${KB_POD_FQDN}:9221 1>/dev/null 2>&1
@@ -123,6 +132,7 @@ if [ $# -eq 1 ]; then
     wait_dashboard_running
     confirm_max_group
     wait_master_registered
+    wait_all_master_registered
     rebalance
     exit 0
     ;;

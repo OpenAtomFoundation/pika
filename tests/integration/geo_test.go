@@ -53,7 +53,7 @@ var _ = Describe("Geo Commands", func() {
 			Expect(res.Err()).NotTo(HaveOccurred())
 			Expect(res.Val()).To(HaveLen(2))
 
-			Expect(res.Val()).To(Equal([]interface{}{[]interface{}{"Palermo", "190.4424", []interface{}{"13.361389338970184", "38.115556395496299"}}, []interface{}{"Catania", "56.4413", []interface{}{"15.087267458438873", "37.50266842333162"}}}))
+			Expect(res.Val()).To(Equal([]interface{}{[]interface{}{"Catania", "56.4413", []interface{}{"15.087267458438873", "37.50266842333162"}}, []interface{}{"Palermo", "190.4424", []interface{}{"13.361389338970184", "38.115556395496299"}}}))
 
 		})
 

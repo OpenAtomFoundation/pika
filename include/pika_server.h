@@ -7,12 +7,14 @@
 #define PIKA_SERVER_H_
 
 #include <shared_mutex>
-#if defined(__APPLE__)
+
+#if defined(__APPLE__) || defined(__FreeBSD__)
 #  include <sys/mount.h>
 #  include <sys/param.h>
 #else
 #  include <sys/statfs.h>
 #endif
+
 #include <memory>
 #include <set>
 
@@ -51,21 +53,12 @@ extern std::unique_ptr<PikaConf> g_pika_conf;
 
 enum TaskType {
   kCompactAll,
-  kCompactStrings,
-  kCompactHashes,
-  kCompactSets,
-  kCompactZSets,
-  kCompactList,
   kResetReplState,
   kPurgeLog,
   kStartKeyScan,
   kStopKeyScan,
   kBgSave,
-  kCompactRangeStrings,
-  kCompactRangeHashes,
-  kCompactRangeSets,
-  kCompactRangeZSets,
-  kCompactRangeList,
+  kCompactRangeAll,
 };
 
 struct TaskArg {
@@ -104,6 +97,7 @@ class PikaServer : public pstd::noncopyable {
   bool force_full_sync();
   void SetForceFullSync(bool v);
   void SetDispatchQueueLimit(int queue_limit);
+  void SetSlowCmdThreadPoolFlag(bool flag);
   storage::StorageOptions storage_options();
   std::unique_ptr<PikaDispatchThread>& pika_dispatch_thread() {
     return pika_dispatch_thread_;
@@ -177,7 +171,6 @@ class PikaServer : public pstd::noncopyable {
   void FinishMetaSync();
   bool MetaSyncDone();
   void ResetMetaSyncStatus();
-  void SetLoopDBStateMachine(bool need_loop);
   int GetMetaSyncTimestamp();
   void UpdateMetaSyncTimestamp();
   void UpdateMetaSyncTimestampWithoutLock();
@@ -187,8 +180,8 @@ class PikaServer : public pstd::noncopyable {
   /*
    * PikaClientProcessor Process Task
    */
-  void ScheduleClientPool(net::TaskFunc func, void* arg, bool is_slow_cmd);
-  void ScheduleClientBgThreads(net::TaskFunc func, void* arg, const std::string& hash_str);
+  void ScheduleClientPool(net::TaskFunc func, void* arg, bool is_slow_cmd, bool is_admin_cmd);
+
   // for info debug
   size_t ClientProcessorThreadPoolCurQueueSize();
   size_t ClientProcessorThreadPoolMaxQueueSize();
@@ -317,8 +310,7 @@ class PikaServer : public pstd::noncopyable {
   bool SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slots, int64_t keys_num, const std::shared_ptr<DB>& db);
   void GetSlotsMgrtSenderStatus(std::string *ip, int64_t* port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
   bool SlotsMigrateAsyncCancel();
-  std::shared_mutex bgsave_protector_;
-  BgSaveInfo bgsave_info_;
+  std::shared_mutex bgslots_protector_;
 
   /*
    * BGSlotsReload used
@@ -344,28 +336,28 @@ class PikaServer : public pstd::noncopyable {
   BGSlotsReload bgslots_reload_;
 
   BGSlotsReload bgslots_reload() {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     return bgslots_reload_;
   }
   bool GetSlotsreloading() {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     return bgslots_reload_.reloading;
   }
   void SetSlotsreloading(bool reloading) {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     bgslots_reload_.reloading = reloading;
   }
   void SetSlotsreloadingCursor(int64_t cursor) {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     bgslots_reload_.cursor = cursor;
   }
   int64_t GetSlotsreloadingCursor() {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     return bgslots_reload_.cursor;
   }
 
   void SetSlotsreloadingEndTime() {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     bgslots_reload_.end_time = time(nullptr);
   }
   void Bgslotsreload(const std::shared_ptr<DB>& db);
@@ -406,33 +398,33 @@ class PikaServer : public pstd::noncopyable {
   net::BGThread bgslots_cleanup_thread_;
 
   BGSlotsCleanup bgslots_cleanup() {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     return bgslots_cleanup_;
   }
   bool GetSlotscleaningup() {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     return bgslots_cleanup_.cleaningup;
   }
   void SetSlotscleaningup(bool cleaningup) {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     bgslots_cleanup_.cleaningup = cleaningup;
   }
   void SetSlotscleaningupCursor(int64_t cursor) {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     bgslots_cleanup_.cursor = cursor;
   }
   void SetCleanupSlots(std::vector<int> cleanup_slots) {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     bgslots_cleanup_.cleanup_slots.swap(cleanup_slots);
   }
   std::vector<int> GetCleanupSlots() {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     return bgslots_cleanup_.cleanup_slots;
   }
 
   void Bgslotscleanup(std::vector<int> cleanup_slots, const std::shared_ptr<DB>& db);
   void StopBgslotscleanup() {
-    std::lock_guard ml(bgsave_protector_);
+    std::lock_guard ml(bgslots_protector_);
     bgslots_cleanup_.cleaningup = false;
     std::vector<int> cleanup_slots;
     bgslots_cleanup_.cleanup_slots.swap(cleanup_slots);
@@ -504,6 +496,17 @@ class PikaServer : public pstd::noncopyable {
    */
   int64_t GetLastSave() const {return lastsave_;}
   void UpdateLastSave(int64_t lastsave) {lastsave_ = lastsave;}
+  void InitStatistic(CmdTable *inited_cmd_table) {
+    // we insert all cmd name to statistic_.server_stat.exec_count_db,
+    // then when we can call PikaServer::UpdateQueryNumAndExecCountDB(const std::string&, const std::string&, bool) in parallel without lock
+    // although exec_count_db(unordered_map) is not thread-safe, but we won't trigger any insert or erase operation toward exec_count_db(unordered_map) during the running of pika
+    auto &exec_stat_map = statistic_.server_stat.exec_count_db;
+    for (auto& it : *inited_cmd_table) {
+      std::string cmd_name = it.first; //value copy is needed
+      pstd::StringToUpper(cmd_name); //cmd_name now is all uppercase
+      exec_stat_map.insert(std::make_pair(cmd_name, 0));
+    }
+  }
  private:
   /*
    * TimingTask use
@@ -551,6 +554,7 @@ class PikaServer : public pstd::noncopyable {
   int worker_num_ = 0;
   std::unique_ptr<PikaClientProcessor> pika_client_processor_;
   std::unique_ptr<net::ThreadPool> pika_slow_cmd_thread_pool_;
+  std::unique_ptr<net::ThreadPool> pika_admin_cmd_thread_pool_;
   std::unique_ptr<PikaDispatchThread> pika_dispatch_thread_ = nullptr;
 
   /*
@@ -640,6 +644,11 @@ class PikaServer : public pstd::noncopyable {
    * acl
    */
   std::unique_ptr<::Acl> acl_ = nullptr;
+
+  /*
+   * fast and slow thread pools
+   */
+  bool slow_cmd_thread_pool_flag_;
 };
 
 #endif

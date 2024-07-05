@@ -230,7 +230,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
         c_ptr->DoUpdateCache();
       }
     } else {
-      LOG(WARNING) << "This branch is not impossible reach";
+      LOG(WARNING) << "It is impossbile to reach here";
     }
   } else {
     c_ptr->Do();

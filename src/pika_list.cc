@@ -33,6 +33,8 @@ void LIndexCmd::Do() {
   s_ = db_->storage()->LIndex(key_, index_, &value);
   if (s_.ok()) {
     res_.AppendString(value);
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else if (s_.IsNotFound()) {
     res_.AppendStringLen(-1);
   } else {
@@ -41,9 +43,8 @@ void LIndexCmd::Do() {
 }
 
 void LIndexCmd::ReadCache() {
-  std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
   std::string value;
-  auto s = db_->cache()->LIndex(CachePrefixKeyL, index_, &value);
+  auto s = db_->cache()->LIndex(key_, index_, &value);
   if (s.ok()) {
     res_.AppendString(value);
   } else if (s.IsNotFound()) {
@@ -89,6 +90,8 @@ void LInsertCmd::Do() {
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(llen);
     AddSlotKey("l", key_, db_);
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -100,8 +103,7 @@ void LInsertCmd::DoThroughDB() {
 
 void LInsertCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    db_->cache()->LInsert(CachePrefixKeyL, dir_, pivot_, value_);
+    db_->cache()->LInsert(key_, dir_, pivot_, value_);
   }
 }
 
@@ -118,15 +120,16 @@ void LLenCmd::Do() {
   s_ = db_->storage()->LLen(key_, &llen);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(static_cast<int64_t>(llen));
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
 }
 
 void LLenCmd::ReadCache() {
-  std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
   uint64_t llen = 0;
-  auto s = db_->cache()->LLen(CachePrefixKeyL, &llen);
+  auto s = db_->cache()->LLen(key_, &llen);
   if (s.ok()){
     res_.AppendInteger(llen);
   } else if (s.IsNotFound()) {
@@ -168,7 +171,8 @@ void BlockingBaseCmd::TryToServeBLrPopWithThisKey(const std::string& key, std::s
 
   auto* args = new UnblockTaskArgs(key, std::move(db), dispatchThread);
   bool is_slow_cmd = g_pika_conf->is_slow_cmd("LPOP") || g_pika_conf->is_slow_cmd("RPOP");
-  g_pika_server->ScheduleClientPool(&ServeAndUnblockConns, args, is_slow_cmd);
+  bool is_admin_cmd = false;
+  g_pika_server->ScheduleClientPool(&ServeAndUnblockConns, args, is_slow_cmd, is_admin_cmd);
 }
 
 void BlockingBaseCmd::ServeAndUnblockConns(void* args) {
@@ -201,7 +205,7 @@ void BlockingBaseCmd::ServeAndUnblockConns(void* args) {
       res.AppendArrayLen(2);
       res.AppendString(key);
       res.AppendString(values[0]);
-    } else if (s.IsNotFound()) {
+    } else if (s.IsNotFound() || s.ToString().substr(0, std::char_traits<char>::length(ErrTypeMessage)) == ErrTypeMessage) {
       // this key has no more elements to serve more blocked conn.
       break;
     } else {
@@ -264,6 +268,8 @@ void LPushCmd::Do() {
   if (s_.ok()) {
     res_.AppendInteger(static_cast<int64_t>(llen));
     AddSlotKey("l", key_, db_);
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -281,8 +287,7 @@ void LPushCmd::DoThroughDB() {
 
 void LPushCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    db_->cache()->LPushx(CachePrefixKeyL, values_);
+    db_->cache()->LPushx(key_, values_);
   }
 }
 
@@ -366,6 +371,9 @@ void BLPopCmd::Do() {
       return;
     } else if (s.IsNotFound()) {
       continue;
+    } else if (s_.IsInvalidArgument()) {
+      res_.SetRes(CmdRes::kMultiKey);
+      return;
     } else {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
       return;
@@ -422,6 +430,8 @@ void LPopCmd::Do() {
     for (const auto& element : elements) {
       res_.AppendString(element);
     }
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else if (s_.IsNotFound()) {
     res_.AppendStringLen(-1);
   } else {
@@ -435,9 +445,8 @@ void LPopCmd::DoThroughDB() {
 
 void LPopCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
     std::string value;
-    db_->cache()->LPop(CachePrefixKeyL, &value);
+    db_->cache()->LPop(key_, &value);
   }
 }
 
@@ -459,6 +468,8 @@ void LPushxCmd::Do() {
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(static_cast<int64_t>(llen));
     AddSlotKey("l", key_, db_);
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -470,8 +481,7 @@ void LPushxCmd::DoThroughDB() {
 
 void LPushxCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    db_->cache()->LPushx(CachePrefixKeyL, values_);
+    db_->cache()->LPushx(key_, values_);
   }
 }
 
@@ -500,6 +510,8 @@ void LRangeCmd::Do() {
     for (const auto& value : values) {
       res_.AppendString(value);
     }
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else if (s_.IsNotFound()) {
     res_.AppendArrayLen(0);
   } else {
@@ -509,8 +521,7 @@ void LRangeCmd::Do() {
 
 void LRangeCmd::ReadCache() {
   std::vector<std::string> values;
-  std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-  auto s = db_->cache()->LRange(CachePrefixKeyL, left_, right_, &values);
+  auto s = db_->cache()->LRange(key_, left_, right_, &values);
   if (s.ok()) {
     res_.AppendArrayLen(values.size());
     for (const auto& value : values) {
@@ -553,6 +564,8 @@ void LRemCmd::Do() {
   s_ = db_->storage()->LRem(key_, count_, value_, &res);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(static_cast<int64_t>(res));
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -564,8 +577,7 @@ void LRemCmd::DoThroughDB() {
 
 void LRemCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    db_->cache()->LRem(CachePrefixKeyL, count_, value_);
+    db_->cache()->LRem(key_, count_, value_);
   }
 }
 
@@ -593,6 +605,8 @@ void LSetCmd::Do() {
   } else if (s_.IsCorruption() && s_.ToString() == "Corruption: index out of range") {
     // TODO(): refine return value
     res_.SetRes(CmdRes::kOutOfRange);
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -604,8 +618,7 @@ void LSetCmd::DoThroughDB() {
 
 void LSetCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    db_->cache()->LSet(CachePrefixKeyL, index_, value_);
+    db_->cache()->LSet(key_, index_, value_);
   }
 }
 
@@ -630,6 +643,8 @@ void LTrimCmd::Do() {
   s_ = db_->storage()->LTrim(key_, start_, stop_);
   if (s_.ok() || s_.IsNotFound()) {
     res_.SetRes(CmdRes::kOk);
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -641,8 +656,7 @@ void LTrimCmd::DoThroughDB() {
 
 void LTrimCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    db_->cache()->LTrim(CachePrefixKeyL, start_, stop_);
+    db_->cache()->LTrim(key_, start_, stop_);
   }
 }
 
@@ -663,6 +677,9 @@ void BRPopCmd::Do() {
       return;
     } else if (s_.IsNotFound()) {
       continue;
+    } else if (s_.IsInvalidArgument()) {
+      res_.SetRes(CmdRes::kMultiKey);
+      return;
     } else {
       res_.SetRes(CmdRes::kErrOther, s_.ToString());
       return;
@@ -749,6 +766,8 @@ void RPopCmd::Do() {
     }
   } else if (s_.IsNotFound()) {
     res_.AppendStringLen(-1);
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -760,9 +779,8 @@ void RPopCmd::DoThroughDB() {
 
 void RPopCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
     std::string value;
-    db_->cache()->RPop(CachePrefixKeyL, &value);
+    db_->cache()->RPop(key_, &value);
   }
 }
 
@@ -790,6 +808,9 @@ void RPopLPushCmd::Do() {
     // no actual write operation happened, will not write binlog
     res_.AppendStringLen(-1);
     is_write_binlog_ = false;
+    return;
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
     return;
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
@@ -844,6 +865,8 @@ void RPushCmd::Do() {
   if (s_.ok()) {
     res_.AppendInteger(static_cast<int64_t>(llen));
     AddSlotKey("l", key_, db_);
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -861,8 +884,7 @@ void RPushCmd::DoThroughDB() {
 
 void RPushCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    db_->cache()->RPushx(CachePrefixKeyL, values_);
+    db_->cache()->RPushx(key_, values_);
   }
 }
 
@@ -884,6 +906,8 @@ void RPushxCmd::Do() {
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(static_cast<int64_t>(llen));
     AddSlotKey("l", key_, db_);
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -895,7 +919,6 @@ void RPushxCmd::DoThroughDB() {
 
 void RPushxCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyL = PCacheKeyPrefixL + key_;
-    db_->cache()->RPushx(CachePrefixKeyL, values_);
+    db_->cache()->RPushx(key_, values_);
   }
 }

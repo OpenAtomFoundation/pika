@@ -6,6 +6,7 @@
 #include "net/include/net_cli.h"
 #include "net/include/net_thread.h"
 #include "storage/storage.h"
+#include "storage/src/base_data_key_format.h"
 #include "strings.h"
 
 const std::string SlotKeyPrefix = "_internal:slotkey:4migrate:";
@@ -56,6 +57,7 @@ class PikaMigrate {
   int ParseSKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db);
   int ParseHKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db);
   int ParseLKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db);
+  int ParseMKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db);
   bool SetTTL(const std::string& key, std::string& wbuf_str, int64_t ttl);
 };
 

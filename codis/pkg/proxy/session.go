@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"pika/codis/v2/pkg/utils"
 	"pika/codis/v2/pkg/models"
 	"pika/codis/v2/pkg/proxy/redis"
 	"pika/codis/v2/pkg/utils/errors"
@@ -47,8 +48,9 @@ type Session struct {
 	config *Config
 	proxy  *Proxy
 
+	rand *rand.Rand
+
 	authorized bool
-	rand       *rand.Rand
 }
 
 func (s *Session) String() string {
@@ -79,6 +81,7 @@ func NewSession(sock net.Conn, config *Config, proxy *Proxy) *Session {
 		CreateUnix: time.Now().Unix(),
 	}
 	s.stats.opmap = make(map[string]*opStats, 16)
+	s.rand = rand.New(rand.NewSource(time.Now().UnixNano()))
 	log.Infof("session [%p] create: %s", s, s)
 	return s
 }
@@ -244,31 +247,35 @@ func (s *Session) loopWriter(tasks *RequestChan) (err error) {
 				r.CustomCheckFunc.CheckResponse(r)
 			}
 		}
+
 		nowTime := time.Now().UnixNano()
 		duration := int64((nowTime - r.ReceiveTime) / 1e3)
 		s.updateMaxDelay(duration, r)
 		if fflush {
 			s.flushOpStats(false)
 		}
-		if duration >= s.config.SlowlogLogSlowerThan {
-			SlowCmdCount.Incr() // Atomic global variable, increment by 1 when slow log occurs.
-			//client -> proxy -> server -> porxy -> client
-			//Record the waiting time from receiving the request from the client to sending it to the backend server
-			//the waiting time from sending the request to the backend server to receiving the response from the server
-			//the waiting time from receiving the server response to sending it to the client
-			var d0, d1, d2 int64 = -1, -1, -1
-			if r.SendToServerTime > 0 {
-				d0 = int64((r.SendToServerTime - r.ReceiveTime) / 1e3)
+		if s.config.SlowlogLogSlowerThan >= 0 {
+			if duration >= s.config.SlowlogLogSlowerThan {
+				SlowCmdCount.Incr()
+				// Atomic global variable, increment by 1 when slow log occurs.
+				//client -> proxy -> server -> porxy -> client
+				//Record the waiting time from receiving the request from the client to sending it to the backend server
+				//the waiting time from sending the request to the backend server to receiving the response from the server
+				//the waiting time from receiving the server response to sending it to the client
+				var d0, d1, d2 int64 = -1, -1, -1
+				if r.SendToServerTime > 0 {
+					d0 = int64((r.SendToServerTime - r.ReceiveTime) / 1e3)
+				}
+				if r.SendToServerTime > 0 && r.ReceiveFromServerTime > 0 {
+					d1 = int64((r.ReceiveFromServerTime - r.SendToServerTime) / 1e3)
+				}
+				if r.ReceiveFromServerTime > 0 {
+					d2 = int64((nowTime - r.ReceiveFromServerTime) / 1e3)
+				}
+				index := getWholeCmd(r.Multi, cmd)
+				log.Errorf("%s remote:%s, start_time(us):%d, duration(us): [%d, %d, %d], %d, tasksLen:%d, command:[%s].",
+					time.Unix(r.ReceiveTime/1e9, 0).Format("2006-01-02 15:04:05"), s.Conn.RemoteAddr(), r.ReceiveTime/1e3, d0, d1, d2, duration, r.TasksLen, string(cmd[:index]))
 			}
-			if r.SendToServerTime > 0 && r.ReceiveFromServerTime > 0 {
-				d1 = int64((r.ReceiveFromServerTime - r.SendToServerTime) / 1e3)
-			}
-			if r.ReceiveFromServerTime > 0 {
-				d2 = int64((nowTime - r.ReceiveFromServerTime) / 1e3)
-			}
-			index := getWholeCmd(r.Multi, cmd)
-			log.Errorf("%s remote:%s, start_time(us):%d, duration(us): [%d, %d, %d], %d, tasksLen:%d, command:[%s].",
-				time.Unix(r.ReceiveTime/1e9, 0).Format("2006-01-02 15:04:05"), s.Conn.RemoteAddr(), r.ReceiveTime/1e3, d0, d1, d2, duration, r.TasksLen, string(cmd[:index]))
 		}
 		return nil
 	})
@@ -309,6 +316,8 @@ func (s *Session) handleRequest(r *Request, d *Router) error {
 		return s.handleQuit(r)
 	case "AUTH":
 		return s.handleAuth(r)
+	case "CODIS.INFO":
+		return s.handleCodisInfo(r)
 	}
 
 	if !s.authorized {
@@ -394,6 +403,22 @@ func (s *Session) handleAuth(r *Request) error {
 		s.authorized = true
 		r.Resp = RespOK
 	}
+	return nil
+}
+
+func (s *Session) handleCodisInfo(r *Request) error {
+	if len(r.Multi) != 0 {
+		r.Resp = redis.NewErrorf("ERR wrong number of arguments for 'CODIS.INFO' command")
+		return nil
+	}
+
+	r.Resp = redis.NewArray([]*redis.Resp{
+		redis.NewString([]byte(utils.Version)),
+		redis.NewString([]byte(utils.Compile)),
+		redis.NewString([]byte(fmt.Sprintf("admin addr: %s", s.proxy.model.AdminAddr))),
+		redis.NewString([]byte(fmt.Sprintf("start time: %s", s.proxy.model.StartTime))),
+	})
+
 	return nil
 }
 
@@ -739,32 +764,67 @@ func (s *Session) handleRequestSlotsMapping(r *Request, d *Router) error {
 	}
 }
 
-func (s *Session) incrOpTotal() {
-	s.stats.total.Incr()
-}
+func (s *Session) getOpStats(opstr string, create bool) *opStats {
+	var (
+		ok   bool
+		stat *opStats
+	)
 
-func (s *Session) getOpStats(opstr string) *opStats {
-	e := s.stats.opmap[opstr]
-	if e == nil {
-		e = &opStats{opstr: opstr}
-		s.stats.opmap[opstr] = e
+	func() {
+		cmdstats.opmapLock.RLock()
+		defer cmdstats.opmapLock.RUnlock()
+		stat, ok = s.stats.opmap[opstr]
+	}()
+	if (ok && stat != nil) || !create {
+		return stat
 	}
-	return e
+	cmdstats.opmapLock.Lock()
+	defer cmdstats.opmapLock.Unlock()
+	stat, ok = cmdstats.opmap[opstr]
+	if ok && stat != nil {
+		return stat
+	}
+	stat = &opStats{opstr: opstr}
+	for i := 0; i < IntervalNum; i++ {
+		stat.delayInfo[i] = &delayInfo{interval: IntervalMark[i]}
+	}
+	s.stats.opmap[opstr] = stat
+
+	return stat
 }
 
 func (s *Session) incrOpStats(r *Request, t redis.RespType) {
-	e := s.getOpStats(r.OpStr)
-	e.calls.Incr()
-	e.nsecs.Add(time.Now().UnixNano() - r.ReceiveTime)
+	if r == nil {
+		return
+	}
+	responseTime := time.Now().UnixNano() - r.ReceiveTime
+	var (
+		ok   bool
+		stat *opStats
+	)
+	stat, ok = s.stats.opmap[r.OpStr]
+	if !ok || stat == nil {
+		stat = getOpStats(r.OpStr, true)
+		s.stats.opmap[r.OpStr] = stat
+	}
+	stat.incrOpStats(responseTime, redis.RespType(t))
+	stat, ok = s.stats.opmap["ALL"]
+	if !ok || stat == nil {
+		stat = getOpStats("ALL", true)
+		s.stats.opmap["ALL"] = stat
+	}
+	stat.incrOpStats(responseTime, redis.RespType(t))
+	stat.calls.Incr()
+	stat.nsecs.Add(time.Now().UnixNano() - r.ReceiveTime)
 	switch t {
 	case redis.TypeError:
-		e.redis.errors.Incr()
+		incrOpRedisErrors()
 	}
 }
 
 func (s *Session) incrOpFails(r *Request, err error) error {
 	if r != nil {
-		e := s.getOpStats(r.OpStr)
+		e := s.getOpStats(r.OpStr, true)
 		e.fails.Incr()
 	} else {
 		s.stats.fails.Incr()
@@ -839,7 +899,7 @@ func (s *Session) handlePConfig(r *Request) error {
 }
 
 func (s *Session) updateMaxDelay(duration int64, r *Request) {
-	e := s.getOpStats(r.OpStr) // There is no race condition in the session
+	e := s.getOpStats(r.OpStr, true) // There is no race condition in the session
 	if duration > e.maxDelay.Int64() {
 		e.maxDelay.Set(duration)
 	}

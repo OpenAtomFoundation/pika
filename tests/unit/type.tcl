@@ -23,28 +23,4 @@ start_server {tags {"type"}} {
         r sadd key5 key5
         assert_equal set [r type key5]
     }
-
-    test "ptype none" {
-        r flushdb
-        assert_equal {} [r ptype key]
-    }
-
-    test "ptype command" {
-        r flushdb
-
-        r set key1 key1
-        assert_equal string [r ptype key1]
-
-        r hset key1 key key1
-        assert_equal {string hash} [r ptype key1]
-
-        r lpush key1 key1
-        assert_equal {string hash list} [r ptype key1]
-
-        r zadd key1 100 key1
-        assert_equal {string hash list zset} [r ptype key1]
-
-        r sadd key1 key1
-        assert_equal {string hash list zset set} [r ptype key1]
-    }
 }

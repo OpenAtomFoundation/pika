@@ -2,9 +2,9 @@ name: Pika
 
 on:
   push:
-    branches: [ "unstable", "3.5" ]
+    branches: [ "unstable", "3.5" , "4.0"]
   pull_request:
-    branches: [ "unstable", "3.5" ]
+    branches: [ "unstable", "3.5" , "4.0"]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
@@ -26,8 +26,12 @@ jobs:
         with:
           go-version: 1.19
 
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2.13
+        with:
+          key: ubuntu-latest
+
       - name: Install Deps
-        if: ${{ steps.cache.output.cache-hit != 'true' }}
         run: |
           sudo apt-get install -y autoconf libprotobuf-dev protobuf-compiler
           sudo apt-get install -y clang-tidy-12
@@ -35,16 +39,7 @@ jobs:
       - name: Configure CMake
         # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
         # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
-
-      - name: Cache Build
-        uses: actions/cache@v3
-        id: cache-ubuntu
-        with:
-          key: ${{ runner.os }}-build-ubuntu-${{ hashFiles('**/CMakeLists.txt') }}
-          path: |
-            ${{ github.workspace }}/buildtrees
-            ${{ github.workspace }}/deps
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: Build
         # Build your program with the given configuration
@@ -89,6 +84,74 @@ jobs:
       image: centos:7
 
     steps:
+      - name: set up mirror
+        run: |
+          rm -rf /etc/yum.repos.d/CentOS-Base.repo 
+          cat > /etc/yum.repos.d/CentOS-Base.repo << EOL
+          [base]
+          name=CentOS-\$releasever - Base
+          baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009/os/\$basearch/
+          gpgcheck=1
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+          
+          [updates]
+          name=CentOS-\$releasever - Updates
+          baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009/updates/\$basearch/
+          gpgcheck=1
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+          
+          [extras]
+          name=CentOS-\$releasever - Extras
+          baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009/extras/\$basearch/
+          gpgcheck=1
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+          
+          [centosplus]
+          name=CentOS-\$releasever - Plus
+          baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009/centosplus/\$basearch/
+          gpgcheck=1
+          enabled=0
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+          EOL
+          
+          cat > /etc/yum.repos.d/CentOS-SCLo-scl.repo << EOL
+          [centos-sclo-sclo]
+          name=CentOS-7 - SCLo sclo
+          baseurl=https://mirrors.aliyun.com/centos/7/sclo/x86_64/sclo/
+          gpgcheck=1
+          enabled=1
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-SCLo
+          
+          [centos-sclo-sclo-source]
+          name=CentOS-7 - SCLo sclo Source
+          baseurl=https://mirrors.aliyun.com/centos/7/sclo/Source/sclo/
+          gpgcheck=1
+          enabled=0
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-SCLo
+          EOL
+          
+          cat > /etc/yum.repos.d/CentOS-SCLo-scl-rh.repo << EOL
+          [centos-sclo-rh]
+          name=CentOS-7 - SCLo rh
+          baseurl=https://mirrors.aliyun.com/centos/7/sclo/x86_64/rh/
+          gpgcheck=1
+          enabled=1
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-SCLo
+          
+          [centos-sclo-rh-source]
+          name=CentOS-7 - SCLo rh Source
+          baseurl=https://mirrors.aliyun.com/centos/7/sclo/Source/rh/
+          gpgcheck=1
+          enabled=0
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-SCLo
+          EOL
+          
+          rpm --import https://www.centos.org/keys/RPM-GPG-KEY-CentOS-7
+          rpm --import https://www.centos.org/keys/RPM-GPG-KEY-CentOS-SIG-SCLo
+          
+          yum clean all
+          yum makecache
+
       - name: Install deps
         run: |
           yum install -y wget git autoconf centos-release-scl gcc
@@ -166,25 +229,21 @@ jobs:
         with:
           go-version: 1.19
 
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2.13
+        with:
+          key: macos-12
+
       - name: Install Deps
         run: |
           brew update
           brew install --overwrite python@3.12 autoconf protobuf llvm wget git
           brew install gcc@10 automake cmake make binutils
+
       - name: Configure CMake
         run: |
           export CC=/usr/local/opt/gcc@10/bin/gcc-10 
-          cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DUSE_PIKA_TOOLS=ON -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
-
-      - uses: actions/cache@v3
-        with:
-          path: ${{ github.workspace }}/deps
-          key: ${{ runner.os }}-deps-${{ hashFiles('**/CMakeLists.txt') }}
-
-      - uses: actions/cache@v3
-        with:
-          path: ${{ github.workspace }}/buildtrees
-          key: ${{ runner.os }}-buildtrees-${{ hashFiles('**/CMakeLists.txt') }}
+          cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DUSE_PIKA_TOOLS=ON -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: Build
         run: |

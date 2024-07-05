@@ -34,10 +34,10 @@ start_server {
     }
 
 # Keys for multiple data types of Pika can be duplicate
-#    test {SADD against non set} {
-#        r lpush mylist foo
-#        assert_error WRONGTYPE* {r sadd mylist bar}
-#    }
+    test {SADD against non set} {
+        r lpush mylist foo
+        assert_error WRONGTYPE* {r sadd mylist bar}
+    }
 
     test "SADD a non-integer against an intset" {
         create_set myset {1 2 3}
@@ -251,16 +251,16 @@ start_server {
     }
 
 # Keys for multiple data types of Pika can be duplicate
-#    test "SINTER against non-set should throw error" {
-#        r set key1 x
-#        assert_equal "WRONGTYPE*" [r sinter key1 noset]
-#    }
+    test "SINTER against non-set should throw error" {
+        r set key1 x
+        assert_error WRONGTYPE* {r sinter key1 noset}
+    }
 
 # Keys for multiple data types of Pika can be duplicate
-#    test "SUNION against non-set should throw error" {
-#        r set key1 x
-#        assert_equal "WRONGTYPE*" [r sunion key1 noset]
-#    }
+    test "SUNION against non-set should throw error" {
+        r set key1 x
+        assert_error WRONGTYPE* {r sunion key1 noset}
+    }
 
     test "SINTER should handle non existing key as empty" {
         r del set1 set2 set3
@@ -282,19 +282,19 @@ start_server {
     test "SINTERSTORE against non existing keys should delete dstkey" {
         r set setres xxx
         assert_equal 0 [r sinterstore setres foo111 bar222]
-#        assert_equal 0 [r exists setres]
+        assert_equal 0 [r exists setres]
     }
 
     test "SUNIONSTORE against non existing keys should delete dstkey" {
         r set setres xxx
         assert_equal 0 [r sunionstore setres foo111 bar222]
-#        assert_equal 0 [r exists setres]
+        assert_equal 0 [r exists setres]
     }
 
     foreach {type contents} {hashtable {a b c} intset {1 2 3}} {
         test "SPOP basics - $type" {
             create_set myset $contents
-#            assert_encoding $type myset
+            #assert_encoding $type myset
             assert_equal $contents [lsort [list [r spop myset] [r spop myset] [r spop myset]]]
             assert_equal 0 [r scard myset]
         }
@@ -312,7 +312,7 @@ start_server {
 
     test "SRANDMEMBER with <count> against non existing key" {
         r srandmember nonexisting_key 100
-    } {}
+   } {}
 
     foreach {type contents} {
         hashtable {
@@ -426,9 +426,9 @@ start_server {
         r del myset3 myset4
         create_set myset1 {1 a b}
         create_set myset2 {2 3 4}
-#        assert_encoding hashtable myset1
-#        assert_encoding intset myset2
-    }
+        #assert_encoding hashtable myset1
+       # assert_encoding intset myset2
+  }
 
     test "SMOVE basics - from regular set to intset" {
         # move a non-integer element to an intset should convert encoding
@@ -483,16 +483,16 @@ start_server {
     }
 
 # Keys for multiple data types of Pika can be duplicate
-#    test "SMOVE wrong src key type" {
-#        r set x 10
-#        assert_equal "WRONGTYPE*" [r smove x myset2 foo]
-#    }
+    test "SMOVE wrong src key type" {
+        r set x 10
+        assert_error WRONGTYPE* {r smove x myset2 foo}
+    }
 
 # Keys for multiple data types of Pika can be duplicate
-#    test "SMOVE wrong dst key type" {
-#        r set x 10
-#        assert_equal "WRONGTYPE*" [r smove myset2 x foo]
-#    }
+    test "SMOVE wrong dst key type" {
+        r set x 10
+        assert_equal {0} [r smove myset2 x foo]
+    }
 
     test "SMOVE with identical source and destination" {
         r del set

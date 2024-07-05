@@ -269,13 +269,18 @@ class MgetCmd : public Cmd {
   Cmd* Clone() override { return new MgetCmd(*this); }
 
  private:
+  void DoInitial() override;
+  void MergeCachedAndDbResults();
+  void AssembleResponseFromCache();
+
+ private:
   std::vector<std::string> keys_;
+  std::vector<std::string> cache_miss_keys_;
   std::string value_;
+  std::unordered_map<std::string, std::string> cache_hit_values_;
   std::vector<storage::ValueStatus> split_res_;
   std::vector<storage::ValueStatus> db_value_status_array_;
   std::vector<storage::ValueStatus> cache_value_status_array_;
-  int64_t ttl_ = -1;
-  void DoInitial() override;
   rocksdb::Status s_;
 };
 
@@ -732,26 +737,6 @@ class TypeCmd : public Cmd {
   rocksdb::Status s_;
 };
 
-class PTypeCmd : public Cmd {
- public:
-  PTypeCmd(const std::string& name, int arity, uint32_t flag)
-      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::KEYSPACE)) {}
-  std::vector<std::string> current_key() const override {
-    std::vector<std::string> res;
-    res.push_back(key_);
-    return res;
-  }
-  void Do() override;
-  void Split(const HintKeys& hint_keys) override {};
-  void Merge() override {};
-  Cmd* Clone() override { return new PTypeCmd(*this); }
-
- private:
-  std::string key_;
-  void DoInitial() override;
-  rocksdb::Status s_;
-};
-
 class ScanCmd : public Cmd {
  public:
   ScanCmd(const std::string& name, int arity, uint32_t flag)
@@ -807,6 +792,8 @@ class PKSetexAtCmd : public Cmd {
     return res;
   }
   void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new PKSetexAtCmd(*this); }
@@ -865,7 +852,7 @@ class PKRScanRangeCmd : public Cmd {
   Cmd* Clone() override { return new PKRScanRangeCmd(*this); }
 
  private:
-  storage::DataType type_ = storage::kAll;
+  storage::DataType type_ = storage::DataType::kAll;
   std::string key_start_;
   std::string key_end_;
   std::string pattern_ = "*";

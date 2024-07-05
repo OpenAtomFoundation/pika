@@ -108,10 +108,8 @@ class CompactCmd : public Cmd {
  private:
   void DoInitial() override;
   void Clear() override {
-    struct_type_.clear();
     compact_dbs_.clear();
   }
-  std::string struct_type_;
   std::set<std::string> compact_dbs_;
 };
 
@@ -127,12 +125,10 @@ class CompactRangeCmd : public Cmd {
  private:
   void DoInitial() override;
   void Clear() override {
-    struct_type_.clear();
     compact_dbs_.clear();
     start_key_.clear();
     end_key_.clear();
   }
-  std::string struct_type_;
   std::set<std::string> compact_dbs_;
   std::string start_key_;
   std::string end_key_;
@@ -261,6 +257,7 @@ class InfoCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new InfoCmd(*this); }
+  void Execute() override;
 
  private:
   InfoSection info_section_;
@@ -328,6 +325,7 @@ class ConfigCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ConfigCmd(*this); }
+  void Execute() override;
 
  private:
   std::vector<std::string> config_args_v_;
@@ -424,9 +422,9 @@ class ScandbCmd : public Cmd {
   Cmd* Clone() override { return new ScandbCmd(*this); }
 
  private:
-  storage::DataType type_ = storage::kAll;
+  storage::DataType type_ = storage::DataType::kAll;
   void DoInitial() override;
-  void Clear() override { type_ = storage::kAll; }
+  void Clear() override { type_ = storage::DataType::kAll; }
 };
 
 class SlowlogCmd : public Cmd {
@@ -473,7 +471,7 @@ class PKPatternMatchDelCmd : public Cmd {
   Cmd* Clone() override { return new PKPatternMatchDelCmd(*this); }
 
  private:
-  storage::DataType type_ = storage::kAll;
+  storage::DataType type_ = storage::DataType::kAll;
   std::string pattern_;
   void DoInitial() override;
 };
