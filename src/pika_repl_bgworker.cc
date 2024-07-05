@@ -3,15 +3,15 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_repl_bgworker.h"
-
 #include <glog/logging.h>
 
+#include "include/pika_repl_bgworker.h"
 #include "include/pika_cmd_table_manager.h"
-#include "include/pika_conf.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "pstd/include/pstd_defer.h"
+#include "src/pstd/include/scope_record_lock.h"
+#include "include/pika_conf.h"
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
@@ -49,7 +49,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   PikaReplBgWorker* worker = task_arg->worker;
   worker->ip_port_ = conn->ip_port();
 
-  DEFER { 
+  DEFER {
     delete index;
     delete task_arg;
   };
@@ -216,11 +216,13 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
     start_us = pstd::NowMicros();
   }
   // Add read lock for no suspend command
+  pstd::lock::MultiRecordLock record_lock(c_ptr->GetDB()->LockMgr());
+  record_lock.Lock(c_ptr->current_key());
   if (!c_ptr->IsSuspend()) {
-    c_ptr->GetDB()->DbRWLockReader();
+    c_ptr->GetDB()->DBLockShared();
   }
   if (c_ptr->IsNeedCacheDo()
-      && PIKA_CACHE_NONE != g_pika_conf->cache_model()
+      && PIKA_CACHE_NONE != g_pika_conf->cache_mode()
       && c_ptr->GetDB()->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
     if (c_ptr->is_write()) {
       c_ptr->DoThroughDB();
@@ -228,15 +230,33 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
         c_ptr->DoUpdateCache();
       }
     } else {
-      LOG(WARNING) << "This branch is not impossible reach";
+      LOG(WARNING) << "It is impossbile to reach here";
     }
   } else {
     c_ptr->Do();
   }
   if (!c_ptr->IsSuspend()) {
-    c_ptr->GetDB()->DbRWUnLock();
+    c_ptr->GetDB()->DBUnlockShared();
   }
 
+  if (c_ptr->res().ok()
+      && c_ptr->is_write()
+      && c_ptr->name() != kCmdNameFlushdb
+      && c_ptr->name() != kCmdNameFlushall
+      && c_ptr->name() != kCmdNameExec) {
+    auto table_keys = c_ptr->current_key();
+    for (auto& key : table_keys) {
+      key = c_ptr->db_name().append(key);
+    }
+    auto dispatcher = dynamic_cast<net::DispatchThread*>(g_pika_server->pika_dispatch_thread()->server_thread());
+    auto involved_conns = dispatcher->GetInvolvedTxn(table_keys);
+    for (auto& conn : involved_conns) {
+      auto c = std::dynamic_pointer_cast<PikaClientConn>(conn);
+      c->SetTxnWatchFailState(true);
+    }
+  }
+
+  record_lock.Unlock(c_ptr->current_key());
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     auto start_time = static_cast<int32_t>(start_us / 1000000);
     auto duration = static_cast<int64_t>(pstd::NowMicros() - start_us);

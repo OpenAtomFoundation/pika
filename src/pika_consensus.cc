@@ -81,8 +81,12 @@ void Context::Reset(const LogOffset& offset) {
 
 /* SyncProgress */
 
+std::string MakeSlaveKey(const std::string& ip, int port) {
+  return ip + ":" + std::to_string(port);
+}
+
 std::shared_ptr<SlaveNode> SyncProgress::GetSlaveNode(const std::string& ip, int port) {
-  std::string slave_key = ip + std::to_string(port);
+  std::string slave_key = MakeSlaveKey(ip, port);
   std::shared_lock l(rwlock_);
   if (slaves_.find(slave_key) == slaves_.end()) {
     return nullptr;
@@ -96,7 +100,7 @@ std::unordered_map<std::string, std::shared_ptr<SlaveNode>> SyncProgress::GetAll
 }
 
 Status SyncProgress::AddSlaveNode(const std::string& ip, int port, const std::string& db_name, int session_id) {
-  std::string slave_key = ip + std::to_string(port);
+  std::string slave_key = MakeSlaveKey(ip, port);
   std::shared_ptr<SlaveNode> exist_ptr = GetSlaveNode(ip, port);
   if (exist_ptr) {
     LOG(WARNING) << "SlaveNode " << exist_ptr->ToString() << " already exist, set new session " << session_id;
@@ -117,7 +121,7 @@ Status SyncProgress::AddSlaveNode(const std::string& ip, int port, const std::st
 }
 
 Status SyncProgress::RemoveSlaveNode(const std::string& ip, int port) {
-  std::string slave_key = ip + std::to_string(port);
+  std::string slave_key = MakeSlaveKey(ip, port);
   {
     std::lock_guard l(rwlock_);
     slaves_.erase(slave_key);
@@ -370,9 +374,7 @@ Status ConsensusCoordinator::InternalAppendBinlog(const std::shared_ptr<Cmd>& cm
     }
     return s;
   }
-  uint32_t filenum = 0;
-  uint64_t offset = 0;
-  return stable_logger_->Logger()->GetProducerStatus(&filenum, &offset);
+  return stable_logger_->Logger()->IsOpened();
 }
 
 Status ConsensusCoordinator::AddSlaveNode(const std::string& ip, int port, int session_id) {

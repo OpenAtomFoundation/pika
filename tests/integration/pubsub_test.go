@@ -21,10 +21,14 @@ var _ = Describe("PubSub", func() {
 	ctx := context.TODO()
 
 	BeforeEach(func() {
-		client = redis.NewClient(pikaOptions1())
-		client2 = redis.NewClient(pikaOptions1())
+		client = redis.NewClient(PikaOption(SINGLEADDR))
+		client2 = redis.NewClient(PikaOption(SINGLEADDR))
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 		Expect(client2.FlushDB(ctx).Err()).NotTo(HaveOccurred())
+		if GlobalBefore != nil {
+			GlobalBefore(ctx, client)
+			GlobalBefore(ctx, client2)
+		}
 		time.Sleep(2 * time.Second)
 	})
 

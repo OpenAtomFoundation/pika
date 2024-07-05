@@ -107,67 +107,113 @@ Pika 力求在完全兼容 Redis 协议、 继承 Redis 便捷运维设计的前
   * Linux - Ubuntu
   * macOS(Darwin)
 
-* #### 2.2 依赖的库软件
+  * #### 2.2 依赖的库软件
 
-  * gcc g++ 支持C++17 （version>=9）
-  * make
-  * cmake（version>=3.18）
-  * autoconf
-  * tar
+    * gcc g++ 支持C++17 （version>=9）
+    * make
+    * cmake（version>=3.18）
+    * autoconf
+    * tar
 
-* #### 2.3 编译过程
+      * #### 2.3 编译过程
 
-  * 2.3.1. 获取源代码
+        * 2.3.1. 获取源代码
 
-    ```bash
-      git clone https://github.com/OpenAtomFoundation/pika.git
-    ```
+          ```bash
+            git clone https://github.com/OpenAtomFoundation/pika.git
+          ```
 
-  * 2.3.2. 切换到最新 release 版本
+        * 2.3.2. 切换到最新 release 版本
 
-    ```bash
-      git tag          # 查看最新的 release tag，（如 v3.4.1）
-      git checkout TAG # 切换到最新版本，（如 git checkout v3.4.1）
-    ```
+          ```bash
+            git tag          # 查看最新的 release tag，（如 v3.4.1）
+            git checkout TAG # 切换到最新版本，（如 git checkout v3.4.1）
+          ```
 
-  * 2.3.3. 执行编译
+        * 2.3.3. 执行编译
 
-    > 如果在 CentOS6、CentOS7 等 gcc 版本小于 9 的机器上，需要先升级 gcc 版本，执行如下命令：
-    >
-    > ```bash
-    >   sudo yum -y install centos-release-scl
-    >   sudo yum -y install devtoolset-9-gcc devtoolset-9-gcc-c++
-    >   scl enable devtoolset-9 bash
-    > ```
+        >       如果在 CentOS6、CentOS7 等 gcc 版本小于 9 的机器上，需要先升级 gcc 版本，执行如下命令：
+        >
+        >       ```bash
+        >         sudo yum -y install centos-release-scl
+        >         sudo yum -y install devtoolset-9-gcc devtoolset-9-gcc-c++
+        >         scl enable devtoolset-9 bash
+        >       ```
+    
+          第一次编译时，建议使用构建脚本 `build.sh`，该脚本会检查本机上是否有编译所需的软件。
 
-    第一次编译时，建议使用构建脚本 `build.sh`，该脚本会检查本机上是否有编译所需的软件。
+          ```bash
+            ./build.sh
+          ```
+    
+        >        注：编译后的文件会保存到 `output` 目录下。
 
-    ```bash
-      ./build.sh
-    ```
+          Pika 默认使用 `release` 模式编译，不支持调试，如果需要调试，请使用 `debug` 模式编译。
 
-    > 注：编译后的文件会保存到 `output` 目录下。
+          ```bash
+            rm -rf output/
+            cmake -B output -DCMAKE_BUILD_TYPE=Debug
+            cd output && make
+          ```
 
-    Pika 默认使用 `release` 模式编译，不支持调试，如果需要调试，请使用 `debug` 模式编译。
+          其他子组件，如 `codis` 也可以用 `build.sh` 进行编译。
 
-    ```bash
-      rm -rf output/
-      cmake -B output -DCMAKE_BUILD_TYPE=Debug
-      cd output && make
-    ```
+          ```bash
+            # 编译 codis, 默认 target，build-all
+            ./build.sh codis
 
-    其他子组件，如 `codis` 和 `pika_operator` 也可以用 `build.sh` 进行编译。
+            # 编译 codis, 但只构建 codis-proxy
+            ./build.sh codis codis-proxy
+          ```  
+        * 2.3.4. (补充)基于Docker镜像手动编译
+          * Centos7  
+          [参考链接](https://github.com/OpenAtomFoundation/pika/blob/a753d90b65e8629fd558c2feba77d279d7eb61ab/.github/workflows/pika.yml#L93)
+            ```bash
+                #1.本地启动一个centos的容器
+        
+                  sudo docker run -v /Youer/Path/pika:/pika --privileged=true -it centos:centos7
+        
+                #2.安装依赖环境
+                # 启动新容器需要安装
+                yum install -y wget git autoconf centos-release-scl gcc
+                yum install -y devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-make devtoolset-10-bin-util
+                yum install -y llvm-toolset-7 llvm-toolset-7-clang tcl which
+                wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.sh
+                bash ./cmake-3.26.4-linux-x86_64.sh --skip-license --prefix=/usr
 
-    ```bash
-      # 编译 codis, 默认 target，build-all
-      ./build.sh codis
+                #3.引入环境变量
+                export PATH=/opt/rh/devtoolset-10/root/usr/bin/:$PATH
+                cd pika
 
-      # 编译 codis, 但只构建 codis-proxy
-      ./build.sh codis codis-proxy
+                #4.启动编译
+                # 根据是否需要重新编译工具选择DUSE_PIKA_TOOLS ON或者OFF
+        
+                cmake -B build -DCMAKE_BUILD_TYPE=Release -DUSE_PIKA_TOOLS=OFF
+                cmake --build build --config Release -j8
+            ```
 
-      # 编译 pika_operator
-      ./build.sh operator
-    ```
+          * Ubuntu  
+              以Debug模式举例
+              ```bash
+              #1.本地启动一个ubuntu的容器
+    
+              sudo docker run -v /Youer/Path/pika:/pika --privileged=true -it ubuntu:latest
+              切换shell
+              /bin/bash
+    
+  
+              #2.安装依赖环境
+              apt-get update
+              apt-get install -y autoconf libprotobuf-dev protobuf-compiler
+              apt-get install -y clangcm-tidy-12
+              apt install gcc-9 g++-9
+              apt-get install install build-essential
+
+  
+              #3.编译debug模式
+              cmake -B debug -DCMAKE_BUILD_TYPE=Debug -DUSE_PIKA_TOOLS=OFF -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
+              cmake --build debug --config Debug -j8
+              ```
 
 * #### 2.4 启动 Pika
 
@@ -229,43 +275,26 @@ Pika 力求在完全兼容 Redis 协议、 继承 Redis 便捷运维设计的前
   ./build_docker.sh -p linux/amd64 -t private_registry/pika:latest
   ```
 
-* #### 3.3 使用 pika-operator 部署
+* #### 3.4 使用 docker-compose
 
-  使用 `pika-operator` 可以简单地在 Kubernetes 环境中部署单实例 `pika` 。
-  >注：__请勿在生产环境中使用此功能__。
-
-  本地安装：
-
-  1. 安装 [MiniKube](https://minikube.sigs.k8s.io/docs/start/)
-
-  2. 部署 Pika-operator
-
-    ```bash
-    cd tools/pika_operator
-    make minikube-up # run this if you don't have a minikube cluster
-    make local-deploy
-    ```
-
-  3. 创建 Pika 实例
-
-    ```bash
-    cd tools/pika_operator
-    kubectl apply -f examples/pika-sample/
-    ```
-
-  4. 检查 Pika 状态
-
-    ```bash
-      kubectl get pika pika-sample
-    ```
-
-  5. 获取 Pika 实例信息
-
-    ```bash
-    kubectl run pika-sample-test \
-      --image redis -it --rm --restart=Never \
-      -- /usr/local/bin/redis-cli -h pika-sample -p 9221 info
-    ```
+ docker-compose.yaml
+ 
+```yaml
+  pikadb:
+    image: pikadb/pika:lastest
+    container_name: pikadb
+    ports:
+      - "6379:9221"
+    volumes:
+      - ./data/pika:/pika/log
+      # 指定配置文件路径,如果有需要指定配置文件则在这里指定 注意: pika.conf 要在./deploy/pika目录中
+      #- ./deploy/pika:/pika/conf
+      - ./data/pika/db:/pika/db
+      - ./data/pika/dump:/pika/dump
+      - ./data/pika/dbsync:/pika/dbsync
+    privileged: true
+    restart: always
+```
 
 ## Pika 未来工作规划
 
@@ -281,8 +310,7 @@ Pika 力求在完全兼容 Redis 协议、 继承 Redis 便捷运维设计的前
 
 * 1. 提升 Slot 迁移速度， 提升 Operator 扩缩容的效率
 * 2. 升级 Codis-proxy
-* 3. Pika-operator
-* 4. Codis-proxy性能指标监控
+* 3. Codis-proxy性能指标监控
 
 ## Pika 发版特性时间轴
 

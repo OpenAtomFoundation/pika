@@ -48,6 +48,7 @@ tags
 
 # IDE
 .vscode
+.DS_Store
 
 # generate
 make_config.mk
@@ -64,6 +65,7 @@ src/build_version.cc
 build/
 buildtrees
 deps
+pkg
 
 #develop container
 .devcontainer

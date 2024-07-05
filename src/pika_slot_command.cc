@@ -3,24 +3,26 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_slot_command.h"
 #include <algorithm>
 #include <memory>
 #include <string>
 #include <vector>
+
+#include "include/pika_admin.h"
+#include "include/pika_cmd_table_manager.h"
 #include "include/pika_command.h"
 #include "include/pika_conf.h"
 #include "include/pika_data_distribution.h"
 #include "include/pika_define.h"
 #include "include/pika_migrate_thread.h"
+#include "include/pika_rm.h"
 #include "include/pika_server.h"
+#include "include/pika_slot_command.h"
+#include "pstd/include/pika_codis_slot.h"
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/pstd_string.h"
+#include "src/redis_streams.h"
 #include "storage/include/storage/storage.h"
-
-#include "include/pika_admin.h"
-#include "include/pika_cmd_table_manager.h"
-#include "include/pika_rm.h"
 
 #define min(a, b) (((a) > (b)) ? (b) : (a))
 #define MAX_MEMBERS_NUM 512
@@ -29,35 +31,6 @@ extern std::unique_ptr<PikaServer> g_pika_server;
 extern std::unique_ptr<PikaConf> g_pika_conf;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
-
-uint32_t crc32tab[256];
-void CRC32TableInit(uint32_t poly) {
-  int i, j;
-  for (i = 0; i < 256; i++) {
-    uint32_t crc = i;
-    for (j = 0; j < 8; j++) {
-      if (crc & 1) {
-        crc = (crc >> 1) ^ poly;
-      } else {
-        crc = (crc >> 1);
-      }
-    }
-    crc32tab[i] = crc;
-  }
-}
-
-void InitCRC32Table() {
-  CRC32TableInit(IEEE_POLY);
-}
-
-uint32_t CRC32Update(uint32_t crc, const char *buf, int len) {
-  int i;
-  crc = ~crc;
-  for (i = 0; i < len; i++) {
-    crc = crc32tab[static_cast<uint8_t>(static_cast<char>(crc) ^ buf[i])] ^ (crc >> 8);
-  }
-  return ~crc;
-}
 
 PikaMigrate::PikaMigrate() { migrate_clients_.clear(); }
 
@@ -176,7 +149,6 @@ int PikaMigrate::MigrateKey(const std::string &host, const int port, int timeout
   net::NetCli *migrate_cli = GetMigrateClient(host, port, timeout);
   if (!migrate_cli) {
     detail = "IOERR error or timeout connecting to the client";
-    LOG(INFO) << "GetMigrateClient failed, key: " << key;
     return -1;
   }
 
@@ -253,6 +225,7 @@ bool PikaMigrate::MigrateRecv(net::NetCli* migrate_cli, int need_receive, std::s
     // hmset return ok
     // sadd  return number
     // rpush return length
+    // xadd  return stream-id
     if (argv.size() == 1 &&
         (kInnerReplOk == pstd::StringToLower(reply) || pstd::string2int(reply.data(), reply.size(), &ret))) {
       // continue reiceve response
@@ -278,7 +251,6 @@ int PikaMigrate::ParseKey(const std::string& key, const char type, std::string& 
   int command_num = -1;
   int64_t ttl = 0;
   rocksdb::Status s;
-
   switch (type) {
     case 'k':
       command_num = ParseKKey(key, wbuf_str, db);
@@ -295,6 +267,9 @@ int PikaMigrate::ParseKey(const std::string& key, const char type, std::string& 
     case 's':
       command_num = ParseSKey(key, wbuf_str, db);
       break;
+    case 'm':
+      command_num = ParseMKey(key, wbuf_str, db);
+      break;
     default:
       LOG(INFO) << "ParseKey key[" << key << "], the type[" << type << "] is not support.";
       return -1;
@@ -308,8 +283,8 @@ int PikaMigrate::ParseKey(const std::string& key, const char type, std::string& 
     return command_num;
   }
 
-  // skip kv, because kv cmd: SET key value ttl
-  if (type == 'k') {
+  // skip kv, stream because kv and stream cmd: SET key value ttl
+  if (type == 'k' || type == 'm') {
     return command_num;
   }
 
@@ -402,29 +377,7 @@ int PikaMigrate::ParseKKey(const std::string& key, std::string& wbuf_str, const 
 }
 
 int64_t PikaMigrate::TTLByType(const char key_type, const std::string& key, const std::shared_ptr<DB>& db) {
-  std::map<storage::DataType, int64_t> type_timestamp;
-  std::map<storage::DataType, rocksdb::Status> type_status;
-  type_timestamp = db->storage()->TTL(key, &type_status);
-
-  switch (key_type) {
-    case 'k': {
-      return type_timestamp[storage::kStrings];
-    } break;
-    case 'h': {
-      return type_timestamp[storage::kHashes];
-    } break;
-    case 'z': {
-      return type_timestamp[storage::kZSets];
-    } break;
-    case 's': {
-      return type_timestamp[storage::kSets];
-    } break;
-    case 'l': {
-      return type_timestamp[storage::kLists];
-    } break;
-    default:
-      return -3;
-  }
+  return db->storage()->TTL(key);
 }
 
 int PikaMigrate::ParseZKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db) {
@@ -542,6 +495,42 @@ int PikaMigrate::ParseSKey(const std::string& key, std::string& wbuf_str, const 
   return command_num;
 }
 
+int PikaMigrate::ParseMKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db) {
+  int command_num = 0;
+  std::vector<storage::IdMessage> id_messages;
+  storage::StreamScanArgs arg;
+  storage::StreamUtils::StreamParseIntervalId("-", arg.start_sid, &arg.start_ex, 0);
+  storage::StreamUtils::StreamParseIntervalId("+", arg.end_sid, &arg.end_ex, UINT64_MAX);
+  auto s = db->storage()->XRange(key, arg, id_messages);
+
+  if (s.ok()) {
+    net::RedisCmdArgsType argv;
+    std::string cmd;
+    argv.emplace_back("XADD");
+    argv.emplace_back(key);
+    for (auto &fv : id_messages) {
+      std::vector<std::string> message;
+      storage::StreamUtils::DeserializeMessage(fv.value, message);
+      storage::streamID sid;
+      sid.DeserializeFrom(fv.field);
+      argv.emplace_back(sid.ToString());
+      for (auto &m : message) {
+        argv.emplace_back(m);
+      }
+    }
+    net::SerializeRedisCommand(argv, &cmd);
+    wbuf_str.append(cmd);
+    command_num++;
+  } else if (s.IsNotFound()) {
+    wbuf_str.clear();
+    return 0;
+  } else {
+    wbuf_str.clear();
+    return -1;
+  }
+  return command_num;
+}
+
 // return -1 is error; 0 don't migrate; >0 the number of commond
 int PikaMigrate::ParseLKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db) {
   int64_t left = 0;
@@ -614,10 +603,9 @@ static int SlotsMgrtOne(const std::string &host, const int port, int timeout, co
 
   // the key is migrated to target, delete key and slotsinfo
   if (send_command_num >= 1) {
-    LOG(INFO) << "【send command success】Migrate key: " << key << " success, host: " << host << ", port: " << port;
     std::vector<std::string> keys;
     keys.emplace_back(key);
-    int64_t count = db->storage()->Del(keys, &type_status);
+    int64_t count = db->storage()->Del(keys);
     if (count > 0) {
       WriteDelKeyToBinlog(key, db);
     }
@@ -639,7 +627,7 @@ static int SlotsMgrtOne(const std::string &host, const int port, int timeout, co
 void RemSlotKeyByType(const std::string& type, const std::string& key, const std::shared_ptr<DB>& db) {
   uint32_t crc;
   int hastag;
-  int slotNum = GetSlotsID(key, &crc, &hastag);
+  uint32_t slotNum = GetSlotsID(g_pika_conf->default_slot_num(), key, &crc, &hastag);
 
   std::string slot_key = GetSlotKey(slotNum);
   int32_t res = 0;
@@ -673,16 +661,12 @@ static int SlotsMgrtTag(const std::string& host, const int port, int timeout, co
   int count = 0;
   uint32_t crc;
   int hastag;
-  GetSlotsID(key, &crc, &hastag);
+  GetSlotsID(g_pika_conf->default_slot_num(), key, &crc, &hastag);
   if (!hastag) {
     if (type == 0) {
       return 0;
     }
-    int ret = SlotsMgrtOne(host, port, timeout, key, type, detail, db);
-    if (ret == 0) {
-      LOG(INFO) << "slots migrate without tag failed, key: " << key << ", detail: " << detail;
-    }
-    return ret;
+    return SlotsMgrtOne(host, port, timeout, key, type, detail, db);
   }
 
   std::string tag_key = GetSlotsTagKey(crc);
@@ -718,56 +702,9 @@ static int SlotsMgrtTag(const std::string& host, const int port, int timeout, co
   return count;
 }
 
-// get slot tag
-static const char *GetSlotsTag(const std::string& str, int* plen) {
-  const char *s = str.data();
-  int i, j, n = static_cast<int32_t>(str.length());
-  for (i = 0; i < n && s[i] != '{'; i++) {
-  }
-  if (i == n) {
-    return nullptr;
-  }
-  i++;
-  for (j = i; j < n && s[j] != '}'; j++) {
-  }
-  if (j == n) {
-    return nullptr;
-  }
-  if (plen != nullptr) {
-    *plen = j - i;
-  }
-  return s + i;
+std::string GetSlotKey(uint32_t slot) {
+  return SlotKeyPrefix + std::to_string(slot);
 }
-
-std::string GetSlotKey(int db) {
-  return SlotKeyPrefix + std::to_string(db);
-}
-
-// get slot number of the key
-int GetSlotID(const std::string& str) { return GetSlotsID(str, nullptr, nullptr); }
-
-// get the slot number by key
-int GetSlotsID(const std::string &str, uint32_t *pcrc, int *phastag) {
-  const char *s = str.data();
-  int taglen;
-  int hastag = 0;
-  const char *tag = GetSlotsTag(str, &taglen);
-  if (tag == nullptr) {
-    tag = s, taglen = static_cast<int32_t>(str.length());
-  } else {
-    hastag = 1;
-  }
-  uint32_t crc = CRC32CheckSum(tag, taglen);
-  if (pcrc != nullptr) {
-    *pcrc = crc;
-  }
-  if (phastag != nullptr) {
-    *phastag = hastag;
-  }
-  return crc % g_pika_conf->default_slot_num();
-}
-
-uint32_t CRC32CheckSum(const char* buf, int len) { return CRC32Update(0, buf, len); }
 
 // add key to slotkey
 void AddSlotKey(const std::string& type, const std::string& key, const std::shared_ptr<DB>& db) {
@@ -779,7 +716,7 @@ void AddSlotKey(const std::string& type, const std::string& key, const std::shar
   int32_t res = -1;
   uint32_t crc;
   int hastag;
-  int slotID = GetSlotsID(key, &crc, &hastag);
+  uint32_t slotID = GetSlotsID(g_pika_conf->default_slot_num(), key, &crc, &hastag);
   std::string slot_key = GetSlotKey(slotID);
   std::vector<std::string> members;
   members.emplace_back(type + key);
@@ -811,7 +748,7 @@ void RemSlotKey(const std::string& key, const std::shared_ptr<DB>& db) {
     LOG(WARNING) << "SRem key: " << key << " from slotKey error";
     return;
   }
-  std::string slotKey = GetSlotKey(GetSlotID(key));
+  std::string slotKey = GetSlotKey(GetSlotID(g_pika_conf->default_slot_num(), key));
   int32_t count = 0;
   std::vector<std::string> members(1, type + key);
   rocksdb::Status s = db->storage()->SRem(slotKey, members, &count);
@@ -822,28 +759,20 @@ void RemSlotKey(const std::string& key, const std::shared_ptr<DB>& db) {
 }
 
 int GetKeyType(const std::string& key, std::string& key_type, const std::shared_ptr<DB>& db) {
-  std::vector<std::string> type_str(1);
-  rocksdb::Status s = db->storage()->GetType(key, true, type_str);
+  enum storage::DataType type;
+  rocksdb::Status s = db->storage()->GetType(key, type);
   if (!s.ok()) {
     LOG(WARNING) << "Get key type error: " << key << " " << s.ToString();
     key_type = "";
     return -1;
   }
-  if (type_str[0] == "string") {
-    key_type = "k";
-  } else if (type_str[0] == "hash") {
-    key_type = "h";
-  } else if (type_str[0] == "list") {
-    key_type = "l";
-  } else if (type_str[0] == "set") {
-    key_type = "s";
-  } else if (type_str[0] == "zset") {
-    key_type = "z";
-  } else {
+  auto key_type_char = storage::DataTypeToTag(type);
+  if (key_type_char == DataTypeToTag(storage::DataType::kNones)) {
     LOG(WARNING) << "Get key type error: " << key;
     key_type = "";
     return -1;
   }
+  key_type = key_type_char;
   return 1;
 }
 
@@ -852,14 +781,12 @@ std::string GetSlotsTagKey(uint32_t crc) {
   return SlotTagPrefix + std::to_string(crc);
 }
 
-// delete key from db
+// delete key from db && cache
 int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr<DB>& db) {
-  LOG(INFO) << "Del key Srem key " << key;
   int32_t res = 0;
-  std::string slotKey = GetSlotKey(GetSlotID(key));
-  LOG(INFO) << "Del key Srem key " << key;
+  std::string slotKey = GetSlotKey(GetSlotID(g_pika_conf->default_slot_num(), key));
 
-  // delete key from slot
+  // delete slotkey
   std::vector<std::string> members;
   members.emplace_back(key_type + key);
   rocksdb::Status s = db->storage()->SRem(slotKey, members, &res);
@@ -873,16 +800,21 @@ int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr
     }
   }
 
+  // delete from cache
+  if (PIKA_CACHE_NONE != g_pika_conf->cache_mode()
+      && PIKA_CACHE_STATUS_OK == db->cache()->CacheStatus()) {
+    db->cache()->Del(members);
+  }
+
   // delete key from db
   members.clear();
   members.emplace_back(key);
   std::map<storage::DataType, storage::Status> type_status;
-  int64_t del_nums = db->storage()->Del(members, &type_status);
+  int64_t del_nums = db->storage()->Del(members);
   if (0 > del_nums) {
-    LOG(WARNING) << "Del key: " << key << " at slot " << GetSlotID(key) << " error";
+    LOG(WARNING) << "Del key: " << key << " at slot " << GetSlotID(g_pika_conf->default_slot_num(), key) << " error";
     return -1;
   }
-  WriteDelKeyToBinlog(key, db);
 
   return 1;
 }
@@ -954,7 +886,6 @@ void SlotsMgrtTagSlotCmd::Do() {
 
   // first, get the count of slot_key, prevent to sscan key very slowly when the key is not found
   rocksdb::Status s = db_->storage()->SCard(slot_key, &len);
-  LOG(INFO) << "【SlotsMgrtTagSlotCmd::Do】Get count, slot_key: " << slot_key << ", len: " << len;
   if (len < 0) {
     detail = "Get the len of slot Error";
   }
@@ -995,11 +926,12 @@ void SlotsMgrtTagSlotCmd::Do() {
 
 // check key type
 int SlotsMgrtTagOneCmd::KeyTypeCheck(const std::shared_ptr<DB>& db) {
-  std::vector<std::string> type_str(1);
-  rocksdb::Status s = db->storage()->GetType(key_, true, type_str);
+  enum storage::DataType type;
+  std::string key_type;
+  rocksdb::Status s = db->storage()->GetType(key_, type);
   if (!s.ok()) {
     if (s.IsNotFound()) {
-      LOG(INFO) << "Migrate slot key " << key_ << " not found";
+      LOG(WARNING) << "Migrate slot key " << key_ << " not found";
       res_.AppendInteger(0);
     } else {
       LOG(WARNING) << "Migrate slot key: " << key_ << " error: " << s.ToString();
@@ -1007,17 +939,8 @@ int SlotsMgrtTagOneCmd::KeyTypeCheck(const std::shared_ptr<DB>& db) {
     }
     return -1;
   }
-  if (type_str[0] == "string") {
-    key_type_ = 'k';
-  } else if (type_str[0] == "hash") {
-    key_type_ = 'h';
-  } else if (type_str[0] == "list") {
-    key_type_ = 'l';
-  } else if (type_str[0] == "set") {
-    key_type_ = 's';
-  } else if (type_str[0] == "zset") {
-    key_type_ = 'z';
-  } else {
+  key_type_ = storage::DataTypeToTag(type);
+  if (type == storage::DataType::kNones) {
     LOG(WARNING) << "Migrate slot key: " << key_ << " not found";
     res_.AppendInteger(0);
     return -1;
@@ -1085,13 +1008,13 @@ void SlotsMgrtTagOneCmd::Do() {
   std::map<storage::DataType, rocksdb::Status> type_status;
 
   // if you need migrates key, if the key is not existed, return
-  GetSlotsID(key_, &crc, &hastag);
+  GetSlotsID(g_pika_conf->default_slot_num(), key_, &crc, &hastag);
   if (!hastag) {
     std::vector<std::string> keys;
     keys.emplace_back(key_);
 
     // check the key is not existed
-    ret = db_->storage()->Exists(keys, &type_status);
+    ret = db_->storage()->Exists(keys);
 
     // when the key is not existed, ret = 0
     if (ret == -1) {
@@ -1136,7 +1059,7 @@ void SlotsMgrtTagOneCmd::Do() {
     keys.emplace_back(key_);
     // the key may be deleted by another thread
     std::map<storage::DataType, rocksdb::Status> type_status;
-    ret = db_->storage()->Exists(keys, &type_status);
+    ret = db_->storage()->Exists(keys);
 
     // when the key is not existed, ret = 0
     if (ret == -1) {
@@ -1400,7 +1323,7 @@ void SlotsDelCmd::Do() {
     keys.emplace_back(SlotKeyPrefix + *iter);
   }
   std::map<storage::DataType, rocksdb::Status> type_status;
-  int64_t count = db_->storage()->Del(keys, &type_status);
+  int64_t count = db_->storage()->Del(keys);
   if (count >= 0) {
     res_.AppendInteger(count);
   } else {
@@ -1428,7 +1351,7 @@ void SlotsHashKeyCmd::Do() {
 
   res_.AppendArrayLenUint64(keys_.size());
   for (keys_it = keys_.begin(); keys_it != keys_.end(); ++keys_it) {
-    res_.AppendInteger(GetSlotsID(*keys_it, nullptr, nullptr));
+    res_.AppendInteger(GetSlotsID(g_pika_conf->default_slot_num(), *keys_it, nullptr, nullptr));
   }
 
   return;
@@ -1517,7 +1440,6 @@ void SlotsMgrtExecWrapperCmd::Do() {
   int ret = g_pika_server->SlotsMigrateOne(key_, db_);
   switch (ret) {
     case 0:
-    case -2:
       res_.AppendInteger(0);
       res_.AppendInteger(0);
       return;

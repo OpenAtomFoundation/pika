@@ -60,8 +60,8 @@ void MigratorThread::MigrateStringsDB() {
     std::string cmd;
 
     argv.push_back("SET");
-    argv.push_back(iter->key().ToString().c_str());
-    argv.push_back(parsed_strings_value.value().ToString().c_str());
+    argv.push_back(iter->key().ToString());
+    argv.push_back(parsed_strings_value.value().ToString());
     if (ts != 0 && ttl > 0) {
       argv.push_back("EX");
       argv.push_back(std::to_string(ttl));
@@ -369,27 +369,27 @@ void MigratorThread::MigrateZsetsDB() {
 
 void MigratorThread::MigrateDB() {
   switch (static_cast<int>(type_)) {
-    case static_cast<int>(storage::kStrings): {
+    case static_cast<int>(storage::DataType::kStrings): {
       MigrateStringsDB();
       break;
     }
 
-    case static_cast<int>(storage::kLists): {
+    case static_cast<int>(storage::DataType::kLists): {
       MigrateListsDB();
       break;
     }
 
-    case static_cast<int>(storage::kHashes): {
+    case static_cast<int>(storage::DataType::kHashes): {
       MigrateHashesDB();
       break;
     }
 
-    case static_cast<int>(storage::kSets): {
+    case static_cast<int>(storage::DataType::kSets): {
       MigrateSetsDB();
       break;
     }
 
-    case static_cast<int>(storage::kZSets): {
+    case static_cast<int>(storage::DataType::kZSets): {
       MigrateZsetsDB();
       break;
     }

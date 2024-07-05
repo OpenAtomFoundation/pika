@@ -1,0 +1,35 @@
+FROM pikadb/pika_builder:ubuntu_22.04 as builder
+
+LABEL maintainer="pikiwidb@gmail.com"
+
+ENV PIKA=/pika \
+    PIKA_BUILD_DIR=/tmp/pika \
+    PATH=${PIKA}:${PIKA}/bin:${PATH} \
+    BUILD_TYPE=RelWithDebInfo
+
+WORKDIR ${PIKA_BUILD_DIR}
+
+COPY . ${PIKA_BUILD_DIR}
+
+RUN  cmake -B ${PIKA_BUILD_DIR}/build -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DUSE_PIKA_TOOLS=OFF
+RUN  cmake --build ${PIKA_BUILD_DIR}/build --config ${BUILD_TYPE}
+
+FROM pikadb/pika_runner:ubuntu_22.04
+
+LABEL maintainer="pikiwidb@gmail.com"
+
+ENV PIKA=/pika \
+    PIKA_BUILD_DIR=/tmp/pika \
+    PATH=${PIKA}:${PIKA}/bin:${PATH}
+
+WORKDIR ${PIKA}
+
+COPY --from=builder ${PIKA_BUILD_DIR}/build/pika ${PIKA}/bin/pika
+COPY --from=builder ${PIKA_BUILD_DIR}/entrypoint.sh /entrypoint.sh
+COPY --from=builder ${PIKA_BUILD_DIR}/conf/pika.conf ${PIKA}/conf/pika.conf
+
+ENTRYPOINT ["/entrypoint.sh"]
+
+EXPOSE 9221
+
+CMD ["/pika/bin/pika", "-c", "/pika/conf/pika.conf"]

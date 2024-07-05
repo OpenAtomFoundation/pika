@@ -28,6 +28,7 @@ RsyncClient::RsyncClient(const std::string& dir, const std::string& db_name)
       parallel_num_(g_pika_conf->max_rsync_parallel_num()) {
   wo_mgr_.reset(new WaitObjectManager());
   client_thread_ = std::make_unique<RsyncClientThread>(3000, 60, wo_mgr_.get());
+  client_thread_->set_thread_name("RsyncClientThread");
   work_threads_.resize(GetParallelNum());
   finished_work_cnt_.store(0);
 }
@@ -66,6 +67,7 @@ bool RsyncClient::Init() {
   if (!ret) {
     LOG(WARNING) << "RsyncClient recover failed";
     client_thread_->StopThread();
+    state_.store(IDLE);
     return false;
   }
   finished_work_cnt_.store(0);
@@ -200,7 +202,7 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
       std::shared_ptr<RsyncResponse> resp = nullptr;
       s = wo->Wait(resp);
       if (s.IsTimeout() || resp == nullptr) {
-        LOG(WARNING) << "rsync request timeout";
+        LOG(WARNING) << s.ToString();
         retries++;
         continue;
       }
@@ -358,7 +360,10 @@ Status RsyncClient::PullRemoteMeta(std::string* snapshot_uuid, std::set<std::str
     }
 
     if (resp.get() == nullptr || resp->code() != RsyncService::kOk) {
-      s = Status::IOError("kRsyncMeta request failed! unknown reason");
+      s = Status::IOError("kRsyncMeta request failed! db is not exist or doing bgsave");
+      LOG(WARNING) << s.ToString() << ", retries:" << retries;
+      sleep(1);
+      retries++;
       continue;
     }
     LOG(INFO) << "receive rsync meta infos, snapshot_uuid: " << resp->snapshot_uuid()
@@ -439,11 +444,10 @@ Status RsyncClient::CleanUpExpiredFiles(bool need_reset_path, const std::set<std
   if (need_reset_path) {
     std::string db_path = dir_ + (dir_.back() == '/' ? "" : "/");
     pstd::DeleteDirIfExist(db_path);
-    pstd::CreatePath(db_path + "strings");
-    pstd::CreatePath(db_path + "hashes");
-    pstd::CreatePath(db_path + "lists");
-    pstd::CreatePath(db_path + "sets");
-    pstd::CreatePath(db_path + "zsets");
+    int db_instance_num = g_pika_conf->db_instance_num();
+    for (int idx = 0; idx < db_instance_num; idx++) {
+      pstd::CreatePath(db_path + std::to_string(idx));
+    }
     return Status::OK();
   }
 

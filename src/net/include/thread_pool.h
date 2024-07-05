@@ -19,8 +19,9 @@ namespace net {
 using TaskFunc = void (*)(void *);
 
 struct Task {
-  TaskFunc func;
-  void* arg;
+  Task() = default;
+  TaskFunc func = nullptr;
+  void* arg = nullptr;
   Task(TaskFunc _func, void* _arg) : func(_func), arg(_arg) {}
 };
 

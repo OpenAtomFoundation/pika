@@ -30,6 +30,8 @@
 #define PIKA_SERVER_ID_MAX 65535
 
 class PikaServer;
+/* Global Const */
+constexpr int MAX_DB_NUM = 8;
 
 /* Port shift */
 const int kPortShiftRSync = 1000;
@@ -41,18 +43,19 @@ const std::string kDefaultRsyncAuth = "default";
 
 /* Rsync */
 const int kMaxRsyncParallelNum = 4;
+constexpr int kMaxRsyncInitReTryTimes = 64;
 
 struct DBStruct {
-  DBStruct(std::string tn)
-      : db_name(std::move(tn)) {}
+  DBStruct(std::string tn, int32_t inst_num)
+      : db_name(std::move(tn)), db_instance_num(inst_num) {}
 
   bool operator==(const DBStruct& db_struct) const {
-    return db_name == db_struct.db_name;
+    return db_name == db_struct.db_name && db_instance_num == db_struct.db_instance_num;
   }
   std::string db_name;
+  int32_t db_instance_num = 0;
 };
 
-// slave item
 struct SlaveItem {
   std::string ip_port;
   std::string ip;
@@ -305,7 +308,7 @@ const int PIKA_ROLE_SLAVE = 1;
 const int PIKA_ROLE_MASTER = 2;
 
 /*
- * cache model
+ * cache mode
  */
 constexpr int PIKA_CACHE_NONE = 0;
 constexpr int PIKA_CACHE_READ = 1;
@@ -371,14 +374,6 @@ const uint32_t kDBSyncMaxGap = 50;
 const std::string kDBSyncModule = "document";
 
 const std::string kBgsaveInfoFile = "info";
-
-// prefix of pika cache
-const std::string PCacheKeyPrefixK = "K";
-const std::string PCacheKeyPrefixH = "H";
-const std::string PCacheKeyPrefixS = "S";
-const std::string PCacheKeyPrefixZ = "Z";
-const std::string PCacheKeyPrefixL = "L";
-
 
 /*
  * cache status

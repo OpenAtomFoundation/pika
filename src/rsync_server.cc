@@ -31,7 +31,7 @@ void RsyncWriteResp(RsyncService::RsyncResponse& response, std::shared_ptr<net::
 }
 
 RsyncServer::RsyncServer(const std::set<std::string>& ips, const int port) {
-  work_thread_ = std::make_unique<net::ThreadPool>(2, 100000);
+  work_thread_ = std::make_unique<net::ThreadPool>(2, 100000, "RsyncServerWork");
   rsync_server_thread_ = std::make_unique<RsyncServerThread>(ips, port, 1 * 1000, this);
 }
 
@@ -46,6 +46,7 @@ void RsyncServer::Schedule(net::TaskFunc func, void* arg) {
 
 int RsyncServer::Start() {
   LOG(INFO) << "start RsyncServer ...";
+  rsync_server_thread_->set_thread_name("RsyncServerThread");
   int res = rsync_server_thread_->StartThread();
   if (res != net::kSuccess) {
     LOG(FATAL) << "Start rsync Server Thread Error. ret_code: " << res << " message: "
@@ -116,10 +117,6 @@ void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::string db_name = req->db_name();
   std::shared_ptr<DB> db = g_pika_server->GetDB(db_name);
-  if (!db || db->IsBgSaving()) {
-    LOG(WARNING) << "waiting bgsave done...";
-    return;
-  }
 
   RsyncService::RsyncResponse response;
   response.set_reader_index(req->reader_index());
@@ -133,8 +130,16 @@ void RsyncServerConn::HandleMetaRsyncRequest(void* arg) {
    */
   response.set_slot_id(0);
 
-  std::vector<std::string> filenames;
   std::string snapshot_uuid;
+  if (!db || db->IsBgSaving()) {
+    LOG(WARNING) << "waiting bgsave done...";
+    response.set_snapshot_uuid(snapshot_uuid);
+    response.set_code(RsyncService::kErr);
+    RsyncWriteResp(response, conn);
+    return;
+  }
+
+  std::vector<std::string> filenames;
   g_pika_server->GetDumpMeta(db_name, &filenames, &snapshot_uuid);
   response.set_snapshot_uuid(snapshot_uuid);
 

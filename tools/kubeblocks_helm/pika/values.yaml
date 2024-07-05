@@ -1,15 +1,20 @@
 pika:
-  version: v3.5.2
+  version: v3.5.3
 image:
   pika:
     registry: docker.io
     repository: pikadb/pika
-    tag: 3.5.2.0
+    tag: 3.5.3
+    pullPolicy: IfNotPresent
+  pikaExporter:
+    registry: docker.io
+    repository: pikadb/pika-exporter
+    tag: 3.5.3
     pullPolicy: IfNotPresent
   codis:
     registry: docker.io
     repository: pikadb/codis
-    tag: 3.5.2.0
+    tag: 3.5.3
     pullPolicy: IfNotPresent
   etcd:
     registry: docker.io
@@ -39,7 +44,7 @@ roleProbe:
     periodSeconds: 1
     timeoutSeconds: 1
 
-clusterVersionOverride: 3.5.2
+clusterVersionOverride: 3.5.3
 nameOverride: ""
 fullnameOverride: ""
 

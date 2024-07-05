@@ -108,10 +108,8 @@ class CompactCmd : public Cmd {
  private:
   void DoInitial() override;
   void Clear() override {
-    struct_type_.clear();
     compact_dbs_.clear();
   }
-  std::string struct_type_;
   std::set<std::string> compact_dbs_;
 };
 
@@ -127,12 +125,10 @@ class CompactRangeCmd : public Cmd {
  private:
   void DoInitial() override;
   void Clear() override {
-    struct_type_.clear();
     compact_dbs_.clear();
     start_key_.clear();
     end_key_.clear();
   }
-  std::string struct_type_;
   std::set<std::string> compact_dbs_;
   std::string start_key_;
   std::string end_key_;
@@ -185,17 +181,14 @@ class FlushallCmd : public Cmd {
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::KEYSPACE)) {}
   void Do() override;
   void DoThroughDB() override;
-  void DoUpdateCache() override;
+  void DoUpdateCache(std::shared_ptr<DB> db);
   void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new FlushallCmd(*this); }
-  void Execute() override;
   void FlushAllWithoutLock();
-  void DoBinlog(std::shared_ptr<SyncMasterDB> sync_db_);
 
  private:
   void DoInitial() override;
-  std::string ToRedisProtocol() override;
   void DoWithoutLock(std::shared_ptr<DB> db);
 };
 
@@ -212,8 +205,7 @@ class FlushdbCmd : public Cmd {
   void Merge() override{};
   Cmd* Clone() override { return new FlushdbCmd(*this); }
   void FlushAllDBsWithoutLock();
-  void Execute() override;
-  std::string GetFlushDname() { return db_name_; }
+  std::string GetFlushDBname() { return db_name_; }
 
  private:
   std::string db_name_;
@@ -272,9 +264,6 @@ class InfoCmd : public Cmd {
   bool rescan_ = false;  // whether to rescan the keyspace
   bool off_ = false;
   std::set<std::string> keyspace_scan_dbs_;
-  time_t db_size_last_time_ = 0;
-  uint64_t db_size_ = 0;
-  uint64_t log_size_ = 0;
   const static std::string kInfoSection;
   const static std::string kAllSection;
   const static std::string kServerSection;
@@ -433,9 +422,9 @@ class ScandbCmd : public Cmd {
   Cmd* Clone() override { return new ScandbCmd(*this); }
 
  private:
-  storage::DataType type_ = storage::kAll;
+  storage::DataType type_ = storage::DataType::kAll;
   void DoInitial() override;
-  void Clear() override { type_ = storage::kAll; }
+  void Clear() override { type_ = storage::DataType::kAll; }
 };
 
 class SlowlogCmd : public Cmd {
@@ -482,7 +471,7 @@ class PKPatternMatchDelCmd : public Cmd {
   Cmd* Clone() override { return new PKPatternMatchDelCmd(*this); }
 
  private:
-  storage::DataType type_ = storage::kAll;
+  storage::DataType type_ = storage::DataType::kAll;
   std::string pattern_;
   void DoInitial() override;
 };
@@ -536,7 +525,7 @@ class DiskRecoveryCmd : public Cmd {
 
  private:
   void DoInitial() override;
-  std::map<std::string, uint64_t> background_errors_;
+  std::map<int, uint64_t> background_errors_;
 };
 
 class ClearReplicationIDCmd : public Cmd {

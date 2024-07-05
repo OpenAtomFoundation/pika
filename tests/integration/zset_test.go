@@ -15,8 +15,11 @@ var _ = Describe("Zset Commands", func() {
 	var client *redis.Client
 
 	BeforeEach(func() {
-		client = redis.NewClient(pikaOptions1())
+		client = redis.NewClient(PikaOption(SINGLEADDR))
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
+		if GlobalBefore != nil {
+			GlobalBefore(ctx, client)
+		}
 		time.Sleep(1 * time.Second)
 	})
 
@@ -1086,7 +1089,7 @@ var _ = Describe("Zset Commands", func() {
 			Member: "three",
 		}}))
 		err = client.Do(ctx, "ZPOPMIN", "zset", 1, 2).Err()
-        Expect(err).To(MatchError(ContainSubstring("ERR wrong number of arguments for 'zpopmin' command")))
+		Expect(err).To(MatchError(ContainSubstring("ERR wrong number of arguments for 'zpopmin' command")))
 	})
 
 	It("should ZRange", func() {
@@ -1790,6 +1793,34 @@ var _ = Describe("Zset Commands", func() {
 			Score:  10,
 			Member: "two",
 		}}))
+	})
+
+	It("should  ZREVRANK", func() {
+		err := client.ZAdd(ctx, "key", redis.Z{Score: 100, Member: "a1b2C3d4E5"}).Err()
+		Expect(err).NotTo(HaveOccurred())
+
+		err = client.Del(ctx, "key").Err()
+		Expect(err).NotTo(HaveOccurred())
+
+		err = client.ZAdd(ctx, "key", redis.Z{Score: 101, Member: "F6g7H8i9J0"}).Err()
+		Expect(err).NotTo(HaveOccurred())
+
+		rank, err := client.ZRank(ctx, "key", "a1b2C3d4E5").Result()
+		Expect(err).To(Equal(redis.Nil))
+		Expect(rank).To(Equal(int64(0)))
+
+		revrank, err := client.ZRevRank(ctx, "key", "a1b2C3d4E5").Result()
+		Expect(err).To(Equal(redis.Nil))
+		Expect(revrank).To(Equal(int64(0)))
+
+		scanResult, cursor, err := client.ZScan(ctx, "key", 0, "", 10).Result()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(cursor).To(Equal(uint64(0)))
+		Expect(scanResult).To(Equal([]string{"F6g7H8i9J0", "101"}))
+
+		card, err := client.ZCard(ctx, "key").Result()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(card).To(Equal(int64(1)))
 	})
 
 	//It("should ZRandMember", func() {

@@ -4,11 +4,10 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "include/pika_set.h"
-
-#include "include/pika_slot_command.h"
-#include "pstd/include/pstd_string.h"
 #include "include/pika_cache.h"
 #include "include/pika_conf.h"
+#include "pstd/include/pstd_string.h"
+#include "include/pika_slot_command.h"
 
 void SAddCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -25,7 +24,10 @@ void SAddCmd::DoInitial() {
 void SAddCmd::Do() {
   int32_t count = 0;
   s_ = db_->storage()->SAdd(key_, members_, &count);
-  if (!s_.ok()) {
+  if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
+    return;
+  } else if (!s_.ok()) {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
     return;
   }
@@ -39,8 +41,7 @@ void SAddCmd::DoThroughDB() {
 
 void SAddCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-    db_->cache()->SAddIfKeyExist(CachePrefixKeyS, members_);
+    db_->cache()->SAddIfKeyExist(key_, members_);
   }
 }
 
@@ -76,6 +77,8 @@ void SPopCmd::Do() {
     }
   } else if (s_.IsNotFound()) {
     res_.AppendContent("$-1");
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -87,9 +90,26 @@ void SPopCmd::DoThroughDB() {
 
 void SPopCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-    db_->cache()->SRem(CachePrefixKeyS, members_);
+    db_->cache()->SRem(key_, members_);
   }
+}
+
+void SPopCmd::DoBinlog() {
+  if (!s_.ok()) {
+    return;
+  }
+
+  PikaCmdArgsType srem_args;
+  srem_args.emplace_back("srem");
+  srem_args.emplace_back(key_);
+  for (auto m = members_.begin(); m != members_.end(); ++m) {
+    srem_args.emplace_back(*m);
+  }
+  
+  srem_cmd_->Initial(srem_args, db_name_);
+  srem_cmd_->SetConn(GetConn());
+  srem_cmd_->SetResp(resp_.lock());
+  srem_cmd_->DoBinlog();
 }
 
 void SCardCmd::DoInitial() {
@@ -105,6 +125,8 @@ void SCardCmd::Do() {
   s_ = db_->storage()->SCard(key_, &card);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(card);
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, "scard error");
   }
@@ -112,8 +134,7 @@ void SCardCmd::Do() {
 
 void SCardCmd::ReadCache() {
   uint64_t card = 0;
-  std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-  auto s = db_->cache()->SCard(CachePrefixKeyS, &card);
+  auto s = db_->cache()->SCard(key_, &card);
   if (s.ok()) {
     res_.AppendInteger(card);
   } else if (s.IsNotFound()) {
@@ -151,6 +172,8 @@ void SMembersCmd::Do() {
       res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
     }
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -158,8 +181,7 @@ void SMembersCmd::Do() {
 
 void SMembersCmd::ReadCache() {
   std::vector<std::string> members;
-  std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-  auto s = db_->cache()->SMembers(CachePrefixKeyS, &members);
+  auto s = db_->cache()->SMembers(key_, &members);
   if (s.ok()) {
     res_.AppendArrayLen(members.size());
     for (const auto& member : members) {
@@ -238,6 +260,8 @@ void SScanCmd::Do() {
     for (const auto& member : members) {
       res_.AppendString(member);
     }
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -258,6 +282,8 @@ void SRemCmd::Do() {
   s_ = db_->storage()->SRem(key_, members_, &deleted_);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(deleted_);
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -269,8 +295,7 @@ void SRemCmd::DoThroughDB() {
 
 void SRemCmd::DoUpdateCache() {
   if (s_.ok() && deleted_ > 0) {
-    std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-    db_->cache()->SRem(CachePrefixKeyS, members_);
+    db_->cache()->SRem(key_, members_);
   }
 }
 
@@ -292,6 +317,8 @@ void SUnionCmd::Do() {
       res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
     }
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -313,6 +340,8 @@ void SUnionstoreCmd::Do() {
   s_ = db_->storage()->SUnionstore(dest_key_, keys_, value_to_dest_, &count);
   if (s_.ok()) {
     res_.AppendInteger(count);
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -325,7 +354,7 @@ void SUnionstoreCmd::DoThroughDB() {
 void SUnionstoreCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::vector<std::string> v;
-    v.emplace_back(PCacheKeyPrefixS + dest_key_);
+    v.emplace_back(dest_key_);
     db_->cache()->Del(v);
   }
 }
@@ -388,6 +417,8 @@ void SInterCmd::Do() {
       res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
     }
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -409,6 +440,8 @@ void SInterstoreCmd::Do() {
   s_ = db_->storage()->SInterstore(dest_key_, keys_, value_to_dest_, &count);
   if (s_.ok()) {
     res_.AppendInteger(count);
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -421,7 +454,7 @@ void SInterstoreCmd::DoThroughDB() {
 void SInterstoreCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::vector<std::string> v;
-    v.emplace_back(PCacheKeyPrefixS + dest_key_);
+    v.emplace_back(dest_key_);
     db_->cache()->Del(v);
   }
 }
@@ -440,14 +473,15 @@ void SIsmemberCmd::Do() {
   s_ = db_->storage()->SIsmember(key_, member_, &is_member);
   if (is_member != 0) {
     res_.AppendContent(":1");
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.AppendContent(":0");
   }
 }
 
 void SIsmemberCmd::ReadCache() {
-  std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-  auto s = db_->cache()->SIsmember(CachePrefixKeyS, member_);
+  auto s = db_->cache()->SIsmember(key_, member_);
   if (s.ok()) {
     res_.AppendContent(":1");
   } else if (s.IsNotFound()) {
@@ -487,6 +521,8 @@ void SDiffCmd::Do() {
       res_.AppendStringLenUint64(member.size());
       res_.AppendContent(member);
     }
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther,s_.ToString());
   }
@@ -508,6 +544,8 @@ void SDiffstoreCmd::Do() {
   s_ = db_->storage()->SDiffstore(dest_key_, keys_, value_to_dest_, &count);
   if (s_.ok()) {
     res_.AppendInteger(count);
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -520,7 +558,7 @@ void SDiffstoreCmd::DoThroughDB() {
 void SDiffstoreCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::vector<std::string> v;
-    v.emplace_back(PCacheKeyPrefixS + dest_key_);
+    v.emplace_back(dest_key_);
     db_->cache()->Del(v);
   }
 }
@@ -541,6 +579,8 @@ void SMoveCmd::Do() {
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(res);
     move_success_ = res;
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -554,10 +594,8 @@ void SMoveCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::vector<std::string> members;
     members.emplace_back(member_);
-    std::string CachePrefixKeyS = PCacheKeyPrefixS + src_key_;
-    std::string CachePrefixKeyD = PCacheKeyPrefixS + dest_key_;
-    db_->cache()->SRem(CachePrefixKeyS, members);
-    db_->cache()->SAddIfKeyExist(CachePrefixKeyD, members);
+    db_->cache()->SRem(src_key_, members);
+    db_->cache()->SAddIfKeyExist(dest_key_, members);
   }
 }
 
@@ -621,6 +659,8 @@ void SRandmemberCmd::Do() {
         res_.AppendContent(member);
       }
     }
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -628,8 +668,7 @@ void SRandmemberCmd::Do() {
 
 void SRandmemberCmd::ReadCache() {
   std::vector<std::string> members;
-  std::string CachePrefixKeyS = PCacheKeyPrefixS + key_;
-  auto s = db_->cache()->SRandmember(CachePrefixKeyS, count_, &members);
+  auto s = db_->cache()->SRandmember(key_, count_, &members);
   if (s.ok()) {
     if (!reply_arr && members.size()) {
       res_.AppendStringLen(members[0].size());

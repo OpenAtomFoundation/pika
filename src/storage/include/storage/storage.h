@@ -22,7 +22,9 @@
 #include "rocksdb/status.h"
 #include "rocksdb/table.h"
 
+#include "slot_indexer.h"
 #include "pstd/include/pstd_mutex.h"
+#include "src/base_data_value_format.h"
 
 namespace storage {
 
@@ -39,6 +41,7 @@ inline const std::string HASHES_DB = "hashes";
 inline const std::string LISTS_DB = "lists";
 inline const std::string ZSETS_DB = "zsets";
 inline const std::string SETS_DB = "sets";
+inline const std::string STREAMS_DB = "streams";
 
 inline constexpr size_t BATCH_DELETE_LIMIT = 100;
 inline constexpr size_t COMPACT_THRESHOLD_COUNT = 2000;
@@ -48,13 +51,14 @@ using BlockBasedTableOptions = rocksdb::BlockBasedTableOptions;
 using Status = rocksdb::Status;
 using Slice = rocksdb::Slice;
 
-class RedisStrings;
-class RedisHashes;
-class RedisSets;
-class RedisLists;
-class RedisZSets;
-class HyperLogLog;
+class Redis;
 enum class OptionType;
+
+struct StreamAddTrimArgs;
+struct StreamReadGroupReadArgs;
+struct StreamScanArgs;
+struct streamID;
+struct StreamInfoResult;
 
 template <typename T1, typename T2>
 class LRUCache;
@@ -78,10 +82,23 @@ struct KeyValue {
 };
 
 struct KeyInfo {
-  uint64_t keys;
-  uint64_t expires;
-  uint64_t avg_ttl;
-  uint64_t invaild_keys;
+  uint64_t keys = 0;
+  uint64_t expires = 0;
+  uint64_t avg_ttl = 0;
+  uint64_t invaild_keys = 0;
+
+  KeyInfo() : keys(0), expires(0), avg_ttl(0), invaild_keys(0) {}
+
+  KeyInfo(uint64_t k, uint64_t e, uint64_t a, uint64_t i) : keys(k), expires(e), avg_ttl(a), invaild_keys(i) {}
+
+  KeyInfo operator + (const KeyInfo& info) {
+    KeyInfo res;
+    res.keys = keys + info.keys;
+    res.expires = expires + info.expires;
+    res.avg_ttl = avg_ttl + info.avg_ttl;
+    res.invaild_keys = invaild_keys + info.invaild_keys;
+    return res;
+  }
 };
 
 struct ValueStatus {
@@ -94,26 +111,33 @@ struct ValueStatus {
 struct FieldValue {
   std::string field;
   std::string value;
+  FieldValue() = default;
+  FieldValue(const std::string& k, const std::string& v) : field(k), value(v) {}
+  FieldValue(std::string&& k, std::string&& v) : field(std::move(k)), value(std::move(v)) {}
   bool operator==(const FieldValue& fv) const { return (fv.field == field && fv.value == value); }
+};
+
+struct IdMessage {
+  std::string field;
+  std::string value;
+  bool operator==(const IdMessage& fv) const { return (fv.field == field && fv.value == value); }
 };
 
 struct KeyVersion {
   std::string key;
-  int32_t version;
+  uint64_t version = 0;
   bool operator==(const KeyVersion& kv) const { return (kv.key == key && kv.version == version); }
 };
 
 struct ScoreMember {
+  ScoreMember() : score(0.0), member("") {}
+  ScoreMember(double t_score, const std::string& t_member) : score(t_score), member(t_member) {}
   double score;
   std::string member;
   bool operator==(const ScoreMember& sm) const { return (sm.score == score && sm.member == member); }
 };
 
 enum BeforeOrAfter { Before, After };
-
-enum DataType { kAll, kStrings, kHashes, kLists, kZSets, kSets };
-
-const char DataTypeTag[] = {'a', 'k', 'h', 'l', 'z', 's'};
 
 enum class OptionType {
   kDB,
@@ -126,28 +150,37 @@ enum AGGREGATE { SUM, MIN, MAX };
 
 enum BitOpType { kBitOpAnd = 1, kBitOpOr, kBitOpXor, kBitOpNot, kBitOpDefault };
 
-enum Operation { kNone = 0, kCleanAll, kCleanStrings, kCleanHashes, kCleanZSets, kCleanSets, kCleanLists, kCompactRange };
+enum Operation {
+  kNone = 0,
+  kCleanAll,
+  kCompactRange
+};
 
 struct BGTask {
   DataType type;
   Operation operation;
   std::vector<std::string> argv;
 
-  BGTask(const DataType& _type = DataType::kAll,
-         const Operation& _opeation = Operation::kNone,
-         const std::vector<std::string>& _argv = {}) : type(_type), operation(_opeation), argv(_argv) {}
+  BGTask(const DataType& _type = DataType::kAll, const Operation& _opeation = Operation::kNone,
+         const std::vector<std::string>& _argv = {})
+      : type(_type), operation(_opeation), argv(_argv) {}
 };
 
 class Storage {
  public:
-  Storage();
+  Storage(); // for unit test only
+  Storage(int db_instance_num, int slot_num, bool is_classic_mode);
   ~Storage();
 
   Status Open(const StorageOptions& storage_options, const std::string& db_path);
 
-  Status GetStartKey(const DataType& dtype, int64_t cursor, std::string* start_key);
+  Status LoadCursorStartKey(const DataType& dtype, int64_t cursor, char* type, std::string* start_key);
 
-  Status StoreCursorStartKey(const DataType& dtype, int64_t cursor, const std::string& next_key);
+  Status StoreCursorStartKey(const DataType& dtype, int64_t cursor, char type, const std::string& next_key);
+
+  std::unique_ptr<Redis>& GetDBInstance(const Slice& key);
+
+  std::unique_ptr<Redis>& GetDBInstance(const std::string& key);
 
   // Strings Commands
 
@@ -156,7 +189,7 @@ class Storage {
   Status Set(const Slice& key, const Slice& value);
 
   // Set key to hold the string value. if key exist
-  Status Setxx(const Slice& key, const Slice& value, int32_t* ret, int32_t ttl = 0);
+  Status Setxx(const Slice& key, const Slice& value, int32_t* ret, int64_t ttl = 0);
 
   // Get the value of key. If the key does not exist
   // the special value nil is returned
@@ -193,7 +226,7 @@ class Storage {
   // Set key to hold string value if key does not exist
   // return 1 if the key was set
   // return 0 if the key was not set
-  Status Setnx(const Slice& key, const Slice& value, int32_t* ret, int32_t ttl = 0);
+  Status Setnx(const Slice& key, const Slice& value, int32_t* ret, int64_t ttl = 0);
 
   // Sets the given keys to their respective values.
   // MSETNX will not perform any operation at all even
@@ -204,7 +237,7 @@ class Storage {
   // return 1 if the key currently hold the give value And override success
   // return 0 if the key doesn't exist And override fail
   // return -1 if the key currently does not hold the given value And override fail
-  Status Setvx(const Slice& key, const Slice& value, const Slice& new_value, int32_t* ret, int32_t ttl = 0);
+  Status Setvx(const Slice& key, const Slice& value, const Slice& new_value, int32_t* ret, int64_t ttl = 0);
 
   // delete the key that holds a given value
   // return 1 if the key currently hold the give value And delete success
@@ -259,7 +292,7 @@ class Storage {
 
   // Set key to hold the string value and set key to timeout after a given
   // number of seconds
-  Status Setex(const Slice& key, const Slice& value, int32_t ttl);
+  Status Setex(const Slice& key, const Slice& value, int64_t ttl);
 
   // Returns the length of the string value stored at key. An error
   // is returned when key holds a non-string value.
@@ -269,7 +302,7 @@ class Storage {
   // specifying the number of seconds representing the TTL (time to live), it
   // takes an absolute Unix timestamp (seconds since January 1, 1970). A
   // timestamp in the past will delete the key immediately.
-  Status PKSetexAt(const Slice& key, const Slice& value, int32_t timestamp);
+  Status PKSetexAt(const Slice& key, const Slice& value, int64_t timestamp);
 
   // Hashes Commands
 
@@ -908,6 +941,15 @@ class Storage {
   Status ZScan(const Slice& key, int64_t cursor, const std::string& pattern, int64_t count,
                std::vector<ScoreMember>* score_members, int64_t* next_cursor);
 
+  Status XAdd(const Slice& key, const std::string& serialized_message, StreamAddTrimArgs& args);
+  Status XDel(const Slice& key, const std::vector<streamID>& ids, int32_t& ret);
+  Status XTrim(const Slice& key, StreamAddTrimArgs& args, int32_t& count);
+  Status XRange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& id_messages);
+  Status XRevrange(const Slice& key, const StreamScanArgs& args, std::vector<IdMessage>& id_messages);
+  Status XLen(const Slice& key, int32_t& len);
+  Status XRead(const StreamReadGroupReadArgs& args, std::vector<std::vector<storage::IdMessage>>& results,
+               std::vector<std::string>& reserved_keys);
+  Status XInfo(const Slice& key, StreamInfoResult &result);
   // Keys Commands
 
   // Note:
@@ -917,30 +959,19 @@ class Storage {
   // Set a timeout on key
   // return -1 operation exception errors happen in database
   // return >=0 success
-  int32_t Expire(const Slice& key, int32_t ttl, std::map<DataType, Status>* type_status);
+  int32_t Expire(const Slice& key, int64_t ttl);
 
   // Removes the specified keys
   // return -1 operation exception errors happen in database
   // return >=0 the number of keys that were removed
-  int64_t Del(const std::vector<std::string>& keys, std::map<DataType, Status>* type_status);
+  int64_t Del(const std::vector<std::string>& keys);
 
-  // Removes the specified keys of the specified type
-  // return -1 operation exception errors happen in database
-  // return >= 0 the number of keys that were removed
-  int64_t DelByType(const std::vector<std::string>& keys, const DataType& type);
 
   // Iterate over a collection of elements
   // return an updated cursor that the user need to use as the cursor argument
   // in the next call
   int64_t Scan(const DataType& dtype, int64_t cursor, const std::string& pattern, int64_t count,
                std::vector<std::string>* keys);
-
-  // Iterate over a collection of elements, obtaining the item which timeout
-  // conforms to the inequality (min_ttl < item_ttl < max_ttl)
-  // return an updated cursor that the user need to use as the cursor argument
-  // in the next call
-  int64_t PKExpireScan(const DataType& dtype, int64_t cursor, int32_t min_ttl, int32_t max_ttl, int64_t count,
-                       std::vector<std::string>* keys);
 
   // Iterate over a collection of elements by specified range
   // return a next_key that the user need to use as the key_start argument
@@ -965,7 +996,7 @@ class Storage {
   // Returns if key exists.
   // return -1 operation exception errors happen in database
   // return >=0 the number of keys existing
-  int64_t Exists(const std::vector<std::string>& keys, std::map<DataType, Status>* type_status);
+  int64_t Exists(const std::vector<std::string>& keys);
 
   // Return the key exists type count
   // return param type_status: return every type status
@@ -978,7 +1009,7 @@ class Storage {
   // return -1 operation exception errors happen in database
   // return 0 if key does not exist
   // return >=1 if the timueout was set
-  int32_t Expireat(const Slice& key, int32_t timestamp, std::map<DataType, Status>* type_status);
+  int32_t Expireat(const Slice& key, int64_t timestamp);
 
   // Remove the existing timeout on key, turning the key from volatile (a key
   // with an expire set) to persistent (a key that will never expire as no
@@ -986,18 +1017,18 @@ class Storage {
   // return -1 operation exception errors happen in database
   // return 0 if key does not exist or does not have an associated timeout
   // return >=1 if the timueout was set
-  int32_t Persist(const Slice& key, std::map<DataType, Status>* type_status);
+  int32_t Persist(const Slice& key);
 
   // Returns the remaining time to live of a key that has a timeout.
   // return -3 operation exception errors happen in database
   // return -2 if the key does not exist
   // return -1 if the key exists but has not associated expire
   // return > 0 TTL in seconds
-  std::map<DataType, int64_t> TTL(const Slice& key, std::map<DataType, Status>* type_status);
+  int64_t TTL(const Slice& key);
 
   // Reutrns the data all type of the key
   // if single is true, the query will return the first one
-  Status GetType(const std::string& key, bool single, std::vector<std::string>& types);
+  Status GetType(const std::string& key, enum DataType& type);
 
   // Reutrns the data all type of the key
   Status Type(const std::string& key, std::vector<std::string>& types);
@@ -1036,8 +1067,8 @@ class Storage {
 
   Status Compact(const DataType& type, bool sync = false);
   Status CompactRange(const DataType& type, const std::string& start, const std::string& end, bool sync = false);
-  Status DoCompact(const DataType& type);
   Status DoCompactRange(const DataType& type, const std::string& start, const std::string& end);
+  Status DoCompactSpecificKey(const DataType& type, const std::string& key);
 
   Status SetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
   Status SetSmallCompactionThreshold(uint32_t small_compaction_threshold);
@@ -1045,30 +1076,30 @@ class Storage {
 
   std::string GetCurrentTaskType();
   Status GetUsage(const std::string& property, uint64_t* result);
-  Status GetUsage(const std::string& property, std::map<std::string, uint64_t>* type_result);
-  uint64_t GetProperty(const std::string& db_type, const std::string& property);
+  Status GetUsage(const std::string& property, std::map<int, uint64_t>* type_result);
+  uint64_t GetProperty(const std::string& property);
 
   Status GetKeyNum(std::vector<KeyInfo>* key_infos);
   Status StopScanKeyNum();
 
-  rocksdb::DB* GetDBByType(const std::string& type);
+  rocksdb::DB* GetDBByIndex(int index);
 
   Status SetOptions(const OptionType& option_type, const std::string& db_type,
                     const std::unordered_map<std::string, std::string>& options);
   void SetCompactRangeOptions(const bool is_canceled);
   Status EnableDymayticOptions(const OptionType& option_type, 
                     const std::string& db_type, const std::unordered_map<std::string, std::string>& options);
-  Status EnableAutoCompaction(const OptionType& option_type, 
+  Status EnableAutoCompaction(const OptionType& option_type,
                     const std::string& db_type, const std::unordered_map<std::string, std::string>& options);
   void GetRocksDBInfo(std::string& info);
 
  private:
-  std::unique_ptr<RedisStrings> strings_db_;
-  std::unique_ptr<RedisHashes> hashes_db_;
-  std::unique_ptr<RedisSets> sets_db_;
-  std::unique_ptr<RedisZSets> zsets_db_;
-  std::unique_ptr<RedisLists> lists_db_;
-  std::atomic<bool> is_opened_ = false;
+  std::vector<std::unique_ptr<Redis>> insts_;
+  std::unique_ptr<SlotIndexer> slot_indexer_;
+  std::atomic<bool> is_opened_ = {false};
+  int db_instance_num_ = 3;
+  int slot_num_ = 1024;
+  bool is_classic_mode_ = true;
 
   std::unique_ptr<LRUCache<std::string, std::string>> cursors_store_;
 
@@ -1078,11 +1109,12 @@ class Storage {
   pstd::CondVar bg_tasks_cond_var_;
   std::queue<BGTask> bg_tasks_queue_;
 
-  std::atomic<int> current_task_type_ = kNone;
-  std::atomic<bool> bg_tasks_should_exit_ = false;
+  std::atomic<int> current_task_type_ = {kNone};
+  std::atomic<bool> bg_tasks_should_exit_ = {false};
 
   // For scan keys in data base
-  std::atomic<bool> scan_keynum_exit_ = false;
+  std::atomic<bool> scan_keynum_exit_ = {false};
+  Status MGetWithTTL(const Slice& key, std::string* value, int64_t* ttl);
 };
 
 }  //  namespace storage

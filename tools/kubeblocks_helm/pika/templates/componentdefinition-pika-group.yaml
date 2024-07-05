@@ -1,0 +1,80 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentDefinition
+metadata:
+  name: pika-group
+  labels:
+    {{- include "pika.labels" . | nindent 4 }}
+spec:
+  provider: pika
+  description: A pika group component definition
+  serviceKind: pika-group
+  serviceVersion: 3.5.3
+  services:
+    - name: pika
+      serviceName: pika
+      spec:
+        ports:
+          - name: pika
+            port: 9221
+            targetPort: pika
+  updateStrategy: Serial
+  configs:
+    - name: pika-config
+      templateRef: pika-conf-template
+      namespace: {{ .Release.Namespace }}
+      volumeName: config
+  scripts:
+    - name: pika-script
+      templateRef: pika-script-template
+      namespace: {{ .Release.Namespace }}
+      volumeName: script
+      defaultMode: 0555
+  lifecycleActions:
+    postProvision:
+      customHandler:
+        image: {{ include "codis.image" . }}
+        exec:
+          command:
+            - "/bin/bash"
+          args:
+            - "-c"
+            - "/script/admin.sh --rebalance"
+        preCondition: ComponentReady
+  vars:
+    ## reference to the pika-codis-dashboard service
+    - name: PIKA_CODIS_DASHBOARD_SVC_NAME
+      valueFrom:
+        serviceVarRef:
+          compDef: pika-codis-dashboard
+          name: dashboard
+          optional: true
+          host: Optional
+  runtime:
+    containers:
+      - name: pika
+        image: {{ include "pika.image" . }}
+        imagePullPolicy: {{ include "pika.imagePullPolicy" . }}
+        ports:
+          - name: pika
+            containerPort: 9221
+        volumeMounts:
+          - name: config
+            mountPath: /etc/pika
+          - name: data
+            mountPath: /data
+        command:
+          - "/pika/bin/pika"
+        args:
+          - "-c"
+          - "/etc/pika/pika.conf"
+      - name: codis-admin
+        image: {{ include "codis.image" . }}
+        imagePullPolicy: {{ include "codis.imagePullPolicy" . }}
+        volumeMounts:
+          - name: script
+            mountPath: /script
+        command:
+          - "/bin/bash"
+        args:
+          - "-c"
+          - "/script/admin.sh --register-server;tail -f /dev/null"

@@ -110,6 +110,7 @@ class ClientThread : public Thread {
    */
   int StartThread() override;
   int StopThread() override;
+  void set_thread_name(const std::string& name) override { Thread::set_thread_name(name); }
   pstd::Status Write(const std::string& ip, int port, const std::string& msg);
   pstd::Status Close(const std::string& ip, int port);
 

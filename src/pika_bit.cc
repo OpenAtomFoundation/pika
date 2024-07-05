@@ -12,6 +12,8 @@
 #include "include/pika_define.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_cache.h"
+#include "pstd/include/pstd_string.h"
+#include "include/pika_define.h"
 
 void BitSetCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -49,6 +51,8 @@ void BitSetCmd::Do() {
   if (s_.ok()) {
     res_.AppendInteger(static_cast<int>(bit_val));
     AddSlotKey("k", key_, db_);
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -60,8 +64,7 @@ void BitSetCmd::DoThroughDB() {
 
 void BitSetCmd::DoUpdateCache() {
   if (s_.ok()) {
-    std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-    db_->cache()->SetBitIfKeyExist(CachePrefixKeyK, bit_offset_, on_);
+    db_->cache()->SetBitIfKeyExist(key_, bit_offset_, on_);
   }
 }
 
@@ -87,6 +90,8 @@ void BitGetCmd::Do() {
   s_ = db_->storage()->GetBit(key_, bit_offset_, &bit_val);
   if (s_.ok()) {
     res_.AppendInteger(static_cast<int>(bit_val));
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -94,8 +99,7 @@ void BitGetCmd::Do() {
 
 void BitGetCmd::ReadCache() {
   int64_t bit_val = 0;
-  std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
-  auto s = db_->cache()->GetBit(CachePrefixKeyK, bit_offset_, &bit_val);
+  auto s = db_->cache()->GetBit(key_, bit_offset_, &bit_val);
   if (s.ok()) {
     res_.AppendInteger(bit_val);
   } else if (s.IsNotFound()) {
@@ -149,6 +153,8 @@ void BitCountCmd::Do() {
 
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(count);
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -158,13 +164,11 @@ void BitCountCmd::ReadCache() {
   int64_t count = 0;
   int64_t start = static_cast<long>(start_offset_);
   int64_t end = static_cast<long>(end_offset_);
-  rocksdb::Status s;
-  std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
+  bool flag = true;
   if (count_all_) {
-    s = db_->cache()->BitCount(CachePrefixKeyK, start, end, &count, 0);
-  } else {
-    s = db_->cache()->BitCount(CachePrefixKeyK, start, end, &count, 1);
+    flag = false;
   }
+  rocksdb::Status s = db_->cache()->BitCount(key_, start, end, &count, flag);
 
   if (s.ok()) {
     res_.AppendInteger(count);
@@ -238,6 +242,8 @@ void BitPosCmd::Do() {
   }
   if (s_.ok()) {
     res_.AppendInteger(static_cast<int>(pos));
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -249,13 +255,12 @@ void BitPosCmd::ReadCache() {
   int64_t bit = static_cast<long>(bit_val_);
   int64_t start = static_cast<long>(start_offset_);
   int64_t end = static_cast<long>(end_offset_);\
-  std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
   if (pos_all_) {
-    s = db_->cache()->BitPos(CachePrefixKeyK, bit, &pos);
+    s = db_->cache()->BitPos(key_, bit, &pos);
   } else if (!pos_all_ && !endoffset_set_) {
-    s = db_->cache()->BitPos(CachePrefixKeyK, bit, start, &pos);
+    s = db_->cache()->BitPos(key_, bit, start, &pos);
   } else if (!pos_all_ && endoffset_set_) {
-    s = db_->cache()->BitPos(CachePrefixKeyK, bit, start, end, &pos);
+    s = db_->cache()->BitPos(key_, bit, start, end, &pos);
   }
   if (s.ok()) {
     res_.AppendInteger(pos);
@@ -317,6 +322,8 @@ void BitOpCmd::Do() {
   s_ = db_->storage()->BitOp(op_, dest_key_, src_keys_, value_to_dest_, &result_length);
   if (s_.ok()) {
     res_.AppendInteger(result_length);
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
@@ -329,7 +336,7 @@ void BitOpCmd::DoThroughDB() {
 void BitOpCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::vector<std::string> v;
-    v.emplace_back(PCacheKeyPrefixK + dest_key_);
+    v.emplace_back(dest_key_);
     db_->cache()->Del(v);
   }
 }

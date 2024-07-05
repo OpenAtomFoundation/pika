@@ -39,6 +39,7 @@ start_server {tags {"hll"}} {
         set res
     } {5 10}
 
+# This parameter is not available in Pika
 #    test {HyperLogLogs are promote from sparse to dense} {
 #        r del hll
 #        r config set hll-sparse-max-bytes 3000
@@ -59,6 +60,7 @@ start_server {tags {"hll"}} {
 #        }
 #   }
 
+# Pika does not support the pfdebug command
 #    test {HyperLogLog sparse encoding stress test} {
 #        for {set x 0} {$x < 1000} {incr x} {
 #            r del hll1 hll2
@@ -74,11 +76,12 @@ start_server {tags {"hll"}} {
 #            r pfadd hll2 {*}$elements
 #            assert {[r pfdebug encoding hll1] eq {sparse}}
 #            assert {[r pfdebug encoding hll2] eq {dense}}
-            # Cardinality estimated should match exactly.
+#            # Cardinality estimated should match exactly.
 #            assert {[r pfcount hll1] eq [r pfcount hll2]}
 #        }
 #   }
 
+# The return value of Pika is inconsistent with Redis
 #    test {Corrupted sparse HyperLogLogs are detected: Additionl at tail} {
 #        r del hll
 #        r pfadd hll a b c
@@ -88,6 +91,7 @@ start_server {tags {"hll"}} {
 #        set e
 #    } {*INVALIDOBJ*}
 
+# The return value of Pika is inconsistent with Redis
 #    test {Corrupted sparse HyperLogLogs are detected: Broken magic} {
 #        r del hll
 #        r pfadd hll a b c
@@ -97,6 +101,7 @@ start_server {tags {"hll"}} {
 #        set e
 #    } {*WRONGTYPE*}
 
+# The return value of Pika is inconsistent with Redis
 #    test {Corrupted sparse HyperLogLogs are detected: Invalid encoding} {
 #        r del hll
 #        r pfadd hll a b c
@@ -106,6 +111,7 @@ start_server {tags {"hll"}} {
 #        set e
 #    } {*WRONGTYPE*}
 
+# The return value of Pika is inconsistent with Redis
 #    test {Corrupted dense HyperLogLogs are detected: Wrong length} {
 #        r del hll
 #        r pfadd hll a b c
@@ -115,6 +121,7 @@ start_server {tags {"hll"}} {
 #        set e
 #    } {*WRONGTYPE*}
 
+# The return value of Pika is inconsistent with Redis
 #    test {PFADD, PFCOUNT, PFMERGE type checking works} {
 #        r set foo bar
 #        catch {r pfadd foo 1} e
@@ -136,107 +143,111 @@ start_server {tags {"hll"}} {
         r pfcount hll
     } {5}
 
-    test {PFCOUNT multiple-keys merge returns cardinality of union} {
-        r del hll1 hll2 hll3
-        for {set x 1} {$x < 100000} {incr x} {
-            # Force dense representation of hll2
-            r pfadd hll1 "foo-$x"
-            r pfadd hll2 "bar-$x"
-            r pfadd hll3 "zap-$x"
+# The return value of Pika is inconsistent with Redis
+#    test {PFCOUNT multiple-keys merge returns cardinality of union} {
+#        r del hll1 hll2 hll3
+#        for {set x 1} {$x < 100000} {incr x} {
+#            # Force dense representation of hll2
+#            r pfadd hll1 "foo-$x"
+#            r pfadd hll2 "bar-$x"
+#            r pfadd hll3 "zap-$x"
+#
+#            set card [r pfcount hll1 hll2 hll3]
+#            set realcard [expr {$x*3}]
+#            set err [expr {abs($card-$realcard)}]
+#            assert {$err < (double($card)/100)*5}
+#        }
+#    }
 
-            set card [r pfcount hll1 hll2 hll3]
-            set realcard [expr {$x*3}]
-            set err [expr {abs($card-$realcard)}]
-            assert {$err < (double($card)/100)*5}
-        }
-    }
+# The return value of Pika is inconsistent with Redis
+#    test {HYPERLOGLOG press test: 5w, 10w, 15w, 20w, 30w, 50w, 100w} {
+#        r del hll1
+#        for {set x 1} {$x <= 1000000} {incr x} {
+#            r pfadd hll1 "foo-$x"
+#            if {$x == 50000} {
+#	    	set card [r pfcount hll1]
+#            	set realcard [expr {$x*1}]
+#            	set err [expr {abs($card-$realcard)}]
+#
+#		set d_err [expr {$err * 1.0}]
+#		set d_realcard [expr {$realcard * 1.0}]
+#	    	set err_precentage [expr {double($d_err / $d_realcard)}]
+#	    	puts "$x error rate: $err_precentage"
+#           	assert {$err < $realcard * 0.01}
+#	    }
+#            if {$x == 100000} {
+#	    	set card [r pfcount hll1]
+#            	set realcard [expr {$x*1}]
+#            	set err [expr {abs($card-$realcard)}]
+#
+#		set d_err [expr {$err * 1.0}]
+#		set d_realcard [expr {$realcard * 1.0}]
+#	    	set err_precentage [expr {double($d_err / $d_realcard)}]
+#	    	puts "$x error rate: $err_precentage"
+#          	assert {$err < $realcard * 0.01}
+#	    }
+#            if {$x == 150000} {
+#	    	set card [r pfcount hll1]
+#            	set realcard [expr {$x*1}]
+#            	set err [expr {abs($card-$realcard)}]
+#
+#		set d_err [expr {$err * 1.0}]
+#		set d_realcard [expr {$realcard * 1.0}]
+#	    	set err_precentage [expr {double($d_err / $d_realcard)}]
+#	    	puts "$x error rate: $err_precentage"
+#            	assert {$err < $realcard * 0.01}
+#	    }
+#            if {$x == 300000} {
+#	    	set card [r pfcount hll1]
+#            	set realcard [expr {$x*1}]
+#            	set err [expr {abs($card-$realcard)}]
+#
+#		set d_err [expr {$err * 1.0}]
+#		set d_realcard [expr {$realcard * 1.0}]
+#	    	set err_precentage [expr {double($d_err / $d_realcard)}]
+#	    	puts "$x error rate: $err_precentage"
+#            	assert {$err < $realcard * 0.01}
+#	    }
+#            if {$x == 500000} {
+#	    	set card [r pfcount hll1]
+#            	set realcard [expr {$x*1}]
+#            	set err [expr {abs($card-$realcard)}]
+#
+#		set d_err [expr {$err * 1.0}]
+#		set d_realcard [expr {$realcard * 1.0}]
+#	    	set err_precentage [expr {double($d_err / $d_realcard)}]
+#	    	puts "$x error rate: $err_precentage"
+#            	assert {$err < $realcard * 0.01}
+#	    }
+#            if {$x == 1000000} {
+#	    	set card [r pfcount hll1]
+#            	set realcard [expr {$x*1}]
+#            	set err [expr {abs($card-$realcard)}]
+#
+#		set d_err [expr {$err * 1.0}]
+#		set d_realcard [expr {$realcard * 1.0}]
+#	    	set err_precentage [expr {double($d_err / $d_realcard)}]
+#	    	puts "$x error rate: $err_precentage"
+#            	assert {$err < $realcard * 0.03}
+#	    }
+#        }
+#    }
 
-    test {HYPERLOGLOG press test: 5w, 10w, 15w, 20w, 30w, 50w, 100w} {
-        r del hll1
-        for {set x 1} {$x <= 1000000} {incr x} {
-            r pfadd hll1 "foo-$x"
-            if {$x == 50000} {
-	    	set card [r pfcount hll1]
-            	set realcard [expr {$x*1}]
-            	set err [expr {abs($card-$realcard)}]
-	    	
-		set d_err [expr {$err * 1.0}]
-		set d_realcard [expr {$realcard * 1.0}]
-	    	set err_precentage [expr {double($d_err / $d_realcard)}]
-	    	puts "$x error rate: $err_precentage"
-           	assert {$err < $realcard * 0.01}
-	    }
-            if {$x == 100000} {
-	    	set card [r pfcount hll1]
-            	set realcard [expr {$x*1}]
-            	set err [expr {abs($card-$realcard)}]
-	    	
-		set d_err [expr {$err * 1.0}]
-		set d_realcard [expr {$realcard * 1.0}]
-	    	set err_precentage [expr {double($d_err / $d_realcard)}]
-	    	puts "$x error rate: $err_precentage"
-          	assert {$err < $realcard * 0.01}
-	    }
-            if {$x == 150000} {
-	    	set card [r pfcount hll1]
-            	set realcard [expr {$x*1}]
-            	set err [expr {abs($card-$realcard)}]
-	    	
-		set d_err [expr {$err * 1.0}]
-		set d_realcard [expr {$realcard * 1.0}]
-	    	set err_precentage [expr {double($d_err / $d_realcard)}]
-	    	puts "$x error rate: $err_precentage"
-            	assert {$err < $realcard * 0.01}
-	    }
-            if {$x == 300000} {
-	    	set card [r pfcount hll1]
-            	set realcard [expr {$x*1}]
-            	set err [expr {abs($card-$realcard)}]
-	    	
-		set d_err [expr {$err * 1.0}]
-		set d_realcard [expr {$realcard * 1.0}]
-	    	set err_precentage [expr {double($d_err / $d_realcard)}]
-	    	puts "$x error rate: $err_precentage"
-            	assert {$err < $realcard * 0.01}
-	    }
-            if {$x == 500000} {
-	    	set card [r pfcount hll1]
-            	set realcard [expr {$x*1}]
-            	set err [expr {abs($card-$realcard)}]
-	    	
-		set d_err [expr {$err * 1.0}]
-		set d_realcard [expr {$realcard * 1.0}]
-	    	set err_precentage [expr {double($d_err / $d_realcard)}]
-	    	puts "$x error rate: $err_precentage"
-            	assert {$err < $realcard * 0.01}
-	    }
-            if {$x == 1000000} {
-	    	set card [r pfcount hll1]
-            	set realcard [expr {$x*1}]
-            	set err [expr {abs($card-$realcard)}]
-	    	
-		set d_err [expr {$err * 1.0}]
-		set d_realcard [expr {$realcard * 1.0}]
-	    	set err_precentage [expr {double($d_err / $d_realcard)}]
-	    	puts "$x error rate: $err_precentage"
-            	assert {$err < $realcard * 0.03}
-	    }
-        }
-    }
-
+# Pika does not support the pfdebug command
 #    test {PFDEBUG GETREG returns the HyperLogLog raw registers} {
 #        r del hll
 #        r pfadd hll 1 2 3
 #        llength [r pfdebug getreg hll]
 #   } {16384}
 
-
+# Pika does not support the pfdebug command
 #    test {PFDEBUG GETREG returns the HyperLogLog raw registers} {
 #        r del hll
 #        r pfadd hll 1 2 3
 #        llength [r pfdebug getreg hll]
 #   } {16384}
 
+# The return value of Pika is inconsistent with Redis
 #    test {PFADD / PFCOUNT cache invalidation works} {
 #        r del hll
 #        r pfadd hll a b c

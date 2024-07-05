@@ -47,6 +47,19 @@ void PikaCmdTableManager::InitCmdTable(void) {
   CommandStatistics statistics;
   for (auto& iter : *cmds_) {
     cmdstat_map_.emplace(iter.first, statistics);
+    iter.second->SetCmdId(cmdId_++);
+  }
+}
+
+void PikaCmdTableManager::RenameCommand(const std::string before, const std::string after) {
+  auto it = cmds_->find(before);
+  if (it != cmds_->end()) {
+    if (after.length() > 0) {
+      cmds_->insert(std::pair<std::string, std::unique_ptr<Cmd>>(after, std::move(it->second)));
+    } else {
+      LOG(ERROR) << "The value of rename-command is null";
+    }
+    cmds_->erase(it);
   }
 }
 
@@ -69,7 +82,7 @@ std::shared_ptr<Cmd> PikaCmdTableManager::NewCommand(const std::string& opt) {
 
 CmdTable* PikaCmdTableManager::GetCmdTable() { return cmds_.get(); }
 
-uint32_t PikaCmdTableManager::GetCmdId() { return ++cmdId_; }
+uint32_t PikaCmdTableManager::GetMaxCmdId() { return cmdId_; }
 
 bool PikaCmdTableManager::CheckCurrentThreadDistributionMapExist(const std::thread::id& tid) {
   std::shared_lock l(map_protector_);

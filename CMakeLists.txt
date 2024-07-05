@@ -34,8 +34,7 @@ endif()
 #set(CMAKE_BUILD_TYPE "Debug")
 #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=thread -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls")
 
-execute_process(COMMAND uname -p OUTPUT_VARIABLE HOST_ARCH)
-string(TOLOWER ${HOST_ARCH} HOST_ARCH)
+string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR} HOST_ARCH)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RELEASE)
@@ -52,12 +51,14 @@ elseif(${BUILD_TYPE} STREQUAL RELWITHDEBINFO)
 else()
   set(LIB_BUILD_TYPE RELEASE)
   set(CMAKE_CXX_FLAGS_RELEASE "-O2 -g -DNDEBUG")
-
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
    set(CMAKE_CXX_FLAGS "-pthread")
    add_definitions(-DOS_MACOSX)
+elseif (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+    set(CMAKE_CXX_FLAGS "-pthread")
+    add_definitions(-DOS_FREEBSD)
 elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
      set(CMAKE_EXE_LINKER_FLAGS "-stdlib=libc++ -fuse-ld=lld -lc++ -lc++abi ${CMAKE_EXE_LINKER_FLAGS}")
@@ -68,7 +69,7 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
    endif()
    add_definitions(-DOS_LINUX)
 else()
-   message(FATAL_ERROR "only support linux or macOs")
+   message(FATAL_ERROR "only support linux or macOs or FreeBSD")
 endif()
 
 if(HOST_ARCH MATCHES "x86_64" OR HOST_ARCH MATCHES "i386")
@@ -172,7 +173,6 @@ set(GTEST_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 set(GTEST_MAIN_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 set(GMOCK_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
-
 ExternalProject_Add(gflags
   URL
   https://github.com/gflags/gflags/archive/refs/tags/v2.2.2.tar.gz
@@ -227,7 +227,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     LOG_INSTALL
     1
     CONFIGURE_COMMAND
-    <SOURCE_DIR>/configure --prefix=${STAGED_INSTALL_PREFIX} --enable-minidebuginfo=no --enable-zlibdebuginfo=no --enable-shared=no
+    <SOURCE_DIR>/configure --prefix=${STAGED_INSTALL_PREFIX} --enable-minidebuginfo=no --enable-zlibdebuginfo=no --enable-shared=no --with-pic
     BUILD_IN_SOURCE
     1
     BUILD_COMMAND
@@ -491,8 +491,9 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
     -DCMAKE_BUILD_TYPE=${LIB_BUILD_TYPE}
     -DGPERFTOOLS_BUILD_STATIC=ON
-    -DEFAULT_BUILD_MINIMAL=ON
+    -DDEFAULT_BUILD_MINIMAL=ON
     -Dgperftools_build_benchmark=OFF
+    -DCMAKE_PREFIX_PATH=${INSTALL_LIBDIR}
     BUILD_COMMAND
     make -j${CPU_CORE}
   )

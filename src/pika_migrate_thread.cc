@@ -1,17 +1,18 @@
-#include <glog/logging.h>
-
 #include <memory>
 
+#include <glog/logging.h>
+
+#include "include/pika_admin.h"
+#include "include/pika_cmd_table_manager.h"
 #include "include/pika_command.h"
 #include "include/pika_conf.h"
 #include "include/pika_define.h"
 #include "include/pika_migrate_thread.h"
+#include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_slot_command.h"
-
-#include "include/pika_admin.h"
-#include "include/pika_cmd_table_manager.h"
-#include "include/pika_rm.h"
+#include "pstd/include/pika_codis_slot.h"
+#include "src/redis_streams.h"
 
 #define min(a, b) (((a) > (b)) ? (b) : (a))
 
@@ -71,17 +72,15 @@ static int migrateKeyTTl(net::NetCli *cli, const std::string& key, storage::Data
                          const std::shared_ptr<DB>& db) {
   net::RedisCmdArgsType argv;
   std::string send_str;
-  std::map<storage::DataType, int64_t> type_timestamp;
-  std::map<storage::DataType, rocksdb::Status> type_status;
-  type_timestamp = db->storage()->TTL(key, &type_status);
-  if (PIKA_TTL_ZERO == type_timestamp[data_type] || PIKA_TTL_STALE == type_timestamp[data_type]) {
+  int64_t type_timestamp = db->storage()->TTL(key);
+  if (PIKA_TTL_ZERO == type_timestamp || PIKA_TTL_STALE == type_timestamp) {
     argv.emplace_back("del");
     argv.emplace_back(key);
     net::SerializeRedisCommand(argv, &send_str);
-  } else if (0 < type_timestamp[data_type]) {
+  } else if (0 < type_timestamp) {
     argv.emplace_back("expire");
     argv.emplace_back(key);
-    argv.emplace_back(std::to_string(type_timestamp[data_type]));
+    argv.emplace_back(std::to_string(type_timestamp));
     net::SerializeRedisCommand(argv, &send_str);
   } else {
     // no expire
@@ -138,7 +137,7 @@ static int MigrateKv(net::NetCli *cli, const std::string& key, const std::shared
   }
 
   int r;
-  if (0 > (r = migrateKeyTTl(cli, key, storage::kStrings, db))) {
+  if (0 > (r = migrateKeyTTl(cli, key, storage::DataType::kStrings, db))) {
     return -1;
   } else {
     send_num += r;
@@ -175,7 +174,7 @@ static int MigrateHash(net::NetCli *cli, const std::string& key, const std::shar
 
   if (send_num > 0) {
     int r;
-    if ((r = migrateKeyTTl(cli, key, storage::kHashes, db)) < 0) {
+    if ((r = migrateKeyTTl(cli, key, storage::DataType::kHashes, db)) < 0) {
       return -1;
     } else {
       send_num += r;
@@ -225,13 +224,49 @@ static int MigrateList(net::NetCli *cli, const std::string& key, const std::shar
   // has send del key command
   if (send_num > 1) {
     int r;
-    if (0 > (r = migrateKeyTTl(cli, key, storage::kLists, db))) {
+    if (0 > (r = migrateKeyTTl(cli, key, storage::DataType::kLists, db))) {
       return -1;
     } else {
       send_num += r;
     }
   }
 
+  return send_num;
+}
+
+static int MigrateStreams(net::NetCli *cli, const std::string& key, const std::shared_ptr<DB>& db) {
+  int send_num = 0;
+  int64_t cursor = 0;
+  std::vector<std::string> members;
+  rocksdb::Status s;
+
+  std::vector<storage::IdMessage> id_messages;
+  storage::StreamScanArgs arg;
+  storage::StreamUtils::StreamParseIntervalId("-", arg.start_sid, &arg.start_ex, 0);
+  storage::StreamUtils::StreamParseIntervalId("+", arg.end_sid, &arg.end_ex, UINT64_MAX);
+  s = db->storage()->XRange(key, arg, id_messages);
+  if (s.ok()) {
+    net::RedisCmdArgsType argv;
+    std::string send_str;
+    argv.emplace_back("XADD");
+    argv.emplace_back(key);
+    for (auto &fv : id_messages) {
+      std::vector<std::string> message;
+      storage::StreamUtils::DeserializeMessage(fv.value, message);
+      storage::streamID sid;
+      sid.DeserializeFrom(fv.field);
+      argv.emplace_back(sid.ToString());
+      for (auto &m : message) {
+        argv.emplace_back(m);
+      }
+    }
+    net::SerializeRedisCommand(argv, &send_str);
+    if (doMigrate(cli, send_str) < 0) {
+      return -1;
+    } else {
+      ++send_num;
+    }
+  }
   return send_num;
 }
 
@@ -263,7 +298,7 @@ static int MigrateSet(net::NetCli *cli, const std::string& key, const std::share
 
   if (0 < send_num) {
     int r;
-    if (0 > (r = migrateKeyTTl(cli, key, storage::kSets, db))) {
+    if (0 > (r = migrateKeyTTl(cli, key, storage::DataType::kSets, db))) {
       return -1;
     } else {
       send_num += r;
@@ -302,7 +337,7 @@ static int MigrateZset(net::NetCli *cli, const std::string& key, const std::shar
 
   if (send_num > 0) {
     int r;
-    if ((r = migrateKeyTTl(cli, key, storage::kZSets, db)) < 0) {
+    if ((r = migrateKeyTTl(cli, key, storage::DataType::kZSets, db)) < 0) {
       return -1;
     } else {
       send_num += r;
@@ -333,7 +368,8 @@ PikaParseSendThread::PikaParseSendThread(PikaMigrateThread *migrate_thread, cons
       timeout_ms_(3000),
       mgrtkeys_num_(64),
       should_exit_(false),
-      migrate_thread_(migrate_thread) {}
+      migrate_thread_(migrate_thread),
+      db_(db) {}
 
 PikaParseSendThread::~PikaParseSendThread() {
   if (is_running()) {
@@ -402,6 +438,11 @@ int PikaParseSendThread::MigrateOneKey(net::NetCli *cli, const std::string& key,
       break;
     case 'z':
       if (0 > (send_num = MigrateZset(cli_, key, db_))) {
+        return -1;
+      }
+      break;
+    case 'm':
+      if (0 > (send_num = MigrateStreams(cli_, key, db_))) {
         return -1;
       }
       break;
@@ -534,7 +575,7 @@ PikaMigrateThread::PikaMigrateThread()
       send_num_(0),
       response_num_(0),
       moved_num_(0),
-      
+
       workers_num_(8),
       working_thread_num_(0)
       {}
@@ -594,13 +635,13 @@ bool PikaMigrateThread::ReqMigrateBatch(const std::string &ip, int64_t port, int
   return false;
 }
 
-int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_ptr<DB>& db) {
+int PikaMigrateThread::ReqMigrateOne(const std::string &key, const std::shared_ptr<DB> &db) {
   std::unique_lock lm(migrator_mutex_);
 
-  int slot_id = GetSlotID(key);
-  std::vector<std::string> type_str(1);
+  int slot_id = GetSlotID(g_pika_conf->default_slot_num(), key);
+  storage::DataType type;
   char key_type;
-  rocksdb::Status s = db->storage()->GetType(key, true, type_str);
+  rocksdb::Status s = db->storage()->GetType(key, type);
   if (!s.ok()) {
     if (s.IsNotFound()) {
       LOG(INFO) << "PikaMigrateThread::ReqMigrateOne key: " << key << " not found";
@@ -610,27 +651,16 @@ int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_p
       return -1;
     }
   }
-
-  if (type_str[0] == "string") {
-    key_type = 'k';
-  } else if (type_str[0] == "hash") {
-    key_type = 'h';
-  } else if (type_str[0] == "list") {
-    key_type = 'l';
-  } else if (type_str[0] == "set") {
-    key_type = 's';
-  } else if (type_str[0] == "zset") {
-    key_type = 'z';
-  } else if (type_str[0] == "none") {
+  key_type = storage::DataTypeToTag(type);
+  if (type == storage::DataType::kNones) {
+    LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne key: " << key << " type: " << static_cast<int>(type)
+                 << " is  illegal";
     return 0;
-  } else {
-    LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne key: " << key << " type: " << type_str[0] << " is  illegal";
-    return -1;
   }
 
   if (slot_id != slot_id_) {
     LOG(WARNING) << "PikaMigrateThread::ReqMigrateOne Slot : " << slot_id << " is not the migrating slot:" << slot_id_;
-    return -2;
+    return -1;
   }
 
   // if the migrate thread exit, start it
@@ -647,17 +677,16 @@ int PikaMigrateThread::ReqMigrateOne(const std::string& key, const std::shared_p
       is_migrating_ = true;
       usleep(100);
     }
+  }
+  // check the key is migrating
+  std::pair<const char, std::string> kpair = std::make_pair(key_type, key);
+  if (IsMigrating(kpair)) {
+    LOG(INFO) << "PikaMigrateThread::ReqMigrateOne key: " << key << " is migrating ! ";
+    return 1;
   } else {
-    // check the key is migrating
-    std::pair<const char, std::string> kpair = std::make_pair(key_type, key);
-    if (IsMigrating(kpair)) {
-      LOG(INFO) << "PikaMigrateThread::ReqMigrateOne key: " << key << " is migrating ! ";
-      return 1;
-    } else {
-      std::unique_lock lo(mgrtone_queue_mutex_);
-      mgrtone_queue_.emplace_back(kpair);
-      NotifyRequestMigrate();
-    }
+    std::unique_lock lo(mgrtone_queue_mutex_);
+    mgrtone_queue_.emplace_back(kpair);
+    NotifyRequestMigrate();
   }
 
   return 1;
@@ -906,7 +935,9 @@ void *PikaMigrateThread::ThreadMain() {
     {
       std::unique_lock lw(workers_mutex_);
       while (!should_exit_ && is_task_success_ && send_num_ != response_num_) {
-        workers_cond_.wait(lw);
+        if (workers_cond_.wait_for(lw, std::chrono::seconds(60)) == std::cv_status::timeout) {
+          break;
+        }
       }
     }
     LOG(INFO) << "PikaMigrateThread::ThreadMain send_num:" << send_num_ << " response_num:" << response_num_;

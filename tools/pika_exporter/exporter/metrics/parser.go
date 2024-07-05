@@ -280,6 +280,11 @@ type proxyParser struct{}
 func (p *proxyParser) Parse(m MetricMeta, c Collector, opt ParseOption) {
 	m.Lookup(func(m MetaData) {
 		for opstr, v := range opt.ExtractsProxy {
+			if len(v) < 17 {
+				paddedV := make([]int64, 17)
+				copy(paddedV, v)
+				v = paddedV
+			}
 			metric := Metric{
 				MetaData:    m,
 				LabelValues: make([]string, len(m.Labels)),
@@ -306,6 +311,32 @@ func (p *proxyParser) Parse(m MetricMeta, c Collector, opt ParseOption) {
 				metric.Value = convertToFloat64(strconv.FormatInt(v[2], 10))
 			case "max_delay":
 				metric.Value = convertToFloat64(strconv.FormatInt(v[3], 10))
+			case "tp90":
+				metric.Value = convertToFloat64(strconv.FormatInt(v[4], 10))
+			case "tp99":
+				metric.Value = convertToFloat64(strconv.FormatInt(v[5], 10))
+			case "tp999":
+				metric.Value = convertToFloat64(strconv.FormatInt(v[6], 10))
+			case "tp100":
+				metric.Value = convertToFloat64(strconv.FormatInt(v[7], 10))
+			case "delayCount":
+				metric.Value = convertToFloat64(strconv.FormatInt(v[8], 10))
+			case "delay50ms":
+				metric.Value = convertToFloat64(strconv.FormatInt(v[9], 10))
+			case "delay100ms":
+				metric.Value = convertToFloat64(strconv.FormatInt(v[10], 10))
+			case "delay200ms":
+				metric.Value = convertToFloat64(strconv.FormatInt(v[11], 10))
+			case "delay300ms":
+				metric.Value = convertToFloat64(strconv.FormatInt(v[12], 10))
+			case "delay500ms":
+				metric.Value = convertToFloat64(strconv.FormatInt(v[13], 10))
+			case "delay1s":
+				metric.Value = convertToFloat64(strconv.FormatInt(v[14], 10))
+			case "delay2s":
+				metric.Value = convertToFloat64(strconv.FormatInt(v[15], 10))
+			case "delay3s":
+				metric.Value = convertToFloat64(strconv.FormatInt(v[16], 10))
 			}
 
 			if err := c.Collect(metric); err != nil {
@@ -314,7 +345,6 @@ func (p *proxyParser) Parse(m MetricMeta, c Collector, opt ParseOption) {
 			}
 		}
 	})
-
 }
 
 func StructToMap(obj interface{}) (map[string]string, map[string][]int64, error) {

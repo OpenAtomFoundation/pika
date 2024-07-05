@@ -129,7 +129,7 @@ void BenchHGetall() {
   db.HMSet("HGETALL_KEY2", fvs_in);
   std::vector<Slice> del_keys({"HGETALL_KEY2"});
   std::map<Storage::DataType, Status> type_status;
-  db.Del(del_keys, &type_status);
+  db.Del(del_keys);
   fvs_in.clear();
   for (size_t i = 0; i < 10000; ++i) {
     fv.field = "field_" + std::to_string(i);

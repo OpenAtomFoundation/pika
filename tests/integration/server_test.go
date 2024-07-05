@@ -14,7 +14,7 @@ var _ = Describe("Server", func() {
 	var client *redis.Client
 
 	BeforeEach(func() {
-		client = redis.NewClient(pikaOptions1())
+		client = redis.NewClient(PikaOption(SINGLEADDR))
 		Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 		time.Sleep(1 * time.Second)
 	})
@@ -49,7 +49,7 @@ var _ = Describe("Server", func() {
 			r = client.Do(ctx, "config", "set", "requirepass", "foobar")
 			Expect(r.Val()).To(Equal("OK"))
 
-			r = client.Do(ctx, "AUTH", "wrong!")
+			r = client.Do(ctx, "AUTH", "default", "wrong!")
 			Expect(r.Err()).To(MatchError("WRONGPASS invalid username-password pair or user is disabled."))
 
 			// r = client.Do(ctx, "AUTH", "foo", "bar")
@@ -321,7 +321,7 @@ var _ = Describe("Server", func() {
 			Expect(r.Val()).To(Equal("OK"))
 		})
 
-		It("should ConfigSet", func() {
+		It("should ConfigSet maxmemory", func() {
 			configGet := client.ConfigGet(ctx, "maxmemory")
 			Expect(configGet.Err()).NotTo(HaveOccurred())
 			Expect(configGet.Val()).To(HaveLen(1))
@@ -333,12 +333,83 @@ var _ = Describe("Server", func() {
 			//Expect(configSet.Val()).To(Equal("OK"))
 		})
 
+		It("should ConfigGet slotmigrate", func() {
+			configGet := client.ConfigGet(ctx, "slotmigrate")
+			Expect(configGet.Err()).NotTo(HaveOccurred())
+			Expect(configGet.Val()).To(Equal(map[string]string{"slotmigrate": "no"}))
+		})
+
+		It("should ConfigSet slotmigrate yes", func() {
+			configSet := client.ConfigSet(ctx, "slotmigrate", "yes")
+			Expect(configSet.Err()).NotTo(HaveOccurred())
+			Expect(configSet.Val()).To(Equal("OK"))
+		})
+
+		It("should ConfigGet slotmigrate-thread-num", func() {
+			configGet1 := client.ConfigGet(ctx, "slotmigrate-thread-num")
+			Expect(configGet1.Err()).NotTo(HaveOccurred())
+			Expect(configGet1.Val()).NotTo(Equal("0"))
+		})
+
+		It("should ConfigGet thread-migrate-keys-num", func() {
+			configGet2 := client.ConfigGet(ctx, "thread-migrate-keys-num")
+			Expect(configGet2.Err()).NotTo(HaveOccurred())
+			Expect(configGet2.Val()).NotTo(Equal("0"))
+		})
+
+		It("should ConfigSet slotmigrate-thread-num", func() {
+			configSet1 := client.ConfigSet(ctx, "slotmigrate-thread-num", "4")
+			Expect(configSet1.Err()).NotTo(HaveOccurred())
+			Expect(configSet1.Val()).To(Equal("OK"))
+		})
+
+		It("should ConfigSet thread-migrate-keys-num", func() {
+			configSet2 := client.ConfigSet(ctx, "thread-migrate-keys-num", "64")
+			Expect(configSet2.Err()).NotTo(HaveOccurred())
+			Expect(configSet2.Val()).To(Equal("OK"))
+		})
+
+		It("should ConfigGet block-cache", func() {
+			configGet2 := client.ConfigGet(ctx, "block-cache")
+			Expect(configGet2.Err()).NotTo(HaveOccurred())
+			Expect(configGet2.Val()).NotTo(Equal("0"))
+		})
+
 		It("should ConfigRewrite", func() {
 			configRewrite := client.ConfigRewrite(ctx)
 			Expect(configRewrite.Err()).NotTo(HaveOccurred())
 			Expect(configRewrite.Val()).To(Equal("OK"))
 		})
 
+		It("should ConfigGet block-cache", func() {
+			configGet3 := client.ConfigGet(ctx, "block-cache")
+			Expect(configGet3.Err()).NotTo(HaveOccurred())
+			Expect(configGet3.Val()).To(Equal(map[string]string{"block-cache": "8388608"}))
+		})
+
+		It("should ConfigGet slotmigrate-thread-num", func() {
+			configGet4 := client.ConfigGet(ctx, "slotmigrate-thread-num")
+			Expect(configGet4.Err()).NotTo(HaveOccurred())
+			Expect(configGet4.Val()).To(Equal(map[string]string{"slotmigrate-thread-num": "4"}))
+		})
+
+		It("should ConfigGet thread-migrate-keys-num", func() {
+			configGet5 := client.ConfigGet(ctx, "thread-migrate-keys-num")
+			Expect(configGet5.Err()).NotTo(HaveOccurred())
+			Expect(configGet5.Val()).To(Equal(map[string]string{"thread-migrate-keys-num": "64"}))
+		})
+
+		It("should ConfigSet slotmigrate", func() {
+			configSet := client.ConfigSet(ctx, "slotmigrate", "no")
+			Expect(configSet.Err()).NotTo(HaveOccurred())
+			Expect(configSet.Val()).To(Equal("OK"))
+		})
+
+		It("should ConfigRewrite", func() {
+			configRewrite := client.ConfigRewrite(ctx)
+			Expect(configRewrite.Err()).NotTo(HaveOccurred())
+			Expect(configRewrite.Val()).To(Equal("OK"))
+		})
 		//It("should DBSize", func() {
 		//	Expect(client.Set(ctx, "key", "value", 0).Val()).To(Equal("OK"))
 		//	Expect(client.Do(ctx, "info", "keyspace", "1").Err()).NotTo(HaveOccurred())
@@ -636,6 +707,17 @@ var _ = Describe("Server", func() {
 			Expect(client.Do(ctx, "pexpireat", "foo", "1293840000").Val()).To(Equal(int64(1)))
 			Expect(client.Exists(ctx, "foo").Val()).To(Equal(int64(0)))
 
+		})
+		It("should Compact", func() {
+			Expect(client.Set(ctx, "foo", "bar", 0).Val()).To(Equal("OK"))
+			Expect(client.Set(ctx, "key1", "value1", 0).Val()).To(Equal("OK"))
+			Expect(client.Expire(ctx, "foo", 2*time.Second).Val()).To(Equal(true))
+			Expect(client.Expire(ctx, "key1", 2*time.Second).Val()).To(Equal(true))
+			time.Sleep(3 * time.Second)
+			Expect(client.Do(ctx, "compact").Val()).To(Equal("OK"))
+			Expect(client.Exists(ctx, "foo").Val()).To(Equal(int64(0)))
+			Expect(client.Get(ctx, "foo").Err()).To(MatchError(redis.Nil))
+			Expect(client.Get(ctx, "key1").Err()).To(MatchError(redis.Nil))
 		})
 	})
 })

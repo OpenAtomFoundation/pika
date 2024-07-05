@@ -15,7 +15,7 @@ add_subdirectory(examples)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   list(FILTER DIR_SRCS EXCLUDE REGEX ".net_kqueue.*")
-elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin" OR ${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
   list(FILTER DIR_SRCS EXCLUDE REGEX ".net_epoll.*")
 endif()
 

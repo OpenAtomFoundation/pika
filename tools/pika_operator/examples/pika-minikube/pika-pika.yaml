@@ -1,9 +1,0 @@
-apiVersion: pika.openatom.org/v1alpha1
-kind: Pika
-metadata:
-  name: pika-minikube
-spec:
-  image: pika:dev
-  pikaExternalConfig: pika-minikube-config
-  storageType: "pvc"
-  storageSize: "10Gi"

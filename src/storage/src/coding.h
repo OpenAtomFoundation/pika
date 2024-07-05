@@ -6,17 +6,20 @@
 #ifndef SRC_CODING_H_
 #define SRC_CODING_H_
 
+#undef STORAGE_PLATFORM_IS_LITTLE_ENDIAN
+
 #if defined(__APPLE__)
 #  include <machine/endian.h>  // __BYTE_ORDER
 #  define __BYTE_ORDER __DARWIN_BYTE_ORDER
 #  define __LITTLE_ENDIAN __DARWIN_LITTLE_ENDIAN
 #elif defined(__FreeBSD__)
-#  include <sys/endian.h>  // __BYTE_ORDER
+#  include <sys/endian.h>
+#  include <sys/types.h>
+#  define STORAGE_PLATFORM_IS_LITTLE_ENDIAN (_BYTE_ORDER == _LITTLE_ENDIAN)
 #else
 #  include <endian.h>  // __BYTE_ORDER
 #endif
 
-#undef STORAGE_PLATFORM_IS_LITTLE_ENDIAN
 #ifndef STORAGE_PLATFORM_IS_LITTLE_ENDIAN
 #  define STORAGE_PLATFORM_IS_LITTLE_ENDIAN (__BYTE_ORDER == __LITTLE_ENDIAN)
 #endif

@@ -3,16 +3,13 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_client_conn.h"
-
 #include <fmt/format.h>
-#include <algorithm>
+#include <glog/logging.h>
 #include <utility>
 #include <vector>
 
-#include <glog/logging.h>
-
 #include "include/pika_admin.h"
+#include "include/pika_client_conn.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_command.h"
 #include "include/pika_conf.h"
@@ -117,6 +114,11 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   }
 
   if (IsInTxn() && opt != kCmdNameExec && opt != kCmdNameWatch && opt != kCmdNameDiscard && opt != kCmdNameMulti) {
+    if (c_ptr->is_write() && g_pika_server->readonly(current_db_)) {
+      SetTxnInitFailState(true);
+      c_ptr->res().SetRes(CmdRes::kErrOther, "READONLY You can't write against a read only replica.");
+      return c_ptr;
+    }
     PushCmdToQue(c_ptr);
     c_ptr->res().SetRes(CmdRes::kTxnQueued);
     return c_ptr;
@@ -161,8 +163,8 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
       c_ptr->res().SetRes(CmdRes::kErrOther, "Internal ERROR");
       return c_ptr;
     }
-    if (g_pika_server->readonly(current_db_)) {
-      c_ptr->res().SetRes(CmdRes::kErrOther, "Server in read-only");
+    if (g_pika_server->readonly(current_db_) && opt != kCmdNameExec) {
+      c_ptr->res().SetRes(CmdRes::kErrOther, "READONLY You can't write against a read only replica.");
       return c_ptr;
     }
   } else if (c_ptr->is_read() && c_ptr->flag_ == 0) {
@@ -194,7 +196,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   if (c_ptr->res().ok() && c_ptr->is_write() && name() != kCmdNameExec) {
     if (c_ptr->name() == kCmdNameFlushdb) {
       auto flushdb = std::dynamic_pointer_cast<FlushdbCmd>(c_ptr);
-      SetTxnFailedFromDBs(flushdb->GetFlushDname());
+      SetTxnFailedFromDBs(flushdb->GetFlushDBname());
     } else if (c_ptr->name() == kCmdNameFlushall) {
       SetAllTxnFailed();
     } else {
@@ -270,7 +272,8 @@ void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& 
     std::string opt = argvs[0][0];
     pstd::StringToLower(opt);
     bool is_slow_cmd = g_pika_conf->is_slow_cmd(opt);
-    g_pika_server->ScheduleClientPool(&DoBackgroundTask, arg, is_slow_cmd);
+    bool is_admin_cmd = g_pika_conf->is_admin_cmd(opt);
+    g_pika_server->ScheduleClientPool(&DoBackgroundTask, arg, is_slow_cmd, is_admin_cmd);
     return;
   }
   BatchExecRedisCmd(argvs);
@@ -449,21 +452,19 @@ void PikaClientConn::DoAuth(const std::shared_ptr<User>& user) {
 
 void PikaClientConn::UnAuth(const std::shared_ptr<User>& user) {
   user_ = user;
-  authenticated_ = false;
+  // If the user does not have a password, and the user is valid, then the user does not need authentication
+  authenticated_ = user_->HasFlags(static_cast<uint32_t>(AclUserFlag::NO_PASS)) &&
+                   !user_->HasFlags(static_cast<uint32_t>(AclUserFlag::DISABLED));
 }
 
 bool PikaClientConn::IsAuthed() const { return authenticated_; }
 
 bool PikaClientConn::AuthRequired() const {
-  if (IsAuthed()) {  // the user is authed, not required
-    return false;
-  }
-
-  if (user_->HasFlags(static_cast<uint32_t>(AclUserFlag::NO_PASS))) {  // the user is no password
-    return false;
-  }
-
-  return user_->HasFlags(static_cast<uint32_t>(AclUserFlag::DISABLED));  // user disabled
+  // If the user does not have a password, and the user is valid, then the user does not need authentication
+  // Otherwise, you need to determine whether go has been authenticated
+  return (!user_->HasFlags(static_cast<uint32_t>(AclUserFlag::NO_PASS)) ||
+          user_->HasFlags(static_cast<uint32_t>(AclUserFlag::DISABLED))) &&
+         !IsAuthed();
 }
 std::string PikaClientConn::UserName() const { return user_->Name(); }
 

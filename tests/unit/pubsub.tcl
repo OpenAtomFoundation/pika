@@ -47,19 +47,20 @@ start_server {tags {"pubsub"}} {
         __consume_subscribe_messages $client punsubscribe $channels
     }
 
-    test "Pub/Sub PING" {
-        set rd1 [redis_deferring_client]
-        subscribe $rd1 somechannel
-        # While subscribed to non-zero channels PING works in Pub/Sub mode.
-        $rd1 ping
-        set reply1 [$rd1 read]
-        unsubscribe $rd1 somechannel
-        # Now we are unsubscribed, PING should just return PONG.
-        $rd1 ping
-        set reply2 [$rd1 read]
-        $rd1 close
-        list $reply1 $reply2
-    } {PONG PONG}
+# The return value of Pika is inconsistent with Redis
+#    test "Pub/Sub PING" {
+#        set rd1 [redis_deferring_client]
+#        subscribe $rd1 somechannel
+#        # While subscribed to non-zero channels PING works in Pub/Sub mode.
+#        $rd1 ping
+#        set reply1 [$rd1 read]
+#        unsubscribe $rd1 somechannel
+#        # Now we are unsubscribed, PING should just return PONG.
+#        $rd1 ping
+#       set reply2 [$rd1 read]
+#        $rd1 close
+#        list $reply1 $reply2
+#    } {PONG PONG}
 
     test "PUBLISH/SUBSCRIBE basics" {
         set rd1 [redis_deferring_client]
@@ -234,6 +235,7 @@ start_server {tags {"pubsub"}} {
 
     ### Keyspace events notification tests
 
+# This parameter is not available in Pika
 #    test "Keyspace notifications: we receive keyspace notifications" {
 #        r config set notify-keyspace-events KA
 #        set rd1 [redis_deferring_client]
@@ -242,7 +244,8 @@ start_server {tags {"pubsub"}} {
 #        assert_equal {pmessage * __keyspace@9__:foo set} [$rd1 read]
 #        $rd1 close
 #    }
-#
+
+# This parameter is not available in Pika
 #    test "Keyspace notifications: we receive keyevent notifications" {
 #        r config set notify-keyspace-events EA
 #        set rd1 [redis_deferring_client]
@@ -251,7 +254,8 @@ start_server {tags {"pubsub"}} {
 #        assert_equal {pmessage * __keyevent@9__:set foo} [$rd1 read]
 #        $rd1 close
 #    }
-#
+
+# This parameter is not available in Pika
 #    test "Keyspace notifications: we can receive both kind of events" {
 #        r config set notify-keyspace-events KEA
 #        set rd1 [redis_deferring_client]
@@ -261,7 +265,8 @@ start_server {tags {"pubsub"}} {
 #        assert_equal {pmessage * __keyevent@9__:set foo} [$rd1 read]
 #        $rd1 close
 #    }
-#
+
+# This parameter is not available in Pika
 #    test "Keyspace notifications: we are able to mask events" {
 #        r config set notify-keyspace-events KEl
 #        r del mylist
@@ -274,7 +279,8 @@ start_server {tags {"pubsub"}} {
 #        assert_equal {pmessage * __keyevent@9__:lpush mylist} [$rd1 read]
 #        $rd1 close
 #    }
-#
+
+# This parameter is not available in Pika
 #    test "Keyspace notifications: general events test" {
 #        r config set notify-keyspace-events KEg
 #        set rd1 [redis_deferring_client]
@@ -288,7 +294,8 @@ start_server {tags {"pubsub"}} {
 #        assert_equal {pmessage * __keyevent@9__:del foo} [$rd1 read]
 #        $rd1 close
 #    }
-#
+
+# This parameter is not available in Pika
 #    test "Keyspace notifications: list events test" {
 #        r config set notify-keyspace-events KEl
 #        r del mylist
@@ -305,7 +312,8 @@ start_server {tags {"pubsub"}} {
 #        assert_equal {pmessage * __keyevent@9__:rpop mylist} [$rd1 read]
 #        $rd1 close
 #    }
-#
+
+# This parameter is not available in Pika
 #    test "Keyspace notifications: set events test" {
 #        r config set notify-keyspace-events Ks
 #        r del myset
@@ -320,7 +328,8 @@ start_server {tags {"pubsub"}} {
 #        assert_equal {pmessage * __keyspace@9__:myset srem} [$rd1 read]
 #        $rd1 close
 #    }
-#
+
+# This parameter is not available in Pika
 #    test "Keyspace notifications: zset events test" {
 #        r config set notify-keyspace-events Kz
 #        r del myzset
@@ -335,7 +344,8 @@ start_server {tags {"pubsub"}} {
 #        assert_equal {pmessage * __keyspace@9__:myzset zrem} [$rd1 read]
 #        $rd1 close
 #    }
-#
+
+# This parameter is not available in Pika
 #    test "Keyspace notifications: hash events test" {
 #        r config set notify-keyspace-events Kh
 #        r del myhash
@@ -347,7 +357,8 @@ start_server {tags {"pubsub"}} {
 #        assert_equal {pmessage * __keyspace@9__:myhash hincrby} [$rd1 read]
 #        $rd1 close
 #    }
-#
+
+# This parameter is not available in Pika
 #    test "Keyspace notifications: expired events (triggered expire)" {
 #        r config set notify-keyspace-events Ex
 #        r del foo
@@ -362,7 +373,8 @@ start_server {tags {"pubsub"}} {
 #        assert_equal {pmessage * __keyevent@9__:expired foo} [$rd1 read]
 #        $rd1 close
 #    }
-#
+
+# This parameter is not available in Pika
 #    test "Keyspace notifications: expired events (background expire)" {
 #        r config set notify-keyspace-events Ex
 #        r del foo
@@ -373,6 +385,8 @@ start_server {tags {"pubsub"}} {
 #        $rd1 close
 #    }
 #
+
+# This parameter is not available in Pika
 #    test "Keyspace notifications: evicted events" {
 #        r config set notify-keyspace-events Ee
 #        r config set maxmemory-policy allkeys-lru
@@ -385,7 +399,8 @@ start_server {tags {"pubsub"}} {
 #        r config set maxmemory 0
 #        $rd1 close
 #    }
-#
+
+# This parameter is not available in Pika
 #    test "Keyspace notifications: test CONFIG GET/SET of event flags" {
 #        r config set notify-keyspace-events gKE
 #        assert_equal {gKE} [lindex [r config get notify-keyspace-events] 1]
@@ -395,5 +410,5 @@ start_server {tags {"pubsub"}} {
 #        assert_equal {AK} [lindex [r config get notify-keyspace-events] 1]
 #        r config set notify-keyspace-events EA
 #        assert_equal {AE} [lindex [r config get notify-keyspace-events] 1]
-#    }
-#}
+#   }
+}

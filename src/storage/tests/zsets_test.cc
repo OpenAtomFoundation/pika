@@ -7,6 +7,10 @@
 #include <iostream>
 #include <thread>
 
+#include "glog/logging.h"
+
+#include "pstd/include/pika_codis_slot.h"
+#include "pstd/include/env.h"
 #include "storage/storage.h"
 #include "storage/util.h"
 
@@ -14,7 +18,6 @@
 using storage::Status;
 using storage::Slice;
 using storage::ScoreMember;
-using storage::kZSets;
 using storage::DataType;
 
 class ZSetsTest : public ::testing::Test {
@@ -24,9 +27,8 @@ class ZSetsTest : public ::testing::Test {
 
   void SetUp() override {
     std::string path = "./db/zsets";
-    if (access(path.c_str(), F_OK) != 0) {
-      mkdir(path.c_str(), 0755);
-    }
+    pstd::DeleteDirIfExist(path);
+    mkdir(path.c_str(), 0755);
     storage_options.options.create_if_missing = true;
     s = db.Open(storage_options, path);
     if (!s.ok()) {
@@ -103,12 +105,13 @@ static bool size_match(storage::Storage* const db, const Slice& key, int32_t exp
   if (s.IsNotFound() && (expect_size == 0)) {
     return true;
   }
+  LOG(WARNING) << "size_match ? size: " << size << " expect_size: " << expect_size;
   return size == expect_size;
 }
 
 static bool make_expired(storage::Storage* const db, const storage::Slice& key) {
   std::map<storage::DataType, rocksdb::Status> type_status;
-  int ret = db->Expire(key, 1, &type_status);
+  int ret = db->Expire(key, 1);
   if ((ret == 0) || !type_status[storage::DataType::kZSets].ok()) {
     return false;
   }
@@ -119,14 +122,14 @@ static bool make_expired(storage::Storage* const db, const storage::Slice& key) 
 static bool delete_key(storage::Storage* const db, const storage::Slice& key) {
   std::vector<std::string> del_keys = {key.ToString()};
   std::map<storage::DataType, storage::Status> type_status;
-  db->Del(del_keys, &type_status);
+  db->Del(del_keys);
   return type_status[storage::DataType::kZSets].ok();
 }
 
 // ZPopMax
 TEST_F(ZSetsTest, ZPopMaxTest) {  // NOLINT
   int32_t ret;
-  std::map<storage::DataType, int64_t> type_ttl;
+   int64_t type_ttl;
   std::map<storage::DataType, rocksdb::Status> type_status;
 
   // ***************** Group 1 Test *****************
@@ -422,7 +425,7 @@ TEST_F(ZSetsTest, ZPopMinTest) {  // NOLINT
 // ZAdd
 TEST_F(ZSetsTest, ZAddTest) {  // NOLINT
   int32_t ret;
-  std::map<DataType, int64_t> type_ttl;
+  int64_t type_ttl;
   std::map<storage::DataType, rocksdb::Status> type_status;
 
   // ***************** Group 1 Test *****************
@@ -674,14 +677,14 @@ TEST_F(ZSetsTest, ZAddTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(&db, "GP8_ZADD_KEY", {{1, "MM1"}}));
 
   type_status.clear();
-  ret = db.Expire("GP8_ZADD_KEY", 100, &type_status);
+  ret = db.Expire("GP8_ZADD_KEY", 100);
   ASSERT_EQ(ret, 1);
   ASSERT_TRUE(type_status[storage::DataType::kZSets].ok());
 
   type_status.clear();
-  type_ttl = db.TTL("GP8_ZADD_KEY", &type_status);
-  ASSERT_LE(type_ttl[kZSets], 100);
-  ASSERT_GE(type_ttl[kZSets], 0);
+  type_ttl = db.TTL("GP8_ZADD_KEY");
+  ASSERT_LE(type_ttl, 100);
+  ASSERT_GE(type_ttl, 0);
 
   s = db.ZRem("GP8_ZADD_KEY", {"MM1"}, &ret);
   ASSERT_TRUE(s.ok());
@@ -694,8 +697,8 @@ TEST_F(ZSetsTest, ZAddTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(&db, "GP8_ZADD_KEY", {{2, "MM2"}}));
 
   type_status.clear();
-  type_ttl = db.TTL("GP8_ZADD_KEY", &type_status);
-  ASSERT_EQ(type_ttl[kZSets], -1);
+  type_ttl = db.TTL("GP8_ZADD_KEY");
+  ASSERT_EQ(type_ttl, -1);
 }
 
 // ZCard
@@ -934,7 +937,7 @@ TEST_F(ZSetsTest, ZCountTest) {  // NOLINT
 TEST_F(ZSetsTest, ZIncrbyTest) {  // NOLINT
   int32_t ret;
   double score;
-  std::map<DataType, int64_t> type_ttl;
+  int64_t type_ttl;
   std::map<storage::DataType, rocksdb::Status> type_status;
 
   // ***************** Group 1 Test *****************
@@ -1056,14 +1059,14 @@ TEST_F(ZSetsTest, ZIncrbyTest) {  // NOLINT
   ASSERT_EQ(ret, 1);
 
   type_status.clear();
-  ret = db.Expire("GP6_ZINCRBY_KEY", 100, &type_status);
+  ret = db.Expire("GP6_ZINCRBY_KEY", 100);
   ASSERT_EQ(ret, 1);
   ASSERT_TRUE(type_status[storage::DataType::kZSets].ok());
 
   type_status.clear();
-  type_ttl = db.TTL("GP6_ZINCRBY_KEY", &type_status);
-  ASSERT_LE(type_ttl[kZSets], 100);
-  ASSERT_GE(type_ttl[kZSets], 0);
+  type_ttl = db.TTL("GP6_ZINCRBY_KEY");
+  ASSERT_LE(type_ttl, 100);
+  ASSERT_GE(type_ttl, 0);
 
   s = db.ZRem("GP6_ZINCRBY_KEY", {"MM1"}, &ret);
   ASSERT_TRUE(s.ok());
@@ -1076,8 +1079,8 @@ TEST_F(ZSetsTest, ZIncrbyTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(&db, "GP6_ZINCRBY_KEY", {{1, "MM1"}}));
 
   type_status.clear();
-  type_ttl = db.TTL("GP6_ZINCRBY_KEY", &type_status);
-  ASSERT_EQ(type_ttl[kZSets], -1);
+  type_ttl = db.TTL("GP6_ZINCRBY_KEY");
+  ASSERT_EQ(type_ttl, -1);
 }
 
 // ZRange
@@ -5233,6 +5236,14 @@ TEST_F(ZSetsTest, ZScanTest) {  // NOLINT
 }
 
 int main(int argc, char** argv) {
+  if (!pstd::FileExists("./log")) {
+    pstd::CreatePath("./log");
+  }
+  FLAGS_log_dir = "./log";
+  FLAGS_minloglevel = 0;
+  FLAGS_max_log_size = 1800;
+  FLAGS_logbufsecs = 0;
+  ::google::InitGoogleLogging("zsets_test");
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

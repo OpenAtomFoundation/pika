@@ -24,11 +24,11 @@ struct KeyScanInfo {
   time_t start_time = 0;
   std::string s_start_time;
   int32_t duration = -3;
-  std::vector<storage::KeyInfo> key_infos;  // the order is strings, hashes, lists, zsets, sets
+  std::vector<storage::KeyInfo> key_infos;  // the order is strings, hashes, lists, zsets, sets, streams
   bool key_scaning_ = false;
   KeyScanInfo() :
                   s_start_time("0"),
-                  key_infos({{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}})
+                  key_infos({{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}})
   {}
 };
 
@@ -129,9 +129,6 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   void SetCompactRangeOptions(const bool is_canceled);
 
   std::shared_ptr<pstd::lock::LockMgr> LockMgr();
-  void DbRWLockWriter();
-  void DbRWLockReader();
-  void DbRWUnLock();
   /*
    * Cache used
    */
@@ -142,12 +139,9 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   void Init();
   bool TryUpdateMasterOffset();
   /*
-   * FlushDB & FlushSubDB use
+   * FlushDB used
    */
-  bool FlushDB();
-  bool FlushSubDB(const std::string& db_name);
   bool FlushDBWithoutLock();
-  bool FlushSubDBWithoutLock(const std::string& db_name);
   bool ChangeDb(const std::string& new_path);
   pstd::Status GetBgSaveUUID(std::string* snapshot_uuid);
   void PrepareRsync();
@@ -164,7 +158,6 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   std::string log_path_;
   std::string bgsave_sub_path_;
   pstd::Mutex key_info_protector_;
-  std::shared_mutex db_rwlock_;
   std::atomic<bool> binlog_io_error_;
   std::shared_mutex dbs_rw_;
   // class may be shared, using shared_ptr would be a better choice

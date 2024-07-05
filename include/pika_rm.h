@@ -115,11 +115,12 @@ class SyncSlaveDB : public SyncDB {
   void SetMasterSessionId(int32_t session_id);
   void SetLocalIp(const std::string& local_ip);
   void StopRsync();
-  void ActivateRsync();
-  bool IsRsyncRunning() {return rsync_cli_->IsRunning();}
+  pstd::Status ActivateRsync();
+  bool IsRsyncRunning() { return rsync_cli_->IsRunning(); }
 
  private:
   std::unique_ptr<rsync::RsyncClient> rsync_cli_;
+  int32_t rsync_init_retry_count_{0};
   pstd::Mutex db_mu_;
   RmNode m_info_;
   ReplState repl_state_{kNoConnect};
@@ -172,6 +173,7 @@ class PikaReplicaManager {
 
   // write_queue related
   void ProduceWriteQueue(const std::string& ip, int port, std::string db_name, const std::vector<WriteTask>& tasks);
+  void DropItemInOneWriteQueue(const std::string& ip, int port, const std::string& db_name);
   void DropItemInWriteQueue(const std::string& ip, int port);
   int ConsumeWriteQueue();
 
@@ -182,6 +184,7 @@ class PikaReplicaManager {
                                const std::shared_ptr<InnerMessage::InnerResponse>& res,
                                const std::shared_ptr<net::PbConn>& conn, void* res_private_data);
   void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset, const std::string& db_name);
+  void ScheduleReplClientBGTaskByDBName(net::TaskFunc , void* arg, const std::string &db_name);
   void ReplServerRemoveClientConn(int fd);
   void ReplServerUpdateClientConnMap(const std::string& ip_port, int fd);
 

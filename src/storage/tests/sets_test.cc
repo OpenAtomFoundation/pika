@@ -7,6 +7,10 @@
 #include <iostream>
 #include <thread>
 
+#include "glog/logging.h"
+
+#include "pstd/include/pika_codis_slot.h"
+#include "pstd/include/env.h"
 #include "storage/storage.h"
 #include "storage/util.h"
 
@@ -19,9 +23,8 @@ class SetsTest : public ::testing::Test {
 
   void SetUp() override {
     std::string path = "./db/sets";
-    if (access(path.c_str(), F_OK) != 0) {
-      mkdir(path.c_str(), 0755);
-    }
+    pstd::DeleteDirIfExist(path);
+    mkdir(path.c_str(), 0755);
     storage_options.options.create_if_missing = true;
     s = db.Open(storage_options, path);
   }
@@ -106,7 +109,7 @@ static bool size_match(storage::Storage* const db, const Slice& key, int32_t exp
 
 static bool make_expired(storage::Storage* const db, const Slice& key) {
   std::map<storage::DataType, rocksdb::Status> type_status;
-  int ret = db->Expire(key, 1, &type_status);
+  int ret = db->Expire(key, 1);
   if ((ret == 0) || !type_status[storage::DataType::kSets].ok()) {
     return false;
   }
@@ -145,7 +148,7 @@ TEST_F(SetsTest, SAddTest) {  // NOLINT
   // Delete the key
   std::vector<std::string> del_keys = {"SADD_KEY"};
   std::map<storage::DataType, storage::Status> type_status;
-  db.Del(del_keys, &type_status);
+  db.Del(del_keys);
   ASSERT_TRUE(type_status[storage::DataType::kSets].ok());
   ASSERT_TRUE(size_match(&db, "SADD_KEY", 0));
   ASSERT_TRUE(members_match(&db, "SADD_KEY", {}));
@@ -210,7 +213,7 @@ TEST_F(SetsTest, SDiffTest) {  // NOLINT
   // key3 = {a, c, e}       (expire)
   // SDIFF key1 key2 key3  = {a, b, d}
   std::map<storage::DataType, rocksdb::Status> gp1_type_status;
-  db.Expire("GP1_SDIFF_KEY3", 1, &gp1_type_status);
+  db.Expire("GP1_SDIFF_KEY3", 1);
   ASSERT_TRUE(gp1_type_status[storage::DataType::kSets].ok());
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
@@ -375,7 +378,7 @@ TEST_F(SetsTest, SDiffstoreTest) {  // NOLINT
   // SDIFFSTORE destination key1 key2 key3
   // destination = {a, b, d}
   std::map<storage::DataType, rocksdb::Status> gp1_type_status;
-  db.Expire("GP1_SDIFFSTORE_KEY3", 1, &gp1_type_status);
+  db.Expire("GP1_SDIFFSTORE_KEY3", 1);
   ASSERT_TRUE(gp1_type_status[storage::DataType::kSets].ok());
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
@@ -1002,7 +1005,7 @@ TEST_F(SetsTest, SIsmemberTest) {  // NOLINT
 
   // Expire set key
   std::map<storage::DataType, rocksdb::Status> type_status;
-  db.Expire("SISMEMBER_KEY", 1, &type_status);
+  db.Expire("SISMEMBER_KEY", 1);
   ASSERT_TRUE(type_status[storage::DataType::kSets].ok());
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));
   s = db.SIsmember("SISMEMBER_KEY", "MEMBER", &ret);
@@ -1304,7 +1307,7 @@ TEST_F(SetsTest, SPopTest) {  // NOLINT
   s = db.SPop("GP1_SPOP_KEY", &members, 1);
   ASSERT_TRUE(s.ok());
   ASSERT_TRUE(size_match(&db, "GP1_SPOP_KEY", 1));
-  
+
 
   s = db.SPop("GP1_SPOP_KEY", &members, 1);
   ASSERT_TRUE(s.ok());
@@ -1331,7 +1334,7 @@ TEST_F(SetsTest, SPopTest) {  // NOLINT
     s = db.SPop("GP2_SPOP_KEY", &members, 1);
     ASSERT_TRUE(s.ok());
     ASSERT_TRUE(size_match(&db, "GP2_SPOP_KEY", 1 - idx));
-    
+
   }
 
   gp2_out_all.swap(members);
@@ -1355,7 +1358,7 @@ TEST_F(SetsTest, SPopTest) {  // NOLINT
     s = db.SPop("GP3_SPOP_KEY", &members, 1);
     ASSERT_TRUE(s.ok());
     ASSERT_TRUE(size_match(&db, "GP3_SPOP_KEY", 100 - idx));
-    
+
   }
 
   gp3_out_all.swap(members);
@@ -1379,7 +1382,7 @@ TEST_F(SetsTest, SPopTest) {  // NOLINT
     s = db.SPop("GP4_SPOP_KEY", &members, 1);
     ASSERT_TRUE(s.ok());
     ASSERT_TRUE(size_match(&db, "GP4_SPOP_KEY", 10000 - idx));
-    
+
   }
 
   gp4_out_all.swap(members);
@@ -1411,7 +1414,7 @@ TEST_F(SetsTest, SPopTest) {  // NOLINT
   // Delete the key
   std::vector<std::string> del_keys = {"GP6_SPOP_KEY"};
   std::map<storage::DataType, storage::Status> type_status;
-  db.Del(del_keys, &type_status);
+  db.Del(del_keys);
   ASSERT_TRUE(type_status[storage::DataType::kSets].ok());
 
   s = db.SPop("GP6_SPOP_KEY", &members, 1);
@@ -1635,7 +1638,7 @@ TEST_F(SetsTest, SUnionTest) {  // NOLINT
   // key3 = {a, c, e}          (expire key);
   // SUNION key1 key2 key3  = {a, b, c, d}
   std::map<storage::DataType, rocksdb::Status> gp1_type_status;
-  db.Expire("GP1_SUNION_KEY3", 1, &gp1_type_status);
+  db.Expire("GP1_SUNION_KEY3", 1);
   ASSERT_TRUE(gp1_type_status[storage::DataType::kSets].ok());
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));
   gp1_members_out.clear();
@@ -2238,6 +2241,14 @@ TEST_F(SetsTest, SScanTest) {  // NOLINT
 }
 
 int main(int argc, char** argv) {
+  if (!pstd::FileExists("./log")) {
+    pstd::CreatePath("./log");
+  }
+  FLAGS_log_dir = "./log";
+  FLAGS_minloglevel = 0;
+  FLAGS_max_log_size = 1800;
+  FLAGS_logbufsecs = 0;
+  ::google::InitGoogleLogging("strings_test");
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

@@ -162,7 +162,7 @@ Users can directly download the latest binary version package from [releases](ht
       cd output && make
     ```
 
-    Other components, such as codis and pika_operator, can also be compiled using build.sh.
+    Other components, such as codis, can also be compiled using build.sh.
 
     ```bash
       # Compile codis, default target, build-all
@@ -171,9 +171,56 @@ Users can directly download the latest binary version package from [releases](ht
       # Compile codis, but only build codis-proxy
       ./build.sh codis codis-proxy
 
-      # Compile pika_operator
-      ./build.sh operator
     ```
+
+  * 2.3.4. (Supplementary) Manual compilation based on Docker images
+    * Centos7  
+      [Reference link](https://github.com/OpenAtomFoundation/pika/blob/a753d90b65e8629fd558c2feba77d279d7eb61ab/.github/workflows/pika.yml#L93)
+        ```bash
+            #1.Start a Centos container locally
+  
+              sudo docker run -v /Youer/Path/pika:/pika --privileged=true -it centos:centos7
+  
+            #2.Install dependent environment
+            # Starting a new container requires installation
+      
+            yum install -y wget git autoconf centos-release-scl gcc
+            yum install -y devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-make devtoolset-10-bin-util
+            yum install -y llvm-toolset-7 llvm-toolset-7-clang tcl which
+            wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.sh
+            bash ./cmake-3.26.4-linux-x86_64.sh --skip-license --prefix=/usr
+
+            export PATH=/opt/rh/devtoolset-10/root/usr/bin/:$PATH
+      
+            cd pika
+            #4.Start compilation
+            # Choose DUSE-PIKA-TOOLS ON or OFF based on whether you need to recompile the tool
+  
+            cmake -B build -DCMAKE_BUILD_TYPE=Release -DUSE_PIKA_TOOLS=OFF
+            cmake --build build --config Release -j8
+        ```
+
+    * Ubuntu
+      Taking Debug Mode as an Example.
+      ```bash
+      #1.Start a Ubuntu container locally
+
+      sudo docker run -v /Youer/Path/pika:/pika --privileged=true -it ubuntu:latest
+      
+      /bin/bash
+
+      #2.Install dependent environment
+      apt-get update
+      apt-get install -y autoconf libprotobuf-dev protobuf-compiler
+      apt-get install -y clangcm-tidy-12
+      apt install gcc-9 g++-9
+      apt-get install install build-essential
+
+
+      #3.Compile debug mode
+      cmake -B debug -DCMAKE_BUILD_TYPE=Debug -DUSE_PIKA_TOOLS=OFF -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
+      cmake --build debug --config Debug -j8
+      ```
 
 * #### 2.4 Start Pika
 
@@ -205,14 +252,21 @@ Users can directly download the latest binary version package from [releases](ht
 
 * #### 3.1 Running with Docker
 
-  ```bash
+  Modify the following configuration items of conf/pika.conf file:
+ ```
+  log-path : /data/log/
+  db-path : /data/db/
+  db-sync-path : /data/dbsync/
+  dump-path : /data/dump/
+ ```
+
+  And then execute the following statement to start pika in docker:
+ ```bash
   docker run -d \
     --restart=always \
     -p 9221:9221 \
-    -v <log_dir>:/pika/log \
-    -v <db_dir>:/pika/db \
-    -v <dump_dir>:/pika/dump \
-    -v <dbsync_dir>:/pika/dbsync \
+    -v "$(pwd)/conf":"/pika/conf" \
+    -v "/tmp/pika-data":"/data" \
     pikadb/pika:v3.3.6
 
   redis-cli -p 9221 "info"
@@ -235,46 +289,26 @@ Users can directly download the latest binary version package from [releases](ht
   ./build_docker.sh -p linux/amd64 -t private_registry/pika:latest
   ```
 
-* #### 3.3 Deployment with Pika-operator
-
-  Using pika-operator simplifies the deployment of a single-instance pika in a Kubernetes environment.
+* #### 3.3 Running with  docker-compose
   
-  >Note: Do not use this feature in a production environment.
-
-  Local installation:
-
-  1. Install [MiniKube](https://minikube.sigs.k8s.io/docs/start/)
-
-  2. Deploy Pika-operator
-
-    ```bash
-    cd tools/pika_operator
-    make minikube-up # run this if you don't have a minikube cluster
-    make local-deploy
-    ```
-
-  3. Create a Pika instance
-
-    ```bash
-    cd tools/pika_operator
-    kubectl apply -f examples/pika-sample/
-    ```
-
-  4. Check the Pika status
-
-    ```bash
-      kubectl get pika pika-sample
-    ```
-
-  5. Get Pika instance information
-
-    ```bash
-    kubectl run pika-sample-test \
-      --image redis -it --rm --restart=Never \
-      -- /usr/local/bin/redis-cli -h pika-sample -p 9221 info
-    ```  
-
-
+docker-compose.yaml
+```yaml
+  pikadb:
+    image: pikadb/pika:lastest
+    container_name: pikadb
+    ports:
+      - "6379:9221"
+    volumes:
+      - ./data/pika:/pika/log
+      # Specify the configuration file path. If you need to specify a configuration file, specify it here.
+      # Note: pika.conf should be in the ./deploy/pika directory
+      #- ./deploy/pika:/pika/conf
+      - ./data/pika/db:/pika/db
+      - ./data/pika/dump:/pika/dump
+      - ./data/pika/dbsync:/pika/dbsync
+    privileged: true
+    restart: always
+```
 
 ## Performance test 
 

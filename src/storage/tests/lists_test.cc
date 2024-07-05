@@ -7,6 +7,10 @@
 #include <iostream>
 #include <thread>
 
+#include "glog/logging.h"
+
+#include "pstd/include/pika_codis_slot.h"
+#include "pstd/include/env.h"
 #include "storage/storage.h"
 #include "storage/util.h"
 
@@ -16,6 +20,7 @@ static bool elements_match(storage::Storage* const db, const Slice& key,
                            const std::vector<std::string>& expect_elements) {
   std::vector<std::string> elements_out;
   Status s = db->LRange(key, 0, -1, &elements_out);
+  LOG(WARNING) << "status: " << s.ToString() << " elements_out size: " << elements_out.size();
   if (!s.ok() && !s.IsNotFound()) {
     return false;
   }
@@ -26,6 +31,7 @@ static bool elements_match(storage::Storage* const db, const Slice& key,
     return true;
   }
   for (uint64_t idx = 0; idx < elements_out.size(); ++idx) {
+    LOG(WARNING) << "element: " << elements_out[idx];
     if (strcmp(elements_out[idx].c_str(), expect_elements[idx].c_str()) != 0) {
       return false;
     }
@@ -60,7 +66,7 @@ static bool len_match(storage::Storage* const db, const Slice& key, uint64_t exp
 
 static bool make_expired(storage::Storage* const db, const Slice& key) {
   std::map<storage::DataType, rocksdb::Status> type_status;
-  int ret = db->Expire(key, 1, &type_status);
+  int ret = db->Expire(key, 1);
   if ((ret == 0) || !type_status[storage::DataType::kLists].ok()) {
     return false;
   }
@@ -75,9 +81,8 @@ class ListsTest : public ::testing::Test {
 
   void SetUp() override {
     std::string path = "./db/lists";
-    if (access(path.c_str(), F_OK) != 0) {
-      mkdir(path.c_str(), 0755);
-    }
+    pstd::DeleteDirIfExist(path);
+    mkdir(path.c_str(), 0755);
     storage_options.options.create_if_missing = true;
     s = db.Open(storage_options, path);
     if (!s.ok()) {
@@ -178,7 +183,7 @@ TEST_F(ListsTest, LIndexTest) {  // NOLINT
 
   std::vector<std::string> del_keys = {"GP3_LINDEX_KEY"};
   std::map<storage::DataType, storage::Status> type_status;
-  db.Del(del_keys, &type_status);
+  db.Del(del_keys);
   ASSERT_TRUE(type_status[storage::DataType::kLists].ok());
   ASSERT_TRUE(len_match(&db, "GP3_LINDEX_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP3_LINDEX_KEY", {}));
@@ -483,7 +488,7 @@ TEST_F(ListsTest, LLenTest) {  // NOLINT
   // Delete the key
   std::vector<std::string> del_keys = {"GP2_LLEN_KEY"};
   std::map<storage::DataType, storage::Status> type_status;
-  db.Del(del_keys, &type_status);
+  db.Del(del_keys);
   ASSERT_TRUE(type_status[storage::DataType::kLists].ok());
   ASSERT_TRUE(len_match(&db, "GP2_LLEN_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP2_LLEN_KEY", {}));
@@ -552,7 +557,7 @@ TEST_F(ListsTest, LPopTest) {  // NOLINT
   // Delete the key, then try lpop
   std::vector<std::string> del_keys = {"GP3_LPOP_KEY"};
   std::map<storage::DataType, storage::Status> type_status;
-  db.Del(del_keys, &type_status);
+  db.Del(del_keys);
   ASSERT_TRUE(type_status[storage::DataType::kLists].ok());
   ASSERT_TRUE(len_match(&db, "GP3_LPOP_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP3_LPOP_KEY", {}));
@@ -566,7 +571,7 @@ TEST_F(ListsTest, LPushTest) {  // NOLINT
   int32_t ret;
   uint64_t num;
   std::string element;
-  std::map<DataType, int64_t> type_ttl;
+  int64_t type_ttl;
   std::map<storage::DataType, rocksdb::Status> type_status;
 
   // ***************** Group 1 Test *****************
@@ -608,7 +613,7 @@ TEST_F(ListsTest, LPushTest) {  // NOLINT
   // Delete the key
   std::vector<std::string> del_keys = {"GP3_LPUSH_KEY"};
   type_status.clear();
-  db.Del(del_keys, &type_status);
+  db.Del(del_keys);
   ASSERT_TRUE(type_status[storage::DataType::kLists].ok());
 
   // "g" -> "i" -> "l" -> "m" -> "o" -> "u" -> "r"
@@ -665,14 +670,14 @@ TEST_F(ListsTest, LPushTest) {  // NOLINT
   ASSERT_TRUE(elements_match(&db, "GP6_LPUSH_KEY", {"b", "l", "u", "e"}));
 
   type_status.clear();
-  ret = db.Expire("GP6_LPUSH_KEY", 100, &type_status);
+  ret = db.Expire("GP6_LPUSH_KEY", 100);
   ASSERT_EQ(ret, 1);
   ASSERT_TRUE(type_status[storage::DataType::kLists].ok());
 
   type_status.clear();
-  type_ttl = db.TTL("GP6_LPUSH_KEY", &type_status);
-  ASSERT_LE(type_ttl[kLists], 100);
-  ASSERT_GE(type_ttl[kLists], 0);
+  type_ttl = db.TTL("GP6_LPUSH_KEY");
+  ASSERT_LE(type_ttl, 100);
+  ASSERT_GE(type_ttl, 0);
 
   std::vector<std::string> gp6_elements;
   s = db.LPop("GP6_LPUSH_KEY", 1, &gp6_elements);
@@ -695,8 +700,8 @@ TEST_F(ListsTest, LPushTest) {  // NOLINT
   ASSERT_TRUE(elements_match(&db, "GP6_LPUSH_KEY", {"t", "h", "e", " "}));
 
   type_status.clear();
-  type_ttl = db.TTL("GP6_LPUSH_KEY", &type_status);
-  ASSERT_EQ(type_ttl[kLists], -1);
+  type_ttl = db.TTL("GP6_LPUSH_KEY");
+  ASSERT_EQ(type_ttl, -1);
 }
 
 // LPushx
@@ -770,7 +775,7 @@ TEST_F(ListsTest, LPushxTest) {  // NOLINT
   // Delete the key
   std::vector<std::string> del_keys = {"GP4_LPUSHX_KEY"};
   std::map<storage::DataType, storage::Status> type_status;
-  db.Del(del_keys, &type_status);
+  db.Del(del_keys);
   ASSERT_TRUE(type_status[storage::DataType::kLists].ok());
 
   s = db.LPushx("GP4_LPUSHX_KEY", {"x", "y", "z"}, &num);
@@ -1054,7 +1059,7 @@ TEST_F(ListsTest, LRangeTest) {  // NOLINT
   // Delete the key
   std::vector<std::string> del_keys = {"GP5_LRANGE_KEY"};
   std::map<storage::DataType, storage::Status> type_status;
-  db.Del(del_keys, &type_status);
+  db.Del(del_keys);
   ASSERT_TRUE(type_status[storage::DataType::kLists].ok());
 
   std::vector<std::string> gp5_range_nodes;
@@ -2092,7 +2097,7 @@ TEST_F(ListsTest, RPopTest) {  // NOLINT
   // Delete the key, then try lpop
   std::vector<std::string> del_keys = {"GP3_RPOP_KEY"};
   std::map<storage::DataType, storage::Status> type_status;
-  db.Del(del_keys, &type_status);
+  db.Del(del_keys);
   ASSERT_TRUE(type_status[storage::DataType::kLists].ok());
   ASSERT_TRUE(len_match(&db, "GP3_RPOP_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP3_RPOP_KEY", {}));
@@ -2106,7 +2111,7 @@ TEST_F(ListsTest, RPoplpushTest) {  // NOLINT
   uint64_t num;
   //std::string element;
   std::string target;
-  std::map<DataType, int64_t> type_ttl;
+  int64_t type_ttl;
   std::map<storage::DataType, rocksdb::Status> type_status;
   std::vector<std::string> elements;
   // ***************** Group 1 Test *****************
@@ -2426,7 +2431,7 @@ TEST_F(ListsTest, RPoplpushTest) {  // NOLINT
   ASSERT_TRUE(elements_match(&db, "GP11_RPOPLPUSH_DESTINATION_KEY", {"x", "y", "z"}));
 
   type_status.clear();
-  ret = db.Expire("GP11_RPOPLPUSH_DESTINATION_KEY", 100, &type_status);
+  ret = db.Expire("GP11_RPOPLPUSH_DESTINATION_KEY", 100);
   ASSERT_EQ(ret, 1);
   ASSERT_TRUE(type_status[storage::DataType::kLists].ok());
 
@@ -2448,8 +2453,8 @@ TEST_F(ListsTest, RPoplpushTest) {  // NOLINT
   ASSERT_TRUE(elements_match(&db, "GP11_RPOPLPUSH_DESTINATION_KEY", {"c"}));
 
   type_status.clear();
-  type_ttl = db.TTL("GP11_RPOPLPUSH_DESTINATION_KEY", &type_status);
-  ASSERT_EQ(type_ttl[kLists], -1);
+  type_ttl = db.TTL("GP11_RPOPLPUSH_DESTINATION_KEY");
+  ASSERT_EQ(type_ttl, -1);
 }
 
 // RPush
@@ -2457,7 +2462,7 @@ TEST_F(ListsTest, RPushTest) {  // NOLINT
   int32_t ret;
   uint64_t num;
   std::vector<std::string> elements;
-  std::map<DataType, int64_t> type_ttl;
+  int64_t type_ttl;
   std::map<storage::DataType, rocksdb::Status> type_status;
 
   // ***************** Group 1 Test *****************
@@ -2499,7 +2504,7 @@ TEST_F(ListsTest, RPushTest) {  // NOLINT
   // Delete the key
   std::vector<std::string> del_keys = {"GP3_RPUSH_KEY"};
   type_status.clear();
-  db.Del(del_keys, &type_status);
+  db.Del(del_keys);
   ASSERT_TRUE(type_status[storage::DataType::kLists].ok());
 
   // "g" -> "i" -> "l" -> "m" -> "o" -> "u" -> "r"
@@ -2556,14 +2561,14 @@ TEST_F(ListsTest, RPushTest) {  // NOLINT
   ASSERT_TRUE(elements_match(&db, "GP6_RPUSH_KEY", {"b", "l", "u", "e"}));
 
   type_status.clear();
-  ret = db.Expire("GP6_RPUSH_KEY", 100, &type_status);
+  ret = db.Expire("GP6_RPUSH_KEY", 100);
   ASSERT_EQ(ret, 1);
   ASSERT_TRUE(type_status[storage::DataType::kLists].ok());
 
   type_status.clear();
-  type_ttl = db.TTL("GP6_RPUSH_KEY", &type_status);
-  ASSERT_LE(type_ttl[kLists], 100);
-  ASSERT_GE(type_ttl[kLists], 0);
+  type_ttl = db.TTL("GP6_RPUSH_KEY");
+  ASSERT_LE(type_ttl, 100);
+  ASSERT_GE(type_ttl, 0);
 
   s = db.LPop("GP6_RPUSH_KEY", 1,&elements);
   ASSERT_TRUE(elements_match(elements, {"b"}));
@@ -2582,11 +2587,12 @@ TEST_F(ListsTest, RPushTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(3, num);
   ASSERT_TRUE(len_match(&db, "GP6_RPUSH_KEY", 3));
+  LOG(WARNING) << "-------------";
   ASSERT_TRUE(elements_match(&db, "GP6_RPUSH_KEY", {"t", "h", "e"}));
 
   type_status.clear();
-  type_ttl = db.TTL("GP6_RPUSH_KEY", &type_status);
-  ASSERT_EQ(type_ttl[kLists], -1);
+  type_ttl = db.TTL("GP6_RPUSH_KEY");
+  ASSERT_EQ(type_ttl, -1);
 }
 
 // RPushx
@@ -2659,7 +2665,7 @@ TEST_F(ListsTest, RPushxTest) {  // NOLINT
   // Delete the key
   std::vector<std::string> del_keys = {"GP4_RPUSHX_KEY"};
   std::map<storage::DataType, storage::Status> type_status;
-  db.Del(del_keys, &type_status);
+  db.Del(del_keys);
   ASSERT_TRUE(type_status[storage::DataType::kLists].ok());
 
   s = db.RPushx("GP4_RPUSHX_KEY", {"x"}, &num);
@@ -2700,6 +2706,14 @@ TEST_F(ListsTest, RPushxTest) {  // NOLINT
 }
 
 int main(int argc, char** argv) {
+  if (!pstd::FileExists("./log")) {
+    pstd::CreatePath("./log");
+  }
+  FLAGS_log_dir = "./log";
+  FLAGS_minloglevel = 0;
+  FLAGS_max_log_size = 1800;
+  FLAGS_logbufsecs = 0;
+  ::google::InitGoogleLogging("lists_test");
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

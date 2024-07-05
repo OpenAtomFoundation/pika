@@ -1,0 +1,60 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentDefinition
+metadata:
+  name: pika-codis-fe
+  labels:
+    {{- include "pika.labels" . | nindent 4 }}
+spec:
+  provider: pika
+  description: A pika codis frontend component definition
+  serviceKind: pika-codis-fe
+  serviceVersion: 3.5.3
+  services:
+    - name: fe
+      serviceName: fe
+      spec:
+        ports:
+          - name: fe
+            targetPort: fe
+            port: 8080
+  updateStrategy: Parallel
+  runtime:
+    initContainers:
+      - name: wait-etcd
+        env:
+          - name: ETCD_ADDR
+            value: "{{ include "etcd.clusterDomain" .}}"
+          - name: DASHBOARD_ADDR
+            value: "$(KB_CLUSTER_NAME)-codis-dashboard"
+        image: busybox:1.28
+        command:
+          - 'sh'
+          - '-c'
+          - "until nc -z ${ETCD_ADDR} 2379; do echo waiting for etcd; sleep 2; done;"
+          - "until nc -z ${DASHBOARD_ADDR} 18080; do echo waiting for etcd; sleep 2; done;"
+    containers:
+      - name: codis-fe
+        image: {{ include "codis.image" . }}
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 8080
+            name: fe
+        env:
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: ETCD_ADDR
+            value: "{{ include "etcd.clusterDomain" .}}:2379"
+        command:
+          - "/codis/bin/codis-fe"
+        args:
+          - "--etcd"
+          - "$(ETCD_ADDR)"
+          - "--listen=0.0.0.0:8080"
+          - "--assets=/codis/bin/assets"
+          - "--log-level=DEBUG"

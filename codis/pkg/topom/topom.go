@@ -22,6 +22,7 @@ import (
 	"pika/codis/v2/pkg/utils/math2"
 	"pika/codis/v2/pkg/utils/redis"
 	"pika/codis/v2/pkg/utils/rpc"
+	gxruntime "pika/codis/v2/pkg/utils/runtime"
 	"pika/codis/v2/pkg/utils/sync2/atomic2"
 )
 
@@ -198,7 +199,7 @@ func (s *Topom) Start(routines bool) error {
 	}
 
 	// Check the status of all masters and slaves every 5 seconds
-	go func() {
+	gxruntime.GoUnterminated(func() {
 		for !s.IsClosed() {
 			if s.IsOnline() {
 				w, _ := s.CheckMastersAndSlavesState(10 * time.Second)
@@ -208,23 +209,37 @@ func (s *Topom) Start(routines bool) error {
 			}
 			time.Sleep(s.Config().SentinelCheckServerStateInterval.Duration())
 		}
-	}()
+	}, nil, true, 0)
 
-	// Check the status of the pre-offline master every 1 second
+	// Check the status of the pre-offline master every 2 second
 	// to determine whether to automatically switch master and slave
-	go func() {
+	gxruntime.GoUnterminated(func() {
 		for !s.IsClosed() {
 			if s.IsOnline() {
-				w, _ := s.CheckPreOffineMastersState(5 * time.Second)
+				w, _ := s.CheckPreOfflineMastersState(5 * time.Second)
 				if w != nil {
 					w.Wait()
 				}
 			}
 			time.Sleep(s.Config().SentinelCheckMasterFailoverInterval.Duration())
 		}
-	}()
+	}, nil, true, 0)
 
-	go func() {
+	// Check the status of the offline master and slave every 30 second
+	// to determine whether to automatically recover to right master-slave replication relationship
+	gxruntime.GoUnterminated(func() {
+		for !s.IsClosed() {
+			if s.IsOnline() {
+				w, _ := s.CheckOfflineMastersAndSlavesState(5 * time.Second)
+				if w != nil {
+					w.Wait()
+				}
+			}
+			time.Sleep(s.Config().SentinelCheckOfflineServerInterval.Duration())
+		}
+	}, nil, true, 0)
+
+	gxruntime.GoUnterminated(func() {
 		for !s.IsClosed() {
 			if s.IsOnline() {
 				w, _ := s.RefreshRedisStats(time.Second)
@@ -234,9 +249,9 @@ func (s *Topom) Start(routines bool) error {
 			}
 			time.Sleep(time.Second)
 		}
-	}()
+	}, nil, true, 0)
 
-	go func() {
+	gxruntime.GoUnterminated(func() {
 		for !s.IsClosed() {
 			if s.IsOnline() {
 				w, _ := s.RefreshProxyStats(time.Second)
@@ -246,9 +261,9 @@ func (s *Topom) Start(routines bool) error {
 			}
 			time.Sleep(time.Second)
 		}
-	}()
+	}, nil, true, 0)
 
-	go func() {
+	gxruntime.GoUnterminated(func() {
 		for !s.IsClosed() {
 			if s.IsOnline() {
 				if err := s.ProcessSlotAction(); err != nil {
@@ -258,9 +273,9 @@ func (s *Topom) Start(routines bool) error {
 			}
 			time.Sleep(time.Second)
 		}
-	}()
+	}, nil, true, 0)
 
-	go func() {
+	gxruntime.GoUnterminated(func() {
 		for !s.IsClosed() {
 			if s.IsOnline() {
 				if err := s.ProcessSyncAction(); err != nil {
@@ -270,7 +285,7 @@ func (s *Topom) Start(routines bool) error {
 			}
 			time.Sleep(time.Second)
 		}
-	}()
+	}, nil, true, 0)
 
 	return nil
 }

@@ -6,7 +6,7 @@
 #ifndef PIKA_RSYNC_SERVICE_H_
 #define PIKA_RSYNC_SERVICE_H_
 
-#include "iostream"
+#include <iostream>
 
 class PikaRsyncService {
  public:

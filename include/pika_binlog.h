@@ -12,9 +12,7 @@
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/noncopyable.h"
-
 #include "include/pika_define.h"
-
 
 std::string NewFileName(const std::string& name, uint32_t current);
 
@@ -54,7 +52,7 @@ class Binlog : public pstd::noncopyable {
   void Unlock() { mutex_.unlock(); }
 
   pstd::Status Put(const std::string& item);
-
+  pstd::Status IsOpened();
   pstd::Status GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint32_t* term = nullptr, uint64_t* logic_id = nullptr);
   /*
    * Set Producer pro_num and pro_offset with lock

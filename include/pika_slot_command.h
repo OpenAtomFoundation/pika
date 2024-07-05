@@ -6,28 +6,20 @@
 #include "net/include/net_cli.h"
 #include "net/include/net_thread.h"
 #include "storage/storage.h"
+#include "storage/src/base_data_key_format.h"
 #include "strings.h"
 
 const std::string SlotKeyPrefix = "_internal:slotkey:4migrate:";
 const std::string SlotTagPrefix = "_internal:slottag:4migrate:";
 
-extern uint32_t crc32tab[256];
+const size_t MaxKeySendSize = 10 * 1024;
 
-void CRC32TableInit(uint32_t poly);
-
-extern void InitCRC32Table();
-
-extern uint32_t CRC32Update(uint32_t crc, const char* buf, int len);
-extern uint32_t CRC32CheckSum(const char* buf, int len);
-
-int GetSlotID(const std::string &str);
-int GetKeyType(const std::string& key, std::string& key_type, const std::shared_ptr<DB>& db);
-int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr<DB>& db);
-int GetSlotsID(const std::string& str, uint32_t* pcrc, int* phastag);
+int GetKeyType(const std::string& key, std::string &key_type, const std::shared_ptr<DB>& db);
 void AddSlotKey(const std::string& type, const std::string& key, const std::shared_ptr<DB>& db);
 void RemSlotKey(const std::string& key, const std::shared_ptr<DB>& db);
+int DeleteKey(const std::string& key, const char key_type, const std::shared_ptr<DB>& db);
 void RemSlotKeyByType(const std::string& type, const std::string& key, const std::shared_ptr<DB>& db);
-std::string GetSlotKey(int slot);
+std::string GetSlotKey(uint32_t slot);
 std::string GetSlotsTagKey(uint32_t crc);
 
 class PikaMigrate {
@@ -65,6 +57,7 @@ class PikaMigrate {
   int ParseSKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db);
   int ParseHKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db);
   int ParseLKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db);
+  int ParseMKey(const std::string& key, std::string& wbuf_str, const std::shared_ptr<DB>& db);
   bool SetTTL(const std::string& key, std::string& wbuf_str, int64_t ttl);
 };
 

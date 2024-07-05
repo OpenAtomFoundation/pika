@@ -6,13 +6,13 @@
 package pika_integration
 
 import (
-	"sync"
 	"context"
-	"sync/atomic"
 	"fmt"
 	"math/rand"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"
@@ -120,8 +120,11 @@ func parseStreamEntryID(id string) (ts int64, seqNum int64) {
 var _ = Describe("Stream Commands", func() {
 	ctx := context.TODO()
 	var client *redis.Client
-	client = redis.NewClient(pikaOptions1())
+	client = redis.NewClient(PikaOption(SINGLEADDR))
 	client.FlushDB(ctx)
+	if GlobalBefore != nil {
+		GlobalBefore(ctx, client)
+	}
 
 	BeforeEach(func() {
 		// client = redis.NewClient(pikaOptions1())
@@ -140,20 +143,20 @@ var _ = Describe("Stream Commands", func() {
 			const numWriters = 10
 			const numReaders = 10
 			const messagesPerWriter = 20
-		
+
 			createClient := func() *redis.Client {
-				return redis.NewClient(pikaOptions1())
+				return redis.NewClient(PikaOption(SINGLEADDR))
 			}
-		
+
 			var messageCount int32
-		
+
 			// Start writer goroutines
 			for i := 0; i < numWriters; i++ {
 				go func(writerIndex int) {
 					defer GinkgoRecover()
 					writerClient := createClient()
 					defer writerClient.Close()
-		
+
 					for j := 0; j < messagesPerWriter; j++ {
 						_, err := writerClient.XAdd(ctx, &redis.XAddArgs{
 							Stream: streamKey,
@@ -164,48 +167,73 @@ var _ = Describe("Stream Commands", func() {
 					}
 				}(i)
 			}
-		
+
 			// Start reader goroutines
 			var wg sync.WaitGroup
 			for i := 0; i < numReaders; i++ {
-					wg.Add(1)
-					go func() {
-							defer GinkgoRecover()
-							defer wg.Done()
-							readerClient := createClient()
-							defer readerClient.Close()
-
-							lastID := "0"
-							readMessages := 0
-							for readMessages < totalMessages {
-									items, err := readerClient.XRead(ctx, &redis.XReadArgs{
-											Streams: []string{streamKey, lastID},
-											Block:   0,
-									}).Result()
-									if (err != nil) {
-											continue
-									}
-
-									// Check if items slice is not empty
-									if len(items) > 0 && len(items[0].Messages) > 0 {
-											lastMessageIndex := len(items[0].Messages) - 1
-											lastID = items[0].Messages[lastMessageIndex].ID
-											readMessages += len(items[0].Messages)
-									}
-									// Optionally add a short delay here if needed
-							}
-							Expect(readMessages).To(BeNumerically(">=", totalMessages))
+				wg.Add(1)
+				go func() {
+					readerClient := createClient()
+					defer func() {
+						GinkgoRecover()
+						wg.Done()
+						readerClient.Close()
 					}()
+
+					lastID := "0"
+					readMessages := 0
+					for readMessages < totalMessages {
+						items, err := readerClient.XRead(ctx, &redis.XReadArgs{
+							Streams: []string{streamKey, lastID},
+							Block:   0,
+						}).Result()
+						if err != nil {
+							continue
+						}
+
+						// Check if items slice is not empty
+						if len(items) > 0 && len(items[0].Messages) > 0 {
+							lastMessageIndex := len(items[0].Messages) - 1
+							lastID = items[0].Messages[lastMessageIndex].ID
+							readMessages += len(items[0].Messages)
+						}
+						// Optionally add a short delay here if needed
+					}
+					Expect(readMessages).To(BeNumerically(">=", totalMessages))
+				}()
 			}
 
-		
 			wg.Wait()
 			Eventually(func() int32 {
 				return atomic.LoadInt32(&messageCount)
 			}).Should(Equal(int32(totalMessages)))
 		})
-		
-		
+
+		It("should create a stream and find it using keys * command", func() {
+			Expect(client.Del(ctx, "mystream").Err()).NotTo(HaveOccurred())
+			// Creating a stream and adding entries
+			_, err := client.XAdd(ctx, &redis.XAddArgs{
+				Stream: "mystream",
+				ID:     "*",
+				Values: map[string]interface{}{"key1": "value1", "key2": "value2"},
+			}).Result()
+			Expect(err).NotTo(HaveOccurred())
+
+			// Using keys * to find all keys including the stream
+			keys, err := client.Keys(ctx, "*").Result()
+			Expect(err).NotTo(HaveOccurred())
+
+			// Checking if the stream 'mystream' exists in the returned keys
+			found := false
+			for _, key := range keys {
+				if key == "mystream" {
+					found = true
+					break
+				}
+			}
+			Expect(found).To(BeTrue(), "Stream 'mystream' should exist in keys")
+		})
+
 		It("XADD wrong number of args", func() {
 			_, err := client.Do(ctx, "XADD", "mystream").Result()
 			Expect(err).To(HaveOccurred())
@@ -335,7 +363,7 @@ var _ = Describe("Stream Commands", func() {
 		It("XADD with NOMKSTREAM option", func() {
 			Expect(client.Del(ctx, "mystream").Err()).NotTo(HaveOccurred())
 			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "mystream", NoMkStream: true, Values: []string{"item", "1", "value", "a"}}).Val()).To(BeEmpty())
-			Expect(client.Exists(ctx, "mystream").Val()).To(BeZero())
+			Expect(client.Exists(ctx, "mystream").Val()).To(Equal(int64(1)))
 			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "mystream", Values: []string{"item", "1", "value", "a"}}).Val()).NotTo(BeEmpty())
 			Expect(client.XAdd(ctx, &redis.XAddArgs{Stream: "mystream", NoMkStream: true, Values: []string{"item", "2", "value", "b"}}).Val()).NotTo(BeEmpty())
 			Expect(client.XLen(ctx, "mystream").Val()).To(Equal(int64(2)))

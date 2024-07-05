@@ -15,65 +15,45 @@
 #include "src/debug.h"
 #include "src/lists_data_key_format.h"
 #include "src/lists_meta_value_format.h"
+#include "src/base_value_format.h"
 
 namespace storage {
 
-class ListsMetaFilter : public rocksdb::CompactionFilter {
- public:
-  ListsMetaFilter() = default;
-  bool Filter(int level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
-              bool* value_changed) const override {
-    int64_t unix_time;
-    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-    auto cur_time = static_cast<int32_t>(unix_time);
-    ParsedListsMetaValue parsed_lists_meta_value(value);
-    TRACE("==========================START==========================");
-    TRACE("[ListMetaFilter], key: %s, count = %llu, timestamp: %d, cur_time: %d, version: %d", key.ToString().c_str(),
-          parsed_lists_meta_value.count(), parsed_lists_meta_value.timestamp(), cur_time,
-          parsed_lists_meta_value.version());
-
-    if (parsed_lists_meta_value.timestamp() != 0 && parsed_lists_meta_value.timestamp() < cur_time &&
-        parsed_lists_meta_value.version() < cur_time) {
-      TRACE("Drop[Stale & version < cur_time]");
-      return true;
-    }
-    if (parsed_lists_meta_value.count() == 0 && parsed_lists_meta_value.version() < cur_time) {
-      TRACE("Drop[Empty & version < cur_time]");
-      return true;
-    }
-    TRACE("Reserve");
-    return false;
-  }
-
-  const char* Name() const override { return "ListsMetaFilter"; }
-};
-
-class ListsMetaFilterFactory : public rocksdb::CompactionFilterFactory {
- public:
-  ListsMetaFilterFactory() = default;
-  std::unique_ptr<rocksdb::CompactionFilter> CreateCompactionFilter(
-      const rocksdb::CompactionFilter::Context& context) override {
-    return std::unique_ptr<rocksdb::CompactionFilter>(new ListsMetaFilter());
-  }
-  const char* Name() const override { return "ListsMetaFilterFactory"; }
-};
+/*
+ * Because the meta data filtering strategy for list
+ * is integrated into base_filter.h, we delete it here
+ */
 
 class ListsDataFilter : public rocksdb::CompactionFilter {
  public:
-  ListsDataFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr)
+  ListsDataFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr, enum DataType type)
       : db_(db),
-        cf_handles_ptr_(cf_handles_ptr)
+        cf_handles_ptr_(cf_handles_ptr),
+        type_(type)
         {}
 
   bool Filter(int level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
               bool* value_changed) const override {
+    UNUSED(level);
+    UNUSED(value);
+    UNUSED(new_value);
+    UNUSED(value_changed);
     ParsedListsDataKey parsed_lists_data_key(key);
     TRACE("==========================START==========================");
-    TRACE("[DataFilter], key: %s, index = %llu, data = %s, version = %d", parsed_lists_data_key.key().ToString().c_str(),
-          parsed_lists_data_key.index(), value.ToString().c_str(), parsed_lists_data_key.version());
+    TRACE("[DataFilter], key: %s, index = %llu, data = %s, version = %llu", parsed_lists_data_key.key().ToString().c_str(),
+          parsed_lists_data_key.index(), value.ToString().c_str(), parsed_lists_data_key.Version());
 
-    if (parsed_lists_data_key.key().ToString() != cur_key_) {
-      cur_key_ = parsed_lists_data_key.key().ToString();
+    const char* ptr = key.data();
+    int key_size = key.size();
+    ptr = SeekUserkeyDelim(ptr + kPrefixReserveLength, key_size - kPrefixReserveLength);
+    std::string meta_key_enc(key.data(), std::distance(key.data(), ptr));
+    meta_key_enc.append(kSuffixReserveLength, kNeedTransformCharacter);
+
+    if (meta_key_enc != cur_key_) {
+      cur_key_ = meta_key_enc;
+      cur_meta_etime_ = 0;
+      cur_meta_version_ = 0;
+      meta_not_found_ = true;
       std::string meta_value;
       // destroyed when close the database, Reserve Current key value
       if (cf_handles_ptr_->empty()) {
@@ -81,10 +61,19 @@ class ListsDataFilter : public rocksdb::CompactionFilter {
       }
       rocksdb::Status s = db_->Get(default_read_options_, (*cf_handles_ptr_)[0], cur_key_, &meta_value);
       if (s.ok()) {
-        meta_not_found_ = false;
+        /*
+         * The elimination policy for keys of the Data type is that if the key
+         * type obtained from MetaCF is inconsistent with the key type in Data,
+         * it needs to be eliminated
+         */
+        auto type = static_cast<enum DataType>(static_cast<uint8_t>(meta_value[0]));
+        if (type != type_) {
+          return true;
+        }
         ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
-        cur_meta_version_ = parsed_lists_meta_value.version();
-        cur_meta_timestamp_ = parsed_lists_meta_value.timestamp();
+        meta_not_found_ = false;
+        cur_meta_version_ = parsed_lists_meta_value.Version();
+        cur_meta_etime_ = parsed_lists_meta_value.Etime();
       } else if (s.IsNotFound()) {
         meta_not_found_ = true;
       } else {
@@ -101,12 +90,12 @@ class ListsDataFilter : public rocksdb::CompactionFilter {
 
     int64_t unix_time;
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-    if (cur_meta_timestamp_ != 0 && cur_meta_timestamp_ < static_cast<int32_t>(unix_time)) {
+    if (cur_meta_etime_ != 0 && cur_meta_etime_ < static_cast<uint64_t>(unix_time)) {
       TRACE("Drop[Timeout]");
       return true;
     }
 
-    if (cur_meta_version_ > parsed_lists_data_key.version()) {
+    if (cur_meta_version_ > parsed_lists_data_key.Version()) {
       TRACE("Drop[list_data_key_version < cur_meta_version]");
       return true;
     } else {
@@ -114,6 +103,22 @@ class ListsDataFilter : public rocksdb::CompactionFilter {
       return false;
     }
   }
+
+  /*
+  // Only judge by meta value ttl
+  virtual rocksdb::CompactionFilter::Decision FilterBlobByKey(int level, const Slice& key,
+      std::string* new_value, std::string* skip_until) const {
+    UNUSED(level);
+    UNUSED(new_value);
+    UNUSED(skip_until);
+    bool unused_value_changed;
+    bool should_remove = Filter(level, key, Slice{}, new_value, &unused_value_changed);
+    if (should_remove) {
+      return CompactionFilter::Decision::kRemove;
+    }
+    return CompactionFilter::Decision::kKeep;
+  }
+  */
 
   const char* Name() const override { return "ListsDataFilter"; }
 
@@ -123,24 +128,26 @@ class ListsDataFilter : public rocksdb::CompactionFilter {
   rocksdb::ReadOptions default_read_options_;
   mutable std::string cur_key_;
   mutable bool meta_not_found_ = false;
-  mutable int32_t cur_meta_version_ = 0;
-  mutable int32_t cur_meta_timestamp_ = 0;
+  mutable uint64_t cur_meta_version_ = 0;
+  mutable uint64_t cur_meta_etime_ = 0;
+  enum DataType type_ = DataType::kNones;
 };
 
 class ListsDataFilterFactory : public rocksdb::CompactionFilterFactory {
  public:
-  ListsDataFilterFactory(rocksdb::DB** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr)
-      : db_ptr_(db_ptr), cf_handles_ptr_(handles_ptr) {}
+  ListsDataFilterFactory(rocksdb::DB** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr, enum DataType type)
+      : db_ptr_(db_ptr), cf_handles_ptr_(handles_ptr), type_(type) {}
 
   std::unique_ptr<rocksdb::CompactionFilter> CreateCompactionFilter(
       const rocksdb::CompactionFilter::Context& context) override {
-    return std::unique_ptr<rocksdb::CompactionFilter>(new ListsDataFilter(*db_ptr_, cf_handles_ptr_));
+    return std::unique_ptr<rocksdb::CompactionFilter>(new ListsDataFilter(*db_ptr_, cf_handles_ptr_, type_));
   }
   const char* Name() const override { return "ListsDataFilterFactory"; }
 
  private:
   rocksdb::DB** db_ptr_ = nullptr;
   std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr_ = nullptr;
+  enum DataType type_ = DataType::kNones;
 };
 
 }  //  namespace storage

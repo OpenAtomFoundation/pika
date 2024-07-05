@@ -40,7 +40,7 @@ public:
   static void ResetHitAndMissNum(void);
   Status Open(void);
   int32_t ActiveExpireCycle(void);
-    
+
   // Normal Commands
   bool Exists(std::string& key);
   int64_t DbSize(void);
@@ -87,14 +87,14 @@ public:
   Status HExists(std::string& key, std::string &field);
   Status HIncrby(std::string& key, std::string &field, int64_t value);
   Status HIncrbyfloat(std::string& key, std::string &field, double value);
-  Status HLen(std::string& key, uint64_t *len);
+  Status HLen(const std::string& key, uint64_t *len);
   Status HStrlen(std::string& key, std::string &field, uint64_t *len);
 
   // List Commands
   Status LIndex(std::string& key, int64_t index, std::string *element);
   Status LInsert(std::string& key, storage::BeforeOrAfter &before_or_after,
                  std::string &pivot, std::string &value);
-  Status LLen(std::string& key, uint64_t *len);
+  Status LLen(const std::string& key, uint64_t *len);
   Status LPop(std::string& key, std::string *element);
   Status LPush(std::string& key, std::vector<std::string> &values);
   Status LPushx(std::string& key, std::vector<std::string> &values);
@@ -108,7 +108,7 @@ public:
 
   // Set Commands
   Status SAdd(std::string& key, std::vector<std::string> &members);
-  Status SCard(std::string& key, uint64_t *len);
+  Status SCard(const std::string& key, uint64_t *len);
   Status SIsmember(std::string& key, std::string& member);
   Status SMembers(std::string& key, std::vector<std::string> *members);
   Status SRem(std::string& key, std::vector<std::string> &members);
@@ -116,7 +116,7 @@ public:
 
   // Zset Commands
   Status ZAdd(std::string& key, std::vector<storage::ScoreMember> &score_members);
-  Status ZCard(std::string& key, uint64_t *len);
+  Status ZCard(const std::string& key, uint64_t *len);
   Status ZCount(std::string& key, std::string &min, std::string &max, uint64_t *len);
   Status ZIncrby(std::string& key, std::string& member, double increment);
   Status ZRange(std::string& key,
@@ -163,7 +163,7 @@ protected:
   void FreeHitemList(hitem *items, uint32_t size);
   void FreeZitemList(zitem *items, uint32_t size);
   void ConvertObjectToString(robj *obj, std::string *value);
-    
+
 private:
   RedisCache(const RedisCache&);
   RedisCache& operator=(const RedisCache&);
