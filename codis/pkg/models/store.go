@@ -130,11 +130,11 @@ func (s *Store) ReleaseByToken(token string) error {
 	}
 	
 	if b != nil {
-		t, err := Decode(b); 
+		t, err := Decode(b)
 		if err != nil {
 			return err
 		}
-		if t.Token == token {
+		if t != nil && t.Token == token {
 			return s.Release()
 		}
 	}
