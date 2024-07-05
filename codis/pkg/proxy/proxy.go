@@ -326,6 +326,23 @@ func (p *Proxy) ConfigGet(key string) *redis.Resp {
 		} else {
 			return redis.NewBulkBytes(text)
 		}
+	case "checker_enabled":
+		return redis.NewBulkBytes([]byte(strconv.FormatInt(p.config.CheckerEnabled, 10)))
+	case "checker_max_value_len":
+		return redis.NewBulkBytes([]byte(strconv.FormatInt(p.config.CheckerMaxValueLen, 10)))
+	case "checker_max_batchsize":
+		return redis.NewBulkBytes([]byte(strconv.FormatInt(p.config.CheckerMaxBatchsize, 10)))
+	case "checker_result_set_size":
+		return redis.NewBulkBytes([]byte(strconv.FormatInt(p.config.CheckerResultSetSize, 10)))
+	case "breaker_enabled":
+		return redis.NewBulkBytes([]byte(strconv.FormatInt(p.config.BreakerEnabled, 10)))
+	case "breaker_degradation_probability":
+		return redis.NewBulkBytes([]byte(strconv.FormatInt(p.config.BreakerDegradationProbability, 10)))
+	case "breaker_cmd_black_list":
+		return redis.NewBulkBytes([]byte(p.config.BreakerCmdBlackList))
+	case "breaker_key_black_list":
+		UpdateKeyBlackList(p)
+		return redis.NewBulkBytes([]byte(p.config.BreakerKeyBlackList))
 	default:
 		return redis.NewErrorf("unsupported key: %s", key)
 	}
@@ -391,6 +408,82 @@ func (p *Proxy) ConfigSet(key, value string) *redis.Resp {
 			p.router.SetReplicaQuickConn(p.config.BackendReplicaQuick)
 			return redis.NewString([]byte("OK"))
 		}
+	case "checker_enabled":
+		i64, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
+		}
+		if i64 != 0 && i64 != 1 {
+			return redis.NewErrorf("invalid state for checker. Try 0 or 1")
+		}
+		SetCheckerState(i64)
+		p.config.CheckerEnabled = i64
+		return redis.NewString([]byte("OK"))
+	case "checker_max_value_len":
+		i64, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
+		}
+		if i64 < 0 {
+			return redis.NewErrorf("invalid checker_max_value_len")
+		} else {
+			p.config.CheckerMaxValueLen = i64
+			CheckerSetMaxLengthOfValue(i64)
+			return redis.NewString([]byte("OK"))
+		}
+	case "checker_max_batchsize":
+		i64, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
+		}
+		if i64 < 0 {
+			return redis.NewErrorf("invalid checker_max_batchsize")
+		} else {
+			p.config.CheckerMaxBatchsize = i64
+			CheckerSetMaxBatchsize(i64)
+			return redis.NewString([]byte("OK"))
+		}
+	case "checker_result_set_size":
+		i64, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
+		}
+		if i64 < 0 {
+			return redis.NewErrorf("invalid checker_result_set_size")
+		} else {
+			p.config.CheckerResultSetSize = i64
+			CheckerSetResultSetSize(i64)
+			return redis.NewString([]byte("OK"))
+		}
+	case "breaker_enabled":
+		i64, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
+		}
+		if i64 != 0 && i64 != 1 {
+			return redis.NewErrorf("invalid state for breaker state. Try 0 or 1")
+		}
+		p.config.BreakerEnabled = i64
+		BreakerSetState(i64)
+		return redis.NewString([]byte("OK"))
+	case "breaker_degradation_probability":
+		i64, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return redis.NewErrorf("err：%s.", err)
+		}
+		if i64 < 0 || i64 > 100 {
+			return redis.NewErrorf("invalid breaker_degradation_probability, no less than 0 or more than 100")
+		}
+		p.config.BreakerDegradationProbability = i64
+		BreakerSetProbability(i64)
+		return redis.NewString([]byte("OK"))
+	case "breaker_cmd_black_list":
+		StoreCmdBlackList(value)
+		AddCmdBlackList(p, value)
+		return redis.NewString([]byte("OK"))
+	case "breaker_key_black_list":
+		AddKeyBlackList(p, value)
+		return redis.NewString([]byte("OK"))
 	case "backend_primary_quick":
 		n, err := strconv.Atoi(value)
 		if err != nil {
@@ -555,6 +648,16 @@ func (p *Proxy) serveProxy() {
 		log.PanicErrorf(err, "setSlowCmdList [%s] failed", p.config.SlowCmdList)
 	}
 
+	//设置监控参数
+	CheckerSetMaxLengthOfValue(p.config.CheckerMaxValueLen)
+	CheckerSetMaxBatchsize(p.config.CheckerMaxBatchsize)
+	SetCheckerState(p.config.CheckerEnabled)
+	CheckerSetResultSetSize(p.config.CheckerResultSetSize)
+	//设置熔断参数
+	BreakerSetState(p.config.BreakerEnabled)
+	BreakerSetProbability(p.config.BreakerDegradationProbability)
+	StoreCmdBlackListByBatch(p.config.BreakerCmdBlackList)
+	StoreKeyBlackListByBatch(p.config.BreakerKeyBlackList)
 	select {
 	case <-p.exit.C:
 		log.Warnf("[%p] proxy shutdown", p)

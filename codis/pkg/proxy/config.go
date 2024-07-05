@@ -144,7 +144,26 @@ metrics_report_statsd_prefix = ""
 
 # Maximum delay statistical time interval.(This value must be greater than 0.)
 max_delay_refresh_time_interval = "15s"
-`
+
+# check big key big value
+# max length of single value
+checker_max_value_len = 4096
+# max batchsize of single request or response from redis client
+checker_max_batchsize = 200
+# set the limitation of result set
+checker_result_set_size = 20
+# switch for checker,0 is disabled, 1 is enabled
+checker_enabled = 1
+
+# breaker
+# switch for breaker, 0 is disabled, 1 is enabled
+breaker_enabled = 1
+# default probability of degradation if degrade service with probability
+breaker_degradation_probability = 0
+# cmd black list
+breaker_cmd_black_list = ""
+# key black list
+breaker_key_black_list = ""`
 
 type Config struct {
 	ProtoType string `toml:"proto_type" json:"proto_type"`
@@ -209,8 +228,16 @@ type Config struct {
 	MetricsReportStatsdPrefix     string            `toml:"metrics_report_statsd_prefix" json:"metrics_report_statsd_prefix"`
 
 	MaxDelayRefreshTimeInterval timesize.Duration `toml:"max_delay_refresh_time_interval" json:"max_delay_refresh_time_interval"`
+	CheckerMaxValueLen          int64             `toml:"checker_max_value_len" json:"checker_max_value_len"`
+	CheckerMaxBatchsize         int64             `toml:"checker_max_batchsize" json:"checker_max_batchsize"`
+	CheckerResultSetSize        int64             `toml:"checker_result_set_size" json:"checker_result_set_size"`
+	CheckerEnabled              int64             `toml:"checker_enabled" json:"checker_enabled"`
 
-	ConfigFileName string `toml:"-" json:"config_file_name"`
+	BreakerEnabled                int64  `toml:"breaker_enabled" json:"breaker_enabled"`
+	BreakerDegradationProbability int64  `toml:"breaker_degradation_probability" json:"breaker_degradation_probability"`
+	BreakerCmdBlackList           string `toml:"breaker_cmd_black_list" json:"breaker_cmd_black_list"`
+	BreakerKeyBlackList           string `toml:"breaker_key_black_list" json:"breaker_key_black_list"`
+	ConfigFileName                string `toml:"-" json:"config_file_name"`
 }
 
 func NewDefaultConfig() *Config {
@@ -337,6 +364,21 @@ func (c *Config) Validate() error {
 		return errors.New("invalid slowlog_log_slower_than")
 	}
 
+	if c.CheckerMaxValueLen < 0 {
+		return errors.New("invalid monitor_max_value_len")
+	}
+	if c.CheckerMaxBatchsize < 0 {
+		return errors.New("invalid monitor_max_batchsize")
+	}
+	if c.CheckerResultSetSize< 0 {
+		return errors.New("invalid monitor_result_set_size")
+	}
+	if c.BreakerEnabled != 0 && c.BreakerEnabled != 1 {
+		return errors.New("invalid breaker_enabled")
+	}
+	if c.BreakerDegradationProbability < 0 {
+		return errors.New("invalid breaker_degradation_probability")
+	}
 	if c.MetricsReportPeriod < 0 {
 		return errors.New("invalid metrics_report_period")
 	}

@@ -4,11 +4,10 @@
 package proxy
 
 import (
-	"sync"
-	"unsafe"
-
 	"pika/codis/v2/pkg/proxy/redis"
 	"pika/codis/v2/pkg/utils/sync2/atomic2"
+	"sync"
+	"unsafe"
 )
 
 type Request struct {
@@ -20,6 +19,8 @@ type Request struct {
 
 	OpStr string
 	OpFlag
+	OpFlagChecker
+	CustomCheckFunc
 
 	Database              int32
 	ReceiveTime           int64
