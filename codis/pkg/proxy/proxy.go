@@ -144,6 +144,7 @@ func (p *Proxy) setup(config *Config) error {
 	// Replace unspecified IP address with the specific host proxy address
 	x, err := utils.ReplaceUnspecifiedIP(proto, l.Addr().String(), config.HostProxy)
 	if err != nil {
+		log.Errorf("Failed to replace unspecified IP: %s", err)
 		return err
 	}
 
