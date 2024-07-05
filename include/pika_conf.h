@@ -846,7 +846,9 @@ class PikaConf : public pstd::BaseConf {
 
   void SetOpenRocksdbStatisticsTickers(const std::string& value) {
     std::lock_guard l(rwlock_);
-    TryPushDiffCommands("open-rocksdb-statistics-tickers", value);
+    std::string lower_value = value;
+    pstd::StringToLower(lower_value);
+    TryPushDiffCommands("open-rocksdb-statistics-tickers", lower_value);
     open_rocksdb_statistics_tickers_ = value == "yes";
   }
 

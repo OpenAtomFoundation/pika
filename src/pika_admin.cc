@@ -2870,6 +2870,7 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
       return;
     }
     g_pika_conf->SetOpenRocksdbStatisticsTickers(value);
+    res_.AppendStringRaw("+OK\r\n");
   } else {
     res_.AppendStringRaw("-ERR Unsupported CONFIG parameter: " + set_item + "\r\n");
   }
