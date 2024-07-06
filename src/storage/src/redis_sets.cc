@@ -18,6 +18,8 @@
 #include "src/scope_snapshot.h"
 #include "storage/util.h"
 
+#include "pstd/include/pstd_defer.h"
+
 namespace storage {
 
 RedisSets::RedisSets(Storage* const s, const DataType& type) : Redis(s, type) {
@@ -163,6 +165,9 @@ rocksdb::Status RedisSets::PKPatternMatchDel(const std::string& pattern, int32_t
   rocksdb::Status s;
   rocksdb::WriteBatch batch;
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[0]);
+  DEFER {
+    delete iter;
+  };
   iter->SeekToFirst();
   while (iter->Valid()) {
     key = iter->key().ToString();
@@ -872,7 +877,7 @@ rocksdb::Status RedisSets::SPop(const Slice& key, std::vector<std::string>* memb
         //parsed_sets_meta_value.ModifyCount(-cnt);
         //batch.Put(handles_[0], key, meta_value);
         batch.Delete(handles_[0], key);
-        delete iter;   
+        delete iter;
 
       } else {
         engine.seed(time(nullptr));

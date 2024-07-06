@@ -19,6 +19,8 @@
 #include "src/strings_filter.h"
 #include "storage/util.h"
 
+#include "pstd/include/pstd_defer.h"
+
 namespace storage {
 
 RedisStrings::RedisStrings(Storage* const s, const DataType& type) : Redis(s, type) {}
@@ -126,6 +128,9 @@ Status RedisStrings::PKPatternMatchDel(const std::string& pattern, int32_t* ret)
   Status s;
   rocksdb::WriteBatch batch;
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options);
+  DEFER {
+    delete iter;
+  };
   iter->SeekToFirst();
   while (iter->Valid()) {
     key = iter->key().ToString();
@@ -1464,8 +1469,8 @@ void RedisStrings::ScanDatabase() {
       survival_time =
           parsed_strings_value.timestamp() - current_time > 0 ? parsed_strings_value.timestamp() - current_time : -1;
     }
-    LOG(INFO) << fmt::format("[key : {:<30}] [value : {:<30}] [timestamp : {:<10}] [version : {}] [survival_time : {}]", iter->key().ToString(), 
-                             parsed_strings_value.value().ToString(), parsed_strings_value.timestamp(), parsed_strings_value.version(),  
+    LOG(INFO) << fmt::format("[key : {:<30}] [value : {:<30}] [timestamp : {:<10}] [version : {}] [survival_time : {}]", iter->key().ToString(),
+                             parsed_strings_value.value().ToString(), parsed_strings_value.timestamp(), parsed_strings_value.version(),
                              survival_time);
 
   }

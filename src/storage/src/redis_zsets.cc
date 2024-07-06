@@ -19,6 +19,8 @@
 #include "src/zsets_filter.h"
 #include "storage/util.h"
 
+#include "pstd/include/pstd_defer.h"
+
 namespace storage {
 
 rocksdb::Comparator* ZSetsScoreKeyComparator() {
@@ -179,6 +181,9 @@ Status RedisZSets::PKPatternMatchDel(const std::string& pattern, int32_t* ret) {
   rocksdb::WriteBatch batch;
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[0]);
   iter->SeekToFirst();
+  DEFER {
+    delete iter;
+  };
   while (iter->Valid()) {
     key = iter->key().ToString();
     meta_value = iter->value().ToString();
@@ -1889,7 +1894,7 @@ void RedisZSets::ScanDatabase() {
   auto score_iter = db_->NewIterator(iterator_options, handles_[2]);
   for (score_iter->SeekToFirst(); score_iter->Valid(); score_iter->Next()) {
     ParsedZSetsScoreKey parsed_zsets_score_key(score_iter->key());
-    
+
     LOG(INFO) << fmt::format("[key : {:<30}] [score : {:<20}] [member : {:<20}] [version : {}]",
                              parsed_zsets_score_key.key().ToString(), parsed_zsets_score_key.score(),
                               parsed_zsets_score_key.member().ToString(), parsed_zsets_score_key.version());
