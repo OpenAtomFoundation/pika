@@ -990,7 +990,7 @@ Status PikaReplicaManager::RunSyncSlaveDBStateMachine() {
       std::shared_ptr<DB> db =
           g_pika_server->GetDB(p_info.db_name_);
       if (db) {
-        if (!s_db->IsRsyncRunning()) {
+        if (s_db->IsRsyncExited()) {
           db->TryUpdateMasterOffset();
         }
       } else {
