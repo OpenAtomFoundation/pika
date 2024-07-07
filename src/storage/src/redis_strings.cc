@@ -1748,6 +1748,7 @@ rocksdb::Status Redis::PKPatternMatchDel(const std::string& pattern, int32_t* re
         batch.Clear();
       } else {
         *ret = total_delete;
+        delete iter;
         return s;
       }
     }
@@ -1762,6 +1763,7 @@ rocksdb::Status Redis::PKPatternMatchDel(const std::string& pattern, int32_t* re
   }
 
   *ret = total_delete;
+  delete iter;
   return s;
 }
 
@@ -1790,7 +1792,7 @@ rocksdb::Status Redis::PKPatternMatchDelWithRemoveKeys(const std::string& patter
       if (!parsed_strings_value.IsStale() &&
           (StringMatch(pattern.data(), pattern.size(), parsed_meta_key.Key().data(), parsed_meta_key.Key().size(), 0) != 0)) {
         batch.Delete(key);
-        remove_keys->push_back(key);
+        remove_keys->push_back(parsed_meta_key.Key().data());
       }
     } else if (meta_type == DataType::kLists) {
       ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
@@ -1799,7 +1801,7 @@ rocksdb::Status Redis::PKPatternMatchDelWithRemoveKeys(const std::string& patter
            0)) {
         parsed_lists_meta_value.InitialMetaValue();
         batch.Put(handles_[kMetaCF], iter->key(), meta_value);
-        remove_keys->push_back(key);
+        remove_keys->push_back(parsed_meta_key.Key().data());
       }
     } else if (meta_type == DataType::kStreams) {
       StreamMetaValue stream_meta_value;
@@ -1808,7 +1810,7 @@ rocksdb::Status Redis::PKPatternMatchDelWithRemoveKeys(const std::string& patter
           (StringMatch(pattern.data(), pattern.size(), parsed_meta_key.Key().data(), parsed_meta_key.Key().size(), 0) != 0)) {
         stream_meta_value.InitMetaValue();
         batch.Put(handles_[kMetaCF], key, stream_meta_value.value());
-        remove_keys->push_back(key);
+        remove_keys->push_back(parsed_meta_key.Key().data());
       }
     } else {
       ParsedBaseMetaValue parsed_meta_value(&meta_value);
@@ -1817,7 +1819,7 @@ rocksdb::Status Redis::PKPatternMatchDelWithRemoveKeys(const std::string& patter
            0)) {
         parsed_meta_value.InitialMetaValue();
         batch.Put(handles_[kMetaCF], iter->key(), meta_value);
-        remove_keys->push_back(key);
+        remove_keys->push_back(parsed_meta_key.Key().data());
       }
     }
 
@@ -1828,6 +1830,7 @@ rocksdb::Status Redis::PKPatternMatchDelWithRemoveKeys(const std::string& patter
         batch.Clear();
       } else {
         remove_keys->erase(remove_keys->end() - batch.Count(), remove_keys->end());
+        delete iter;
         *ret = total_delete;
         return s;
       }
@@ -1839,10 +1842,13 @@ rocksdb::Status Redis::PKPatternMatchDelWithRemoveKeys(const std::string& patter
     if (s.ok()) {
       total_delete += static_cast<int32_t>(batch.Count());
       batch.Clear();
+    } else {
+      remove_keys->erase(remove_keys->end() - batch.Count(), remove_keys->end());
     }
   }
 
   *ret = total_delete;
+  delete iter;
   return s;
 }
 

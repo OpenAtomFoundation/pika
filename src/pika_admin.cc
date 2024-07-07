@@ -10,6 +10,7 @@
 #include <sys/utsname.h>
 
 #include <algorithm>
+#include <cstdint>
 #include <unordered_map>
 
 #include <glog/logging.h>
@@ -3129,11 +3130,11 @@ void PKPatternMatchDelCmd::DoInitial() {
   pattern_ = argv_[1];
 }
 
-//TODO: may lead to inconsistent between rediscache and db, because currently it only cleans db
 void PKPatternMatchDelCmd::Do() {
-  int ret = 0;
-  int64_t count = db_->storage()->PKPatternMatchDelWithRemoveKeys(type_, pattern_, &remove_keys_);
-  if (count >= 0) {
+  int64_t count = 0;
+  rocksdb::Status s = db_->storage()->PKPatternMatchDelWithRemoveKeys(type_, pattern_, &count, &remove_keys_);
+
+  if(s.ok()){
     res_.AppendInteger(count);
     s_ = rocksdb::Status::OK();
     std::vector<std::string>::const_iterator it;
@@ -3141,8 +3142,14 @@ void PKPatternMatchDelCmd::Do() {
       RemSlotKey(*it, db_);
     }
   } else {
-    res_.SetRes(CmdRes::kErrOther, "delete error");
-    s_ = rocksdb::Status::Corruption("delete error");
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    if (count >= 0) {
+      s_ = rocksdb::Status::OK();
+      std::vector<std::string>::const_iterator it;
+      for (it = remove_keys_.begin(); it != remove_keys_.end(); it++) {
+        RemSlotKey(*it, db_);
+      }
+    }
   }
 }
 
@@ -3153,6 +3160,16 @@ void PKPatternMatchDelCmd::DoThroughDB() {
 void PKPatternMatchDelCmd::DoUpdateCache() {
   if(s_.ok()) {
     db_->cache()->Del(remove_keys_);
+  }
+}
+
+void PKPatternMatchDelCmd::DoBinlog() {
+  std::string opt = "del";
+  for(auto& key: remove_keys_) {
+    argv_.clear();
+    argv_.emplace_back(opt);
+    argv_.emplace_back(key);
+    Cmd::DoBinlog();
   }
 }
 

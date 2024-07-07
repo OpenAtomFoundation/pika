@@ -471,6 +471,7 @@ class PKPatternMatchDelCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new PKPatternMatchDelCmd(*this); }
+  void DoBinlog() override;
 
  private:
   std::vector<std::string> remove_keys_;
