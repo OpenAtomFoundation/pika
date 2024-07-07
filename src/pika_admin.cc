@@ -10,7 +10,6 @@
 #include <sys/utsname.h>
 
 #include <algorithm>
-#include <cstdint>
 #include <unordered_map>
 
 #include <glog/logging.h>
