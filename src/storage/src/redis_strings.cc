@@ -1748,6 +1748,7 @@ rocksdb::Status Redis::PKPatternMatchDel(const std::string& pattern, int32_t* re
         batch.Clear();
       } else {
         *ret = total_delete;
+        delete iter;
         return s;
       }
     }
