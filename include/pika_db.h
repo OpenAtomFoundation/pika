@@ -148,6 +148,9 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   bool IsBgSaving();
   BgSaveInfo bgsave_info();
   pstd::Status GetKeyNum(std::vector<storage::KeyInfo>* key_info);
+  void ResetIsFlushingDBToFalse() {
+    is_flushing_db_.store(false);
+  }
 
  private:
   bool opened_ = false;
@@ -160,6 +163,7 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   pstd::Mutex key_info_protector_;
   std::atomic<bool> binlog_io_error_;
   std::shared_mutex dbs_rw_;
+  std::atomic<bool> is_flushing_db_;
   // class may be shared, using shared_ptr would be a better choice
   std::shared_ptr<pstd::lock::LockMgr> lock_mgr_;
   std::shared_ptr<storage::Storage> storage_;

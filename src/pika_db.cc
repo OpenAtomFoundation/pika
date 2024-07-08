@@ -44,6 +44,7 @@ DB::DB(std::string db_name, const std::string& db_path,
   pstd::CreatePath(log_path_);
   lock_mgr_ = std::make_shared<pstd::lock::LockMgr>(1000, 0, std::make_shared<pstd::lock::MutexFactoryImpl>());
   binlog_io_error_.store(false);
+  is_flushing_db_.store(false);
   opened_ = s.ok();
   assert(storage_);
   assert(s.ok());
@@ -197,6 +198,12 @@ bool DB::FlushDBWithoutLock() {
     return false;
   }
 
+  bool expected = false;
+  if (!is_flushing_db_.compare_exchange_strong(expected, true, std::memory_order::memory_order_seq_cst)) {
+    LOG(WARNING) << db_name_ <<  ": Aborting curr FlushDB task due to the previous FlushDB task is still executing (deleting old db path is an async task)";
+    return false;
+  }
+
   LOG(INFO) << db_name_ << " Delete old db...";
   storage_.reset();
 
@@ -205,15 +212,22 @@ bool DB::FlushDBWithoutLock() {
     dbpath.erase(dbpath.length() - 1);
   }
   dbpath.append("_deleting/");
-  pstd::RenameFile(db_path_, dbpath);
-
+  auto rename_success = pstd::RenameFile(db_path_, dbpath);
   storage_ = std::make_shared<storage::Storage>(g_pika_conf->db_instance_num(),
       g_pika_conf->default_slot_num(), g_pika_conf->classic_mode());
   rocksdb::Status s = storage_->Open(g_pika_server->storage_options(), db_path_);
   assert(storage_);
   assert(s.ok());
+  if (rename_success == -1) {
+    //the storage_->Open actually opened old RocksDB instance, so flushdb failed
+    LOG(WARNING)  << db_name_ << " FlushDB failed due to rename old db_path_ failed";
+    return false;
+  }
   LOG(INFO) << db_name_ << " Open new db success";
-  g_pika_server->PurgeDir(dbpath);
+
+  //when dbpath successfully deleted, a call back fun will reset flushing db flag to false, so the next FlushDB task can be exec
+  auto reset_flag_call_back = [this]{ this->ResetIsFlushingDBToFalse(); };
+  g_pika_server->PurgeDirWithCallBack(dbpath, reset_flag_call_back);
   return true;
 }
 
