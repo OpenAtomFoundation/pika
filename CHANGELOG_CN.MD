@@ -44,6 +44,8 @@
 
 ## Bugfix
 
+- 修复 iter 未被析构，导致 pkpatternmatchdel 在返回之前不会删除 iter，这可能会导致 rocksdb 永远引用一个版本，导致数据不符合预期的问题[#2785](https://github.com/OpenAtomFoundation/pika/pull/2785)@[wangshao1](https://github.com/wangshao1)
+
 - 修复 config 参数 min-blob-size 带单位时解析错误的问题[#2767](https://github.com/OpenAtomFoundation/pika/pull/2767)@[wangshao1](https://github.com/wangshao1)
 
 - 修复 zverank 返回值异常的问题[#2763](https://github.com/OpenAtomFoundation/pika/pull/2763)@[chejinge](https://github.com/chejinge)
@@ -88,7 +90,7 @@
 
 - 发版支持自动打包 centos7 和 centos8 平台的二进制编译包[#2535](https://github.com/OpenAtomFoundation/pika/pull/2535)@[baerwang](https://github.com/baerwang)
 
-- 修复Codis 侧的 getrange 命令没有返回预期结果的问题[#2510](https://github.com/OpenAtomFoundation/pika/pull/2510)@[luky116](https://github.com/luky116)
+- 修复 Codis 侧的 getrange 命令没有返回预期结果的问题[#2510](https://github.com/OpenAtomFoundation/pika/pull/2510)@[luky116](https://github.com/luky116)
 
 
 # v3.5.4
