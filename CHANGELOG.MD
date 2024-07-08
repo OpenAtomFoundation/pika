@@ -44,6 +44,8 @@
 
 ## Bugfix
 
+- Solve the issue where failing to destruct 'iter' causes 'pkpatternmatchdel' not to delete 'iter' before returning, potentially leading to RocksDB perpetually referencing a version, causing data inconsistency.[#2785](https://github.com/OpenAtomFoundation/pika/pull/2785)@[wangshao1](https://github.com/wangshao1)
+
 - Fixed an issue with parsing the config parameter min-blob-size when it includes units.[#2767](https://github.com/OpenAtomFoundation/pika/pull/2767)@[wangshao1](https://github.com/wangshao1)
 
 - Fixed an issue with abnormal return values in ZREVRANK.[#2763](https://github.com/OpenAtomFoundation/pika/pull/2763)@[chejinge](https://github.com/chejinge)
