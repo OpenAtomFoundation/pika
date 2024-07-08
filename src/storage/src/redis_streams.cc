@@ -21,6 +21,8 @@
 #include "storage/storage.h"
 #include "storage/util.h"
 
+#include "pstd/include/pstd_defer.h"
+
 namespace storage {
 
 Status RedisStreams::XAdd(const Slice& key, const std::string& serialized_message, StreamAddTrimArgs& args) {
@@ -453,6 +455,9 @@ Status RedisStreams::PKPatternMatchDel(const std::string& pattern, int32_t* ret)
   Status s;
   rocksdb::WriteBatch batch;
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[0]);
+  DEFER {
+    delete iter;
+  };
   iter->SeekToFirst();
   while (iter->Valid()) {
     key = iter->key().ToString();

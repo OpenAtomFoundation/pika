@@ -14,6 +14,8 @@
 #include "src/scope_snapshot.h"
 #include "storage/util.h"
 
+#include "pstd/include/pstd_defer.h"
+
 namespace storage {
 
 const rocksdb::Comparator* ListsDataKeyComparator() {
@@ -163,6 +165,9 @@ Status RedisLists::PKPatternMatchDel(const std::string& pattern, int32_t* ret) {
   Status s;
   rocksdb::WriteBatch batch;
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[0]);
+  DEFER {
+    delete iter;
+  };
   iter->SeekToFirst();
   while (iter->Valid()) {
     key = iter->key().ToString();

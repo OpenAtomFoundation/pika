@@ -15,6 +15,8 @@
 #include "src/scope_snapshot.h"
 #include "storage/util.h"
 
+#include "pstd/include/pstd_defer.h"
+
 namespace storage {
 
 RedisHashes::RedisHashes(Storage* const s, const DataType& type) : Redis(s, type) {}
@@ -156,6 +158,9 @@ Status RedisHashes::PKPatternMatchDel(const std::string& pattern, int32_t* ret) 
   Status s;
   rocksdb::WriteBatch batch;
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[0]);
+  DEFER {
+    delete iter;
+  };
   iter->SeekToFirst();
   while (iter->Valid()) {
     key = iter->key().ToString();
