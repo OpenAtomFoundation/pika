@@ -78,7 +78,15 @@ void ZCardCmd::Do() {
 }
 
 void ZCardCmd::ReadCache(){
-  res_.SetRes(CmdRes::kCacheMiss);
+  uint64_t card = 0;
+  s_ = db_->cache()->CacheZCard(key_, &card);
+  if (s_.ok()) {
+    res_.AppendInteger(static_cast<int64_t>(card));
+  } else if (s_.IsNotFound()) {
+    res_.SetRes(CmdRes::kCacheMiss);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "zcard error");
+  }
 }
 
 void ZCardCmd::DoThroughDB() {
@@ -87,7 +95,9 @@ void ZCardCmd::DoThroughDB() {
 }
 
 void ZCardCmd::DoUpdateCache() {
-  return;
+  if (s_.ok()) {
+    db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_ZSET, key_, db_);
+  }
 }
 
 void ZScanCmd::DoInitial() {

@@ -6,6 +6,7 @@
 #ifndef PIKA_KV_H_
 #define PIKA_KV_H_
 
+#include "rocksdb/status.h"
 #include "storage/storage.h"
 #include "include/pika_db.h"
 #include "include/acl.h"
@@ -543,6 +544,7 @@ class ExistsCmd : public Cmd {
   void Do() override;
   void ReadCache() override;
   void DoThroughDB() override;
+  void DoUpdateCache() override;
   std::vector<std::string> current_key() const override { return keys_; }
   void Split(const HintKeys& hint_keys) override;
   void Merge() override;
@@ -550,6 +552,8 @@ class ExistsCmd : public Cmd {
 
  private:
   std::vector<std::string> keys_;
+  std::vector<std::string> cache_miss_keys_;
+  std::unordered_map<std::string, std::string> cache_hit_values_;
   int64_t split_res_ = 0;
   void DoInitial() override;
 };

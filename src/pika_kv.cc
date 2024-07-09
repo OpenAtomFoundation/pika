@@ -6,6 +6,7 @@
 #include "include/pika_kv.h"
 #include <memory>
 
+#include "glog/logging.h"
 #include "include/pika_command.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_cache.h"
@@ -619,7 +620,6 @@ void MgetCmd::MergeCachedAndDbResults() {
 
   for (const auto& key : keys_) {
     auto cache_it = cache_hit_values_.find(key);
-
     if (cache_it != cache_hit_values_.end()) {
       res_.AppendStringLen(cache_it->second.size());
       res_.AppendContent(cache_it->second);
@@ -1153,12 +1153,16 @@ void ExistsCmd::DoInitial() {
   }
   keys_ = argv_;
   keys_.erase(keys_.begin());
+  cache_miss_keys_.clear();
 }
 
 void ExistsCmd::Do() {
-  int64_t res = db_->storage()->Exists(keys_);
+  if(cache_miss_keys_.size() == 0) {
+    cache_miss_keys_ = keys_;
+  }
+  int64_t res = db_->storage()->Exists(cache_miss_keys_);
   if (res != -1) {
-    res_.AppendInteger(res);
+    res_.AppendInteger(res + static_cast<int64_t>(cache_hit_values_.size()));
   } else {
     res_.SetRes(CmdRes::kErrOther, "exists internal error");
   }
@@ -1176,13 +1180,17 @@ void ExistsCmd::Split(const HintKeys& hint_keys) {
 void ExistsCmd::Merge() { res_.AppendInteger(split_res_); }
 
 void ExistsCmd::ReadCache() {
-  if (keys_.size() > 1) {
-    res_.SetRes(CmdRes::kCacheMiss);
-    return;
+  for ( auto key : keys_) {
+    std::string value;
+    auto exist = db_->cache()->Exists(key);
+    if (exist) {
+      cache_hit_values_[key] = value;
+    } else {
+      cache_miss_keys_.push_back(key);
+    }
   }
-  bool exist = db_->cache()->Exists(keys_[0]);
-  if (exist) {
-    res_.AppendInteger(1);
+  if (cache_miss_keys_.empty()) {
+    res_.AppendInteger(static_cast<int64_t>(cache_hit_values_.size()));
   } else {
     res_.SetRes(CmdRes::kCacheMiss);
   }
@@ -1191,6 +1199,17 @@ void ExistsCmd::ReadCache() {
 void ExistsCmd::DoThroughDB() {
   res_.clear();
   Do();
+}
+
+void ExistsCmd::DoUpdateCache() {
+  for (auto key : cache_miss_keys_) {
+    enum storage::DataType type = storage::DataType::kNones;
+    rocksdb::Status s = db_->storage()->GetType(key, type);
+    if (type >= storage::DataType::kStrings || type < storage::DataType::kStreams) {
+      db_->cache()->PushKeyToAsyncLoadQueue(
+        storage::DataTypeTag[static_cast<int>(type)], key, db_);
+    }
+  }
 }
 
 void ExpireCmd::DoInitial() {
@@ -1513,14 +1532,12 @@ void TypeCmd::Do() {
 }
 
 void TypeCmd::ReadCache() {
-  enum storage::DataType type = storage::DataType::kNones;
   std::string key_type;
-  // TODO Cache GetType function
-  rocksdb::Status s = db_->storage()->GetType(key_, type);
+  rocksdb::Status s = db_->cache()->Type(key_, &key_type);
   if (s.ok()) {
-    res_.AppendContent("+" + std::string(DataTypeToString(type)));
+    res_.AppendContent("+" + key_type);
   } else {
-    res_.SetRes(CmdRes::kCacheMiss, s.ToString());
+    res_.SetRes(CmdRes::kCacheMiss);
   }
 }
 
