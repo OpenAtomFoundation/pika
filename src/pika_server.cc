@@ -41,21 +41,6 @@ void DoPurgeDir(void* arg) {
   LOG(INFO) << "Delete dir: " << *path << " done";
 }
 
-struct PurgeDirArgsWithCallBackArgs {
-  PurgeDirArgsWithCallBackArgs(std::string path, const std::function<void()>& call_back)
-      : path_(std::move(path)), call_back_(call_back) {}
-  std::string path_;
-  std::function<void()> call_back_;
-};
-
-void DoPurgeDirWithCallBack(void* arg) {
-  std::unique_ptr<PurgeDirArgsWithCallBackArgs> args(static_cast<PurgeDirArgsWithCallBackArgs*>(arg));
-  LOG(INFO) << "Delete dir: " << args->path_ << " start";
-  pstd::DeleteDir(args->path_);
-  LOG(INFO) << "Delete dir: " << args->path_ << " done";
-  args->call_back_();
-}
-
 
 PikaServer::PikaServer()
     : exit_(false),
@@ -810,10 +795,6 @@ void PikaServer::PurgeDir(const std::string& path) {
   PurgeDirTaskSchedule(&DoPurgeDir, static_cast<void*>(dir_path));
 }
 
-void PikaServer::PurgeDirWithCallBack(const std::string& path, const std::function<void()>& call_back) {
-  auto args = new PurgeDirArgsWithCallBackArgs(path, call_back);
-  PurgeDirTaskSchedule(&DoPurgeDirWithCallBack, static_cast<void*>(args));
-}
 
 void PikaServer::PurgeDirTaskSchedule(void (*function)(void*), void* arg) {
   purge_thread_.set_thread_name("PurgeDirTask");

@@ -558,14 +558,14 @@ bool FlushallCmd::DoWithoutLock(std::shared_ptr<DB> db) {
   if (!db) {
     LOG(ERROR) << "Flushall, but DB not found";
     return false;
-  } else {
-    bool success = db->FlushDBWithoutLock();
-    if (!success) {
-      //if the db is not flushed, return before clear the cache
-      return success;
-    }
-    DoUpdateCache(db);
   }
+  bool success = db->FlushDBWithoutLock();
+  if (!success) {
+    // if the db is not flushed, return before clear the cache
+    return success;
+  }
+  DoUpdateCache(db);
+
   return true;
 }
 void FlushallCmd::DoBinlog() {

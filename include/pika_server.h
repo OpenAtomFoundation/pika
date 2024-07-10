@@ -202,7 +202,6 @@ class PikaServer : public pstd::noncopyable {
    * Flushall & Flushdb used
    */
   void PurgeDir(const std::string& path);
-  void PurgeDirWithCallBack(const std::string& path, const std::function<void()>& call_back);
   void PurgeDirTaskSchedule(void (*function)(void*), void* arg);
 
   /*
