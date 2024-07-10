@@ -6,7 +6,6 @@
 #include "include/pika_kv.h"
 #include <memory>
 
-#include "glog/logging.h"
 #include "include/pika_command.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_cache.h"
