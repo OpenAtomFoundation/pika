@@ -208,7 +208,6 @@ bool DB::FlushDBWithoutLock() {
   delete_suffix.append(std::to_string(NowMicros()));
   delete_suffix.append("/");
   dbpath.append(delete_suffix);
-  LOG(INFO) << "remaned:" << dbpath;
   auto rename_success = pstd::RenameFile(db_path_, dbpath);
   storage_ = std::make_shared<storage::Storage>(g_pika_conf->db_instance_num(),
       g_pika_conf->default_slot_num(), g_pika_conf->classic_mode());
