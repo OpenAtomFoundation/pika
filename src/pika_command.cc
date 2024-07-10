@@ -326,7 +326,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameStrlen, std::move(strlenptr)));
   ////ExistsCmd
   std::unique_ptr<Cmd> existsptr =
-      std::make_unique<ExistsCmd>(kCmdNameExists, -2, kCmdFlagsRead | kCmdFlagsOperateKey | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
+      std::make_unique<ExistsCmd>(kCmdNameExists, -2, kCmdFlagsRead | kCmdFlagsOperateKey | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameExists, std::move(existsptr)));
   ////ExpireCmd
   std::unique_ptr<Cmd> expireptr = std::make_unique<ExpireCmd>(
