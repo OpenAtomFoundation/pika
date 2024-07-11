@@ -475,8 +475,8 @@ class PKPatternMatchDelCmd : public Cmd {
 
  private:
   std::vector<std::string> remove_keys_;
-  storage::DataType type_ = storage::DataType::kAll;
   std::string pattern_;
+  int64_t max_count_;
   void DoInitial() override;
 };
 

@@ -190,7 +190,7 @@ class Redis {
   Status Persist(const Slice& key);
   Status TTL(const Slice& key, int64_t* timestamp);
   Status PKPatternMatchDel(const std::string& pattern, int32_t* ret);
-  Status PKPatternMatchDelWithRemoveKeys(const std::string& pattern, int64_t* ret, std::vector<std::string>* remove_keys);
+  Status PKPatternMatchDelWithRemoveKeys(const std::string& pattern, int64_t* ret, std::vector<std::string>* remove_keys, const uint64_t& max_count);
 
   Status GetType(const Slice& key, enum DataType& type);
   Status IsExist(const Slice& key);

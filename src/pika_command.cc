@@ -130,7 +130,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePadding, std::move(paddingptr)));
 
   std::unique_ptr<Cmd> pkpatternmatchdelptr =
-      std::make_unique<PKPatternMatchDelCmd>(kCmdNamePKPatternMatchDel, 2, kCmdFlagsWrite | kCmdFlagsAdmin);
+      std::make_unique<PKPatternMatchDelCmd>(kCmdNamePKPatternMatchDel, -2, kCmdFlagsWrite | kCmdFlagsAdmin);
   cmd_table->insert(
       std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePKPatternMatchDel, std::move(pkpatternmatchdelptr)));
   std::unique_ptr<Cmd> dummyptr = std::make_unique<DummyCmd>(kCmdDummy, 0, kCmdFlagsWrite);
