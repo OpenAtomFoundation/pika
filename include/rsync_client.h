@@ -62,6 +62,9 @@ class RsyncClient : public net::Thread {
   bool IsRunning() {
     return state_.load() == RUNNING;
   }
+  bool IsExitedFromRunning() {
+    return state_.load() == STOP && all_worker_exited_.load();
+  }
   bool IsStop() {
     return state_.load() == STOP;
   }
@@ -92,6 +95,8 @@ private:
   std::atomic<int> finished_work_cnt_ = 0;
 
   std::atomic<State> state_;
+  std::atomic<bool> error_stopped_{false};
+  std::atomic<bool> all_worker_exited_{true};
   int max_retries_ = 10;
   std::unique_ptr<WaitObjectManager> wo_mgr_;
   std::condition_variable cond_;
