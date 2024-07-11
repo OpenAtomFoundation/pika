@@ -165,6 +165,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   g_pika_rm->SendBinlogSyncAckRequest(db_name, ack_start, ack_end);
 }
 
+//这里是经过解析之后写binlog，依旧处于binlogWorker中
 int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::RedisCmdArgsType& argv) {
   std::string opt = argv[0];
   auto worker = static_cast<PikaReplBgWorker*>(parser->data);
@@ -204,6 +205,7 @@ int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::Red
   return 0;
 }
 
+//这个是真正的writeDB写入，由writeDBWorker运行
 void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   std::unique_ptr<ReplClientWriteDBTaskArg> task_arg(static_cast<ReplClientWriteDBTaskArg*>(arg));
   const std::shared_ptr<Cmd> c_ptr = task_arg->cmd_ptr;

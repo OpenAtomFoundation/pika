@@ -346,6 +346,14 @@ Status ConsensusCoordinator::ProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_pt
     return Status::OK();
   }
 
+  // 或许可以在这里把逻辑做完！
+  // 每条指令都加shared_mutex，如果是flushdb就加写锁
+  // 非flushdb指令在这里加读锁，然后在提交完WriteDB任务以后释放读锁
+  // 如果是flushdb: 1 抢到写锁 2 检查是否所有writeDB worker都内部消费完毕，否则直接sleep 1s
+  // 有一个case需要考虑：假设单DB，如果某个worker正好在执行之前writeDB队列中的最后一个任务 Z，这个时候当前flushdb线程醒来了，直接去执行，并且因为
+  // 线程调度关系先拿到了锁，最后还是可能flushdb会先于那最后一个任务执行，造成主从不一致（在主上是先执行完了Z才执行flushdb）
+  // 解决办法：不止要去检查writeDBWorker的队列是否为空，还要检查他们是否处于idle状态，必须全部队列为空，且全部处于IDLE状态，才能执行flusdb
+
   Status s = InternalAppendLog(cmd_ptr);
 
   InternalApplyFollower(MemLog::LogItem(LogOffset(), cmd_ptr, nullptr, nullptr));
