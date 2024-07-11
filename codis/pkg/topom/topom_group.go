@@ -391,8 +391,8 @@ func (s *Topom) tryFixReplicationRelationship(group *models.Group, groupServer *
 			return nil
 		}
 
-		// current server is slave, execute the command `slaveof [new master ip] [new master port]`
-		if err = updateMasterToNewOne(groupServer.Addr, curMasterAddr, s.config.ProductAuth); err != nil {
+		// current server is slave, execute the command `slaveof [new master ip] [new master port] force`
+		if err = updateMasterToNewOneForcefully(groupServer.Addr, curMasterAddr, s.config.ProductAuth); err != nil {
 			return err
 		}
 	}
