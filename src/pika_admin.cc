@@ -1058,6 +1058,7 @@ void InfoCmd::InfoReplication(std::string& info) {
   std::stringstream tmp_stream;
   std::stringstream out_of_sync;
   std::stringstream repl_connect_status;
+  int32_t syncing_full_count = 0;
   bool all_db_sync = true;
   std::shared_lock db_rwl(g_pika_server->dbs_rw_);
   for (const auto& db_item : g_pika_server->GetDB()) {
@@ -1077,6 +1078,7 @@ void InfoCmd::InfoReplication(std::string& info) {
       } else if (slave_db->State() == ReplState::kWaitDBSync) {
         out_of_sync << "WaitDBSync)";
         repl_connect_status << "syncing_full";
+        ++syncing_full_count;
       } else if (slave_db->State() == ReplState::kError) {
         out_of_sync << "Error)";
         repl_connect_status << "error";
@@ -1149,6 +1151,13 @@ void InfoCmd::InfoReplication(std::string& info) {
     case PIKA_ROLE_MASTER:
       tmp_stream << "connected_slaves:" << g_pika_server->GetSlaveListString(slaves_list_str) << "\r\n"
                  << slaves_list_str;
+  }
+
+  //if current instance is syncing full or has full sync corrupted, it's not qualified to be a new master
+  if (syncing_full_count == 0 && g_pika_conf->GetUnfinishedFullSyncCount() == 0) {
+    tmp_stream << "is_eligible_for_master_election:true" << "\r\n";
+  } else {
+    tmp_stream << "is_eligible_for_master_election:false" << "\r\n";
   }
 
   Status s;
@@ -3321,6 +3330,7 @@ void ClearReplicationIDCmd::DoInitial() {
 
 void ClearReplicationIDCmd::Do() {
   g_pika_conf->SetReplicationID("");
+  g_pika_conf->SetInternalUsedUnFinishedFullSync("");
   g_pika_conf->ConfigRewriteReplicationID();
   res_.SetRes(CmdRes::kOk, "ReplicationID is cleared");
 }
