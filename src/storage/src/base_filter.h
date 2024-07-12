@@ -13,6 +13,7 @@
 #include "rocksdb/compaction_filter.h"
 #include "src/base_data_key_format.h"
 #include "src/base_meta_value_format.h"
+#include "src/pika_stream_meta_value.h"
 #include "src/debug.h"
 
 namespace storage {
@@ -135,6 +136,80 @@ class BaseDataFilterFactory : public rocksdb::CompactionFilterFactory {
     return std::unique_ptr<rocksdb::CompactionFilter>(new BaseDataFilter(*db_ptr_, cf_handles_ptr_));
   }
   const char* Name() const override { return "BaseDataFilterFactory"; }
+
+ private:
+  rocksdb::DB** db_ptr_ = nullptr;
+  std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr_ = nullptr;
+};
+
+class StreamsDataFilter : public rocksdb::CompactionFilter {
+ public:
+  StreamsDataFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr)
+      : db_(db),
+        cf_handles_ptr_(cf_handles_ptr)
+        {}
+
+  bool Filter(int level, const Slice& key, const rocksdb::Slice& value, std::string* new_value,
+              bool* value_changed) const override {
+    ParsedStreamDataKey parsed_stream_data_key(key);
+    TRACE("==========================START==========================");
+    TRACE("[DataFilter], key: %s, id = %s, version = %d", parsed_base_data_key.key().ToString().c_str(),
+          parsed_base_data_key.data().ToString().c_str(), parsed_base_data_key.version());
+
+    if (parsed_stream_data_key.key().ToString() != cur_key_) {
+      cur_key_ = parsed_stream_data_key.key().ToString();
+      std::string meta_value;
+      // destroyed when close the database, Reserve Current key value
+      if (cf_handles_ptr_->empty()) {
+        return false;
+      }
+      Status s = db_->Get(default_read_options_, (*cf_handles_ptr_)[0], cur_key_, &meta_value);
+      if (s.ok()) {
+        meta_not_found_ = false;
+        ParsedStreamMetaValue parsed_base_meta_value(meta_value);
+        cur_meta_version_ = parsed_base_meta_value.version();
+      } else if (s.IsNotFound()) {
+        meta_not_found_ = true;
+      } else {
+        cur_key_ = "";
+        TRACE("Reserve[Get meta_key faild]");
+        return false;
+      }
+    }
+
+    if (meta_not_found_) {
+      TRACE("Drop[Meta key not exist]");
+      return true;
+    }
+
+    if (cur_meta_version_ > parsed_stream_data_key.version()) {
+      TRACE("Drop[data_key_version < cur_meta_version]");
+      return true;
+    }
+    TRACE("Reserve[data_key_version == cur_meta_version]");
+    return false;
+  }
+
+  const char* Name() const override { return "StreamsDataFilter"; }
+
+ private:
+  rocksdb::DB* db_ = nullptr;
+  std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr_ = nullptr;
+  rocksdb::ReadOptions default_read_options_;
+  mutable std::string cur_key_;
+  mutable bool meta_not_found_ = false;
+  mutable int32_t cur_meta_version_ = 0;
+};
+
+class StreamsDataFilterFactory : public rocksdb::CompactionFilterFactory {
+ public:
+  StreamsDataFilterFactory(rocksdb::DB** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr)
+      : db_ptr_(db_ptr), cf_handles_ptr_(handles_ptr) {}
+  std::unique_ptr<rocksdb::CompactionFilter> CreateCompactionFilter(
+      const rocksdb::CompactionFilter::Context& context) override {
+    return std::unique_ptr<rocksdb::CompactionFilter>(new StreamsDataFilter(*db_ptr_, cf_handles_ptr_));
+  }
+  const char* Name() const override { return "StreamsDataFilterFactory"; }
 
  private:
   rocksdb::DB** db_ptr_ = nullptr;
