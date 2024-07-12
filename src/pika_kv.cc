@@ -1153,6 +1153,7 @@ void ExistsCmd::DoInitial() {
   keys_ = argv_;
   keys_.erase(keys_.begin());
   cache_miss_keys_.clear();
+  cache_hit_keys_ = 0;
 }
 
 void ExistsCmd::Do() {
@@ -1161,7 +1162,7 @@ void ExistsCmd::Do() {
   }
   int64_t res = db_->storage()->Exists(cache_miss_keys_);
   if (res != -1) {
-    res_.AppendInteger(res + static_cast<int64_t>(cache_hit_values_.size()));
+    res_.AppendInteger(res + cache_hit_keys_);
   } else {
     res_.SetRes(CmdRes::kErrOther, "exists internal error");
   }
@@ -1180,16 +1181,15 @@ void ExistsCmd::Merge() { res_.AppendInteger(split_res_); }
 
 void ExistsCmd::ReadCache() {
   for ( auto key : keys_) {
-    std::string value;
     auto exist = db_->cache()->Exists(key);
     if (exist) {
-      cache_hit_values_[key] = value;
+      cache_hit_keys_++;
     } else {
       cache_miss_keys_.push_back(key);
     }
   }
   if (cache_miss_keys_.empty()) {
-    res_.AppendInteger(static_cast<int64_t>(cache_hit_values_.size()));
+    res_.AppendInteger(cache_hit_keys_);
   } else {
     res_.SetRes(CmdRes::kCacheMiss);
   }

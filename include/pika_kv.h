@@ -553,8 +553,8 @@ class ExistsCmd : public Cmd {
  private:
   std::vector<std::string> keys_;
   std::vector<std::string> cache_miss_keys_;
-  std::unordered_map<std::string, std::string> cache_hit_values_;
   int64_t split_res_ = 0;
+  int64_t cache_hit_keys_ = 0;
   void DoInitial() override;
 };
 
