@@ -194,6 +194,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   (*cmdstat_map)[opt].cmd_time_consuming.fetch_add(time_stat_->total_time());
 
   if (c_ptr->res().ok() && c_ptr->is_write() && name() != kCmdNameExec) {
+    LOG(INFO) << c_ptr->name();
     if (c_ptr->name() == kCmdNameFlushdb) {
       auto flushdb = std::dynamic_pointer_cast<FlushdbCmd>(c_ptr);
       SetTxnFailedFromDBs(flushdb->GetFlushDBname());
@@ -386,7 +387,7 @@ void PikaClientConn::SetTxnFailedFromKeys(const std::vector<std::string>& db_key
     auto involved_conns = std::vector<std::shared_ptr<NetConn>>{};
     involved_conns = dispatcher->GetInvolvedTxn(db_keys);
     for (auto& conn : involved_conns) {
-      if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr && c.get() != this) {
+      if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr) {
         c->SetTxnWatchFailState(true);
       }
     }
@@ -398,7 +399,8 @@ void PikaClientConn::SetAllTxnFailed() {
   if (dispatcher != nullptr) {
     auto involved_conns = dispatcher->GetAllTxns();
     for (auto& conn : involved_conns) {
-      if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr && c.get() != this) {
+      if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr) {
+        LOG(INFO) << "SetAllTxnFailed";
         c->SetTxnWatchFailState(true);
       }
     }
@@ -410,7 +412,8 @@ void PikaClientConn::SetTxnFailedFromDBs(std::string db_name) {
   if (dispatcher != nullptr) {
     auto involved_conns = dispatcher->GetDBTxns(db_name);
     for (auto& conn : involved_conns) {
-      if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr && c.get() != this) {
+      if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr) {
+        LOG(INFO) << "SetTxnFailedFromDBs";
         c->SetTxnWatchFailState(true);
       }
     }
