@@ -483,6 +483,10 @@ bool DB::TryUpdateMasterOffset() {
   }
   master_db->Logger()->SetProducerStatus(filenum, offset);
   slave_db->SetReplState(ReplState::kTryConnect);
+
+  //now full sync is finished, remove unfinished full sync count
+  g_pika_conf->RemoveInternalUsedUnfinishedFullSync(slave_db->DBName());
+
   return true;
 }
 
