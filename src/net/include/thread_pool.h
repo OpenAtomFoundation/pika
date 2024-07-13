@@ -113,7 +113,7 @@ class ThreadPool : public pstd::noncopyable {
 
   uint16_t task_idx_;
 
-  const uint8_t nworkers_per_link_ = 2;  // numer of workers per link
+  const uint8_t nworkers_per_link_ = 1;  // numer of workers per link
   const uint8_t nlinks_;                 // number of links (upper around)
   std::vector<std::atomic<Node*>> newest_node_;
   std::atomic<int> node_cnt_;  // for task

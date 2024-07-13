@@ -52,7 +52,7 @@ ThreadPool::ThreadPool(size_t worker_num, size_t max_queue_size, std::string thr
       node_cnt_(0),
       time_newest_node_(nlinks_),
       time_node_cnt_(0),
-      queue_slow_size_(std::min(worker_num * 10, max_queue_size)),
+      queue_slow_size_(std::max(10UL, std::min(worker_num * max_queue_size / 100, max_queue_size))),
       max_queue_size_(max_queue_size),
       max_yield_usec_(100),
       slow_yield_usec_(3),
