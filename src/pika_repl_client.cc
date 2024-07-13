@@ -28,10 +28,16 @@ PikaReplClient::PikaReplClient(int cron_interval, int keepalive_timeout)  {
   client_thread_ = std::make_unique<PikaReplClientThread>(cron_interval, keepalive_timeout);
   client_thread_->set_thread_name("PikaReplClient");
   for (int i = 0; i < g_pika_conf->sync_binlog_thread_num(); i++) {
-      write_binlog_workers_.emplace_back(std::make_unique<PikaReplBgWorker>(PIKA_SYNC_BUFFER_SIZE));
+      auto new_binlog_worker = std::make_unique<PikaReplBgWorker>(PIKA_SYNC_BUFFER_SIZE);
+      std::string binlog_worker_name = "ReplBinlogWorker" + std::to_string(i);
+      new_binlog_worker->SetThreadName(binlog_worker_name);
+      write_binlog_workers_.emplace_back(std::move(new_binlog_worker));
   }
   for (int i = 0; i < g_pika_conf->sync_thread_num(); ++i) {
-    write_db_workers_.emplace_back(std::make_unique<PikaReplBgWorker>(PIKA_SYNC_BUFFER_SIZE));
+      auto new_db_worker = std::make_unique<PikaReplBgWorker>(PIKA_SYNC_BUFFER_SIZE);
+      std::string db_worker_name = "ReplWriteDBWorker" + std::to_string(i);
+      new_db_worker->SetThreadName(db_worker_name);
+      write_db_workers_.emplace_back(std::move(new_db_worker));
   }
 }
 

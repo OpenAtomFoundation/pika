@@ -14,19 +14,21 @@
 
 namespace net {
 
-void* ThreadPool::Worker::WorkerMain(void* arg) {
-  auto tp = static_cast<ThreadPool*>(arg);
-  tp->runInThread();
+void* ThreadPool::Worker::WorkerMain(void* p) {
+  auto arg = static_cast<Arg*>(p);
+  auto tp = static_cast<ThreadPool*>(arg->arg);
+  tp->runInThread(arg->idx);
   return nullptr;
 }
 
 int ThreadPool::Worker::start() {
   if (!start_.load()) {
-    if (pthread_create(&thread_id_, nullptr, &WorkerMain, thread_pool_) != 0) {
+    if (pthread_create(&thread_id_, nullptr, &WorkerMain, &arg_) != 0) {
       return -1;
     } else {
       start_.store(true);
-      SetThreadName(thread_id_, thread_pool_->thread_pool_name() + "Worker");
+      std::string thread_id_str = std::to_string(reinterpret_cast<unsigned long>(thread_id_));
+      SetThreadName(thread_id_, thread_pool_->thread_pool_name() + "_Worker_" + thread_id_str);
     }
   }
   return 0;
@@ -44,11 +46,13 @@ int ThreadPool::Worker::stop() {
 }
 
 ThreadPool::ThreadPool(size_t worker_num, size_t max_queue_size, std::string thread_pool_name)
-    : newest_node_(nullptr),
+    : nlinks_((worker_num + nworkers_per_link_ - 1) / nworkers_per_link_),
+      // : nlinks_(worker_num),
+      newest_node_(nlinks_),
       node_cnt_(0),
-      time_newest_node_(nullptr),
+      time_newest_node_(nlinks_),
       time_node_cnt_(0),
-      queue_slow_size_(std::min(worker_num * 10, max_queue_size)),
+      queue_slow_size_(std::max(10UL, std::min(worker_num * max_queue_size / 100, max_queue_size))),
       max_queue_size_(max_queue_size),
       max_yield_usec_(100),
       slow_yield_usec_(3),
@@ -56,15 +60,22 @@ ThreadPool::ThreadPool(size_t worker_num, size_t max_queue_size, std::string thr
       worker_num_(worker_num),
       thread_pool_name_(std::move(thread_pool_name)),
       running_(false),
-      should_stop_(false) {}
+      should_stop_(false),
+      mu_(nlinks_),
+      rsignal_(nlinks_) {
+  for (size_t i = 0; i < nlinks_; ++i) {
+    newest_node_[i] = nullptr;
+    time_newest_node_[i] = nullptr;
+  }
+}
 
 ThreadPool::~ThreadPool() { stop_thread_pool(); }
 
 int ThreadPool::start_thread_pool() {
   if (!running_.load()) {
     should_stop_.store(false);
-    for (size_t i = 0; i < worker_num_; ++i) {
-      workers_.push_back(new Worker(this));
+    for (size_t i = 0; i < nlinks_; ++i) {
+      workers_.push_back(new Worker(this, i));
       int res = workers_[i]->start();
       if (res != 0) {
         return kCreateThreadError;
@@ -79,7 +90,9 @@ int ThreadPool::stop_thread_pool() {
   int res = 0;
   if (running_.load()) {
     should_stop_.store(true);
-    rsignal_.notify_all();
+    for (auto& r : rsignal_) {
+      r.notify_all();
+    }
     for (const auto worker : workers_) {
       res = worker->stop();
       if (res != 0) {
@@ -107,12 +120,13 @@ void ThreadPool::Schedule(TaskFunc func, void* arg) {
   if (node_cnt_.load(std::memory_order_relaxed) >= queue_slow_size_) {
     std::this_thread::yield();
   }
-    // std::unique_lock lock(mu_);
+
   if (LIKELY(!should_stop())) {
     auto node = new Node(func, arg);
-    LinkOne(node, &newest_node_);
+    auto idx = ++task_idx_;
+    LinkOne(node, &newest_node_[idx % nlinks_]);
     node_cnt_++;
-    rsignal_.notify_one();
+    rsignal_[idx % nlinks_].notify_one();
   }
 }
 
@@ -124,12 +138,12 @@ void ThreadPool::DelaySchedule(uint64_t timeout, TaskFunc func, void* arg) {
   uint64_t unow = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
   uint64_t exec_time = unow + timeout * 1000;
 
-    // std::unique_lock lock(mu_);
   if (LIKELY(!should_stop())) {
+    auto idx = ++task_idx_;
     auto node = new Node(exec_time, func, arg);
-    LinkOne(node, &time_newest_node_);
+    LinkOne(node, &newest_node_[idx % nlinks_]);
     time_node_cnt_++;
-    rsignal_.notify_all();
+    rsignal_[idx % nlinks_].notify_all();
   }
 }
 
@@ -143,15 +157,21 @@ void ThreadPool::cur_time_queue_size(size_t* qsize) { *qsize = time_node_cnt_.lo
 
 std::string ThreadPool::thread_pool_name() { return thread_pool_name_; }
 
-void ThreadPool::runInThread() {
+void ThreadPool::runInThread(const int idx) {
   Node* tmp = nullptr;
   Node* last = nullptr;
   Node* time_last = nullptr;
+
+  auto& newest_node = newest_node_[idx % nlinks_];
+  auto& time_newest_node = time_newest_node_[idx % nlinks_];
+  auto& mu = mu_[idx % nlinks_];
+  auto& rsignal = rsignal_[idx % nlinks_];
+
   while (LIKELY(!should_stop())) {
-    std::unique_lock lock(mu_);
-    rsignal_.wait(lock, [this]() {
-      return newest_node_.load(std::memory_order_relaxed) != nullptr ||
-             UNLIKELY(time_newest_node_.load(std::memory_order_relaxed) != nullptr) || UNLIKELY(should_stop());
+    std::unique_lock lock(mu);
+    rsignal.wait(lock, [this, &newest_node, &time_newest_node]() {
+      return newest_node.load(std::memory_order_relaxed) != nullptr ||
+             UNLIKELY(time_newest_node.load(std::memory_order_relaxed) != nullptr) || UNLIKELY(should_stop());
     });
     lock.unlock();
 
@@ -160,26 +180,26 @@ void ThreadPool::runInThread() {
       break;
     }
 
-    last = newest_node_.exchange(nullptr);
-    time_last = time_newest_node_.exchange(nullptr);
+    last = newest_node.exchange(nullptr);
+    time_last = time_newest_node.exchange(nullptr);
     if (last == nullptr && LIKELY(time_last == nullptr)) {
       // 1. loop for short time
       for (uint32_t tries = 0; tries < 200; ++tries) {
-        if (newest_node_.load(std::memory_order_acquire) != nullptr) {
-          last = newest_node_.exchange(nullptr);
+        if (newest_node.load(std::memory_order_acquire) != nullptr) {
+          last = newest_node.exchange(nullptr);
           if (last != nullptr) {
             goto exec;
           }
         }
-        if (UNLIKELY(time_newest_node_.load(std::memory_order_acquire) != nullptr)) {
-          time_last = time_newest_node_.exchange(nullptr);
+        if (UNLIKELY(time_newest_node.load(std::memory_order_acquire) != nullptr)) {
+          time_last = time_newest_node.exchange(nullptr);
           if (time_last != nullptr) {
             goto exec;
           }
         }
         AsmVolatilePause();
       }
-      
+
       // 2. loop for a little short time again
       const size_t kMaxSlowYieldsWhileSpinning = 3;
       auto& yield_credit = adp_ctx.value;
@@ -198,16 +218,16 @@ void ThreadPool::runInThread() {
         while ((iter_begin - spin_begin) <= std::chrono::microseconds(max_yield_usec_)) {
           std::this_thread::yield();
 
-          if (newest_node_.load(std::memory_order_acquire) != nullptr) {
-            last = newest_node_.exchange(nullptr);
+          if (newest_node.load(std::memory_order_acquire) != nullptr) {
+            last = newest_node.exchange(nullptr);
             if (last != nullptr) {
               would_spin_again = true;
               // success
               break;
             }
           }
-          if (UNLIKELY(time_newest_node_.load(std::memory_order_acquire) != nullptr)) {
-            time_last = time_newest_node_.exchange(nullptr);
+          if (UNLIKELY(time_newest_node.load(std::memory_order_acquire) != nullptr)) {
+            time_last = time_newest_node.exchange(nullptr);
             if (time_last != nullptr) {
               would_spin_again = true;
               // success
@@ -243,7 +263,9 @@ void ThreadPool::runInThread() {
   exec:
     // do all normal tasks older than this task pointed last
     if (LIKELY(last != nullptr)) {
-      auto first = CreateMissingNewerLinks(last);
+      int cnt = 1;
+      auto first = CreateMissingNewerLinks(last, &cnt);
+      // node_cnt_ -= cnt;
       assert(!first->is_time_task);
       do {
         first->Exec();
@@ -256,7 +278,8 @@ void ThreadPool::runInThread() {
 
     // do all time tasks older than this task pointed time_last
     if (UNLIKELY(time_last != nullptr)) {
-      auto time_first = CreateMissingNewerLinks(time_last);
+      int cnt = 1;
+      auto time_first = CreateMissingNewerLinks(time_last, &cnt);
       do {
         // time task may block normal task
         auto now = std::chrono::system_clock::now();
@@ -268,8 +291,16 @@ void ThreadPool::runInThread() {
           time_first->Exec();
         } else {
           lock.lock();
-          rsignal_.wait_for(lock, std::chrono::microseconds(exec_time - unow));
+          // if task is coming now, do task immediately
+          auto res = rsignal.wait_for(lock, std::chrono::microseconds(exec_time - unow), [this, &newest_node]() {
+            return newest_node.load(std::memory_order_relaxed) != nullptr || UNLIKELY(should_stop());
+          });
           lock.unlock();
+          if (res) {
+            // re-push the timer tasks
+            ReDelaySchedule(time_first);
+            goto retry;
+          }
           time_first->Exec();
         }
         tmp = time_first;
@@ -282,14 +313,29 @@ void ThreadPool::runInThread() {
   }
 }
 
-ThreadPool::Node* ThreadPool::CreateMissingNewerLinks(Node* head) {
+void ThreadPool::ReDelaySchedule(Node* nodes) {
+  while (LIKELY(!should_stop()) && nodes != nullptr) {
+    auto idx = ++task_idx_;
+    auto nxt = nodes->Next();
+    nodes->link_newer = nullptr;
+    // auto node = new Node(exec_time, func, arg);
+    LinkOne(nodes, &newest_node_[idx % nlinks_]);
+    time_node_cnt_++;
+    rsignal_[idx % nlinks_].notify_all();
+    nodes = nxt;
+  }
+}
+
+ThreadPool::Node* ThreadPool::CreateMissingNewerLinks(Node* head, int* cnt) {
   assert(head != nullptr);
+  assert(cnt != nullptr && *cnt == 1);
   Node* next = nullptr;
   while (true) {
     next = head->link_older;
     if (next == nullptr) {
       return head;
     }
+    ++(*cnt);
     next->link_newer = head;
     head = next;
   }
