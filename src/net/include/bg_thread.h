@@ -26,7 +26,7 @@ struct TimerItem {
 
 class BGThread final : public Thread {
  public:
-  explicit BGThread(int full = 100000) :  full_(full) {}
+  explicit BGThread(int full = 100000) :  full_(full), is_working_(false) {}
 
   ~BGThread() override {
     // call virtual in destructor, BGThread must be final
@@ -50,7 +50,7 @@ class BGThread final : public Thread {
   void QueueSize(int* pri_size, int* qu_size);
   void QueueClear();
   void SwallowReadyTasks();
-
+  bool IsExecutingTask() { return is_working_.load(std::memory_order::memory_order_seq_cst); }
  private:
   struct BGItem {
     void (*function)(void*);
@@ -63,6 +63,7 @@ class BGThread final : public Thread {
 
   size_t full_;
   pstd::Mutex mu_;
+  std::atomic<bool> is_working_;
   pstd::CondVar rsignal_;
   pstd::CondVar wsignal_;
   void* ThreadMain() override;

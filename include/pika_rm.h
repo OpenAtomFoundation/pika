@@ -184,7 +184,7 @@ class PikaReplicaManager {
   void ScheduleWriteBinlogTask(const std::string& db_name,
                                const std::shared_ptr<InnerMessage::InnerResponse>& res,
                                const std::shared_ptr<net::PbConn>& conn, void* res_private_data);
-  void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset, const std::string& db_name);
+  void ScheduleWriteDBTask(std::shared_ptr<Cmd> cmd_ptr);
   void ScheduleReplClientBGTaskByDBName(net::TaskFunc , void* arg, const std::string &db_name);
   void ReplServerRemoveClientConn(int fd);
   void ReplServerUpdateClientConnMap(const std::string& ip_port, int fd);
@@ -205,6 +205,12 @@ class PikaReplicaManager {
     return sync_slave_dbs_;
   }
 
+  std::shared_mutex& GetApplyBinlogMtx() {
+    return apply_binlog_mtx_;
+  }
+
+  bool IsAllDBWrokerIdle() { return pika_repl_client_->IsAllDBWorkerIdle(); }
+
  private:
   void InitDB();
   pstd::Status SelectLocalIp(const std::string& remote_ip, int remote_port, std::string* local_ip);
@@ -212,6 +218,12 @@ class PikaReplicaManager {
   std::shared_mutex dbs_rw_;
   std::unordered_map<DBInfo, std::shared_ptr<SyncMasterDB>, hash_db_info> sync_master_dbs_;
   std::unordered_map<DBInfo, std::shared_ptr<SyncSlaveDB>, hash_db_info> sync_slave_dbs_;
+
+  //for non-flushdb binlog, need hold shared_lock of this mtx to writeBinlog and writeDB
+  //for flushdb, an exclusive lock must be hold to writeBinlog and WriteDB
+  //it's use to ensure that when a flushdb-binlog is applying, all other binlog's applying must be blocked
+  //in other word, flushdb's exec is exvlusive
+  std::shared_mutex apply_binlog_mtx_;
 
   pstd::Mutex write_queue_mu_;
 

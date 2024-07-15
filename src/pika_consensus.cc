@@ -353,10 +353,33 @@ Status ConsensusCoordinator::ProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_pt
   // 有一个case需要考虑：假设单DB，如果某个worker正好在执行之前writeDB队列中的最后一个任务 Z，这个时候当前flushdb线程醒来了，直接去执行，并且因为
   // 线程调度关系先拿到了锁，最后还是可能flushdb会先于那最后一个任务执行，造成主从不一致（在主上是先执行完了Z才执行flushdb）
   // 解决办法：不止要去检查writeDBWorker的队列是否为空，还要检查他们是否处于idle状态，必须全部队列为空，且全部处于IDLE状态，才能执行flusdb
-
-  Status s = InternalAppendLog(cmd_ptr);
-
-  InternalApplyFollower(MemLog::LogItem(LogOffset(), cmd_ptr, nullptr, nullptr));
+  std::shared_mutex& apply_binlog_lock = g_pika_rm->GetApplyBinlogMtx();
+  auto opt = cmd_ptr->argv()[0];
+  if (pstd::StringToLower(opt) != kCmdNameFlushdb) {
+    std::shared_lock shared_lk(apply_binlog_lock);
+    // apply binlog in sync way
+    Status s = InternalAppendLog(cmd_ptr);
+    // apply db in async way
+    InternalApplyFollower(cmd_ptr);
+  } else {
+    // this is a flushdb-binlog, both apply binlog and apply db are in sync way
+    // all apply binlog/apply DB task will not be submit to BgWorker(blocked) until flushdb has done
+    // and all WriteDB task before flushdb will be finished before flushdb start to exec
+    std::lock_guard exclusive_lk(apply_binlog_lock);
+    int32_t timeout_sec = 1;
+    //ensure all writeDB task has finished before we exec flushdb
+    while(!g_pika_rm->IsAllDBWrokerIdle()) {
+      // sleep for a while and check again, exit from loop until all WriteDBWork has no more task. in other words: all
+      // writeDB task before flushdb is applied to DB, ensure no on-shooting task at all
+      timeout_sec = timeout_sec > 10 ? 1 : timeout_sec;
+      std::this_thread::sleep_for(std::chrono::seconds(timeout_sec));
+      timeout_sec += 1;
+    }
+    // apply flushdb-binlog in sync way
+    Status s = InternalAppendLog(cmd_ptr);
+    // applyDB in sync way
+    PikaReplBgWorker::WriteDBInSyncWay(cmd_ptr);
+  }
   return Status::OK();
 }
 
@@ -414,8 +437,8 @@ uint32_t ConsensusCoordinator::term() {
   return term_;
 }
 
-void ConsensusCoordinator::InternalApplyFollower(const MemLog::LogItem& log) {
-  g_pika_rm->ScheduleWriteDBTask(log.cmd_ptr, log.offset, db_name_);
+void ConsensusCoordinator::InternalApplyFollower(std::shared_ptr<Cmd> cmd_ptr) {
+  g_pika_rm->ScheduleWriteDBTask(std::move(cmd_ptr));
 }
 
 int ConsensusCoordinator::InitCmd(net::RedisParser* parser, const net::RedisCmdArgsType& argv) {
