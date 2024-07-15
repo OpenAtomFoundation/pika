@@ -562,7 +562,7 @@ bool FlushallCmd::DoWithoutLock(std::shared_ptr<DB> db) {
   bool success = db->FlushDBWithoutLock();
   if (!success) {
     // if the db is not flushed, return before clear the cache
-    return success;
+    return false;
   }
   DoUpdateCache(db);
 
