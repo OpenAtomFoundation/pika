@@ -1,0 +1,15 @@
+# todo(leehao): The parameter configuration file for canal should be available for reference
+# https://github.com/alibaba/canal/wiki/Canal-Kafka-RocketMQ-QuickStart
+
+# if there are more than one, separated by commas, like this
+# 127.0.0.1:9092, 127.0.0.1:9091
+servers : 127.0.0.1:9092
+# will create this topic, if this topic not exist
+# and all servers will use same name topic
+topic : test
+# retry times while send message failed
+retries : 0
+
+
+
+
