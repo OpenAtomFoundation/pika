@@ -642,13 +642,6 @@ bool FlushdbCmd::DoWithoutLock() {
     res_.SetRes(CmdRes::kErrOther, db_->GetDBName() + " Flushdb, but DB not found");
     return false;
   }
-  if (db_name_ != "all") {
-    //Floyd does not support flushdb by type
-    LOG(ERROR) << "cannot flushdb by type in floyd";
-    res_.SetRes(CmdRes::kInvalidParameter, "cannot flushdb by type in floyd");
-    return false;
-  }
-
   return db_->FlushDBWithoutLock();
 }
 
