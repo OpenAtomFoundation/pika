@@ -44,8 +44,9 @@ struct ReplClientWriteBinlogTaskArg {
 
 struct ReplClientWriteDBTaskArg {
   const std::shared_ptr<Cmd> cmd_ptr;
-  explicit ReplClientWriteDBTaskArg(std::shared_ptr<Cmd> _cmd_ptr)
-      : cmd_ptr(std::move(_cmd_ptr)) {}
+  std::function<void()> call_back_fun;
+  explicit ReplClientWriteDBTaskArg(std::shared_ptr<Cmd> _cmd_ptr, std::function<void()> call_back)
+      : cmd_ptr(std::move(_cmd_ptr)), call_back_fun(std::move(call_back)) {}
   ~ReplClientWriteDBTaskArg() = default;
 };
 
@@ -64,7 +65,7 @@ class PikaReplClient {
   void ScheduleByDBName(net::TaskFunc func, void* arg, const std::string& db_name);
   void ScheduleWriteBinlogTask(const std::string& db_name, const std::shared_ptr<InnerMessage::InnerResponse>& res,
                                const std::shared_ptr<net::PbConn>& conn, void* res_private_data);
-  void ScheduleWriteDBTask(std::shared_ptr<Cmd> cmd_ptr);
+  void ScheduleWriteDBTask(std::shared_ptr<Cmd> cmd_ptr, std::function<void()>& call_back_fun);
 
   pstd::Status SendMetaSync();
   pstd::Status SendDBSync(const std::string& ip, uint32_t port, const std::string& db_name,
@@ -76,14 +77,6 @@ class PikaReplClient {
                                  const std::string& local_ip, bool is_first_send);
   pstd::Status SendRemoveSlaveNode(const std::string& ip, uint32_t port, const std::string& db_name, const std::string& local_ip);
 
-  bool IsAllDBWorkerIdle() {
-    for (auto& bg_t : write_db_workers_) {
-      if (!bg_t->IsAllTaskConsumed()) {
-        return false;
-      }
-    }
-    return true;
-  }
  private:
   size_t GetBinlogWorkerIndexByDBName(const std::string &db_name);
   size_t GetHashIndexByKey(const std::string& key);
@@ -93,6 +86,9 @@ class PikaReplClient {
   int next_avail_ = 0;
   std::hash<std::string> str_hash;
   std::vector<std::unique_ptr<PikaReplBgWorker>> write_binlog_workers_;
+  //[NOTICE] the task queue of WriteDBWorker must never be deliberately cleared,
+  // because their queue size are related with  ConsensusCoordinator::unfinished_async_write_db_task_count_
+  // check PR # /disscussion #2807 to know more
   std::vector<std::unique_ptr<PikaReplBgWorker>> write_db_workers_;
 };
 

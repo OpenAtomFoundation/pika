@@ -102,6 +102,9 @@ class MemLog {
 
 class ConsensusCoordinator {
  public:
+  void PrintAsyncCount() {
+    LOG(INFO) << db_name_ << " asyncTask Count: " << unfinished_async_write_db_task_count_.load();
+  }
   ConsensusCoordinator(const std::string& db_name);
   ~ConsensusCoordinator();
   // since it is invoked in constructor all locks not hold
@@ -164,13 +167,23 @@ class ConsensusCoordinator {
     return tmp_stream.str();
   }
 
+  void IncrUnfinishedAsyncWriteDbTaskCount(int32_t step_size) {
+    unfinished_async_write_db_task_count_.fetch_add(step_size, std::memory_order::memory_order_seq_cst);
+//    LOG(INFO) << db_name_ << " Incr count, now value:" << unfinished_async_write_db_task_count_.load();
+  }
+
+  void DecrUnfinishedAsyncWriteDbTaskCount(int32_t step_size) {
+    unfinished_async_write_db_task_count_.fetch_sub(step_size, std::memory_order::memory_order_seq_cst);
+//    LOG(INFO) << db_name_ << " Decr count, now value:" << unfinished_async_write_db_task_count_.load();
+  }
+
  private:
   pstd::Status TruncateTo(const LogOffset& offset);
 
   pstd::Status InternalAppendLog(const std::shared_ptr<Cmd>& cmd_ptr);
   pstd::Status InternalAppendBinlog(const std::shared_ptr<Cmd>& cmd_ptr);
   void InternalApply(const MemLog::LogItem& log);
-  void InternalApplyFollower(std::shared_ptr<Cmd> cmd_ptr);
+  void InternalApplyFollower(std::shared_ptr<Cmd> cmd_ptr, std::function<void()>& call_back_fun);
 
   pstd::Status GetBinlogOffset(const BinlogOffset& start_offset, LogOffset* log_offset);
   pstd::Status GetBinlogOffset(const BinlogOffset& start_offset, const BinlogOffset& end_offset,
@@ -198,5 +211,11 @@ class ConsensusCoordinator {
   SyncProgress sync_pros_;
   std::shared_ptr<StableLog> stable_logger_;
   std::shared_ptr<MemLog> mem_logger_;
+
+  //this is used when consuming binlog, which indicates the nums of async writedb tasks that are
+  //queued or being executing by WriteDBWorkers. If a flushdb-binlog need to apply DB, it must wait
+  //util this count drop to zero. you can also check pika discussion #2807 to know more
+  //it is only used in slaveNode when comsuming binlog
+  std::atomic<int32_t> unfinished_async_write_db_task_count_{0};
 };
 #endif  // INCLUDE_PIKA_CONSENSUS_H_

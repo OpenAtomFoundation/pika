@@ -84,10 +84,8 @@ void* BGThread::ThreadMain() {
       auto [exec_time, function, arg] = timer_queue_.top();
       if (unow >= exec_time) {
         timer_queue_.pop();
-        is_working_.store(true, std::memory_order::memory_order_seq_cst);
         lock.unlock();
         (*function)(arg);
-        is_working_.store(false, std::memory_order::memory_order_seq_cst);
         continue;
       } else if (queue_.empty() && !should_stop()) {
         rsignal_.wait_for(lock, std::chrono::microseconds(exec_time - unow));
@@ -101,10 +99,8 @@ void* BGThread::ThreadMain() {
       auto [function, arg] = queue_.front();
       queue_.pop();
       wsignal_.notify_one();
-      is_working_.store(true, std::memory_order::memory_order_seq_cst);
       lock.unlock();
       (*function)(arg);
-      is_working_.store(false, std::memory_order::memory_order_seq_cst);
     }
   }
   // swalloc all the remain tasks in ready and timer queue

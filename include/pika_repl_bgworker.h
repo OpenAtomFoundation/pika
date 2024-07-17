@@ -25,21 +25,11 @@ class PikaReplBgWorker {
   int StartThread();
   int StopThread();
   void Schedule(net::TaskFunc func, void* arg);
-  void QueueClear();
   static void HandleBGWorkerWriteBinlog(void* arg);
   static void HandleBGWorkerWriteDB(void* arg);
   static void WriteDBInSyncWay(const std::shared_ptr<Cmd>& c_ptr);
   void SetThreadName(const std::string& thread_name) {
     bg_thread_.set_thread_name(thread_name);
-  }
-  bool IsAllTaskConsumed() {
-    int32_t qu_size = 0;
-    int32_t pri_size = 0;
-    bg_thread_.QueueSize(&pri_size, &qu_size);
-    if (qu_size == 0 && !bg_thread_.IsExecutingTask()) {
-      return true;
-    }
-    return false;
   }
   BinlogItem binlog_item_;
   net::RedisParser redis_parser_;

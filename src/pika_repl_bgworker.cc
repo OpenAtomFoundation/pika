@@ -32,8 +32,6 @@ int PikaReplBgWorker::StopThread() { return bg_thread_.StopThread(); }
 
 void PikaReplBgWorker::Schedule(net::TaskFunc func, void* arg) { bg_thread_.Schedule(func, arg); }
 
-void PikaReplBgWorker::QueueClear() { bg_thread_.QueueClear(); }
-
 void PikaReplBgWorker::ParseBinlogOffset(const InnerMessage::BinlogOffset& pb_offset, LogOffset* offset) {
   offset->b_offset.filenum = pb_offset.filenum();
   offset->b_offset.offset = pb_offset.offset();
@@ -130,6 +128,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
 
     // empty binlog treated as keepalive packet
     if (binlog_res.binlog().empty()) {
+      g_pika_rm->PrintAsyncCount();
       continue;
     }
     if (!PikaBinlogTransverter::BinlogItemWithoutContentDecode(TypeFirst, binlog_res.binlog(), &worker->binlog_item_)) {
@@ -205,11 +204,11 @@ int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::Red
   return 0;
 }
 
-//这个是真正的writeDB写入，由writeDBWorker运行
 void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   std::unique_ptr<ReplClientWriteDBTaskArg> task_arg(static_cast<ReplClientWriteDBTaskArg*>(arg));
   const std::shared_ptr<Cmd> c_ptr = task_arg->cmd_ptr;
   WriteDBInSyncWay(c_ptr);
+  task_arg->call_back_fun();
 }
 
 void PikaReplBgWorker::WriteDBInSyncWay(const std::shared_ptr<Cmd>& c_ptr) {

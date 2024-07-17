@@ -346,34 +346,24 @@ Status ConsensusCoordinator::ProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_pt
     return Status::OK();
   }
 
-  // 或许可以在这里把逻辑做完！
-  // 每条指令都加shared_mutex，如果是flushdb就加写锁
-  // 非flushdb指令在这里加读锁，然后在提交完WriteDB任务以后释放读锁
-  // 如果是flushdb: 1 抢到写锁 2 检查是否所有writeDB worker都内部消费完毕，否则直接sleep 1s
-  // 有一个case需要考虑：假设单DB，如果某个worker正好在执行之前writeDB队列中的最后一个任务 Z，这个时候当前flushdb线程醒来了，直接去执行，并且因为
-  // 线程调度关系先拿到了锁，最后还是可能flushdb会先于那最后一个任务执行，造成主从不一致（在主上是先执行完了Z才执行flushdb）
-  // 解决办法：不止要去检查writeDBWorker的队列是否为空，还要检查他们是否处于idle状态，必须全部队列为空，且全部处于IDLE状态，才能执行flusdb
-  std::shared_mutex& apply_binlog_lock = g_pika_rm->GetApplyBinlogMtx();
   auto opt = cmd_ptr->argv()[0];
   if (pstd::StringToLower(opt) != kCmdNameFlushdb) {
-    std::shared_lock shared_lk(apply_binlog_lock);
     // apply binlog in sync way
     Status s = InternalAppendLog(cmd_ptr);
     // apply db in async way
-    InternalApplyFollower(cmd_ptr);
+    IncrUnfinishedAsyncWriteDbTaskCount(1);
+    std::function<void()> call_back = [this]() { this->DecrUnfinishedAsyncWriteDbTaskCount(1); };
+    InternalApplyFollower(cmd_ptr, call_back);
   } else {
+    LOG(INFO) << "Writing flushdb binlog in sync way";
     // this is a flushdb-binlog, both apply binlog and apply db are in sync way
-    // all apply binlog/apply DB task will not be submit to BgWorker(blocked) until flushdb has done
-    // and all WriteDB task before flushdb will be finished before flushdb start to exec
-    std::lock_guard exclusive_lk(apply_binlog_lock);
-    int32_t timeout_sec = 1;
+    // and flushdb should wait until all async WriteDB task submitted before flushdb finished exec
     //ensure all writeDB task has finished before we exec flushdb
-    while(!g_pika_rm->IsAllDBWrokerIdle()) {
-      // sleep for a while and check again, exit from loop until all WriteDBWork has no more task. in other words: all
-      // writeDB task before flushdb is applied to DB, ensure no on-shooting task at all
-      timeout_sec = timeout_sec > 10 ? 1 : timeout_sec;
-      std::this_thread::sleep_for(std::chrono::seconds(timeout_sec));
-      timeout_sec += 1;
+    int32_t wait_ms = 250;
+    while (unfinished_async_write_db_task_count_.load(std::memory_order::memory_order_seq_cst) > 0) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(wait_ms));
+      wait_ms *= 2;
+      wait_ms = wait_ms < 3000 ? wait_ms : 3000;
     }
     // apply flushdb-binlog in sync way
     Status s = InternalAppendLog(cmd_ptr);
@@ -437,8 +427,8 @@ uint32_t ConsensusCoordinator::term() {
   return term_;
 }
 
-void ConsensusCoordinator::InternalApplyFollower(std::shared_ptr<Cmd> cmd_ptr) {
-  g_pika_rm->ScheduleWriteDBTask(std::move(cmd_ptr));
+void ConsensusCoordinator::InternalApplyFollower(std::shared_ptr<Cmd> cmd_ptr, std::function<void()>& call_back_fun) {
+  g_pika_rm->ScheduleWriteDBTask(std::move(cmd_ptr), call_back_fun);
 }
 
 int ConsensusCoordinator::InitCmd(net::RedisParser* parser, const net::RedisCmdArgsType& argv) {

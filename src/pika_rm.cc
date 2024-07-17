@@ -37,7 +37,8 @@ std::string SyncDB::DBName() {
 /* SyncMasterDB*/
 
 SyncMasterDB::SyncMasterDB(const std::string& db_name)
-    : SyncDB(db_name),  coordinator_(db_name) {}
+    : SyncDB(db_name),  coordinator_(db_name) {
+}
 
 int SyncMasterDB::GetNumberOfSlaveNode() { return coordinator_.SyncPros().SlaveSize(); }
 
@@ -683,8 +684,8 @@ void PikaReplicaManager::ScheduleWriteBinlogTask(const std::string& db,
   pika_repl_client_->ScheduleWriteBinlogTask(db, res, conn, res_private_data);
 }
 
-void PikaReplicaManager::ScheduleWriteDBTask(std::shared_ptr<Cmd> cmd_ptr) {
-  pika_repl_client_->ScheduleWriteDBTask(std::move(cmd_ptr));
+void PikaReplicaManager::ScheduleWriteDBTask(std::shared_ptr<Cmd> cmd_ptr, std::function<void()>& call_back_fun) {
+  pika_repl_client_->ScheduleWriteDBTask(std::move(cmd_ptr), call_back_fun);
 }
 
 void PikaReplicaManager::ReplServerRemoveClientConn(int fd) { pika_repl_server_->RemoveClientConn(fd); }
