@@ -128,7 +128,6 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
 
     // empty binlog treated as keepalive packet
     if (binlog_res.binlog().empty()) {
-      g_pika_rm->PrintAsyncCount();
       continue;
     }
     if (!PikaBinlogTransverter::BinlogItemWithoutContentDecode(TypeFirst, binlog_res.binlog(), &worker->binlog_item_)) {
