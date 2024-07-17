@@ -44,9 +44,6 @@ class SyncDB {
 
 class SyncMasterDB : public SyncDB {
  public:
-  void PrintAsyncCount() {
-    coordinator_.PrintAsyncCount();
-  }
   SyncMasterDB(const std::string& db_name);
   pstd::Status AddSlaveNode(const std::string& ip, int port, int session_id);
   pstd::Status RemoveSlaveNode(const std::string& ip, int port);
@@ -132,11 +129,6 @@ class SyncSlaveDB : public SyncDB {
 
 class PikaReplicaManager {
  public:
-  void PrintAsyncCount() {
-    for (auto& db: sync_master_dbs_) {
-      db.second->PrintAsyncCount();
-    }
-  }
   PikaReplicaManager();
   ~PikaReplicaManager() = default;
   friend Cmd;

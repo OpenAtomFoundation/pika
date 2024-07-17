@@ -355,10 +355,8 @@ Status ConsensusCoordinator::ProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_pt
     std::function<void()> call_back = [this]() { this->DecrUnfinishedAsyncWriteDbTaskCount(1); };
     InternalApplyFollower(cmd_ptr, call_back);
   } else {
-    LOG(INFO) << "Writing flushdb binlog in sync way";
     // this is a flushdb-binlog, both apply binlog and apply db are in sync way
-    // and flushdb should wait until all async WriteDB task submitted before flushdb finished exec
-    //ensure all writeDB task has finished before we exec flushdb
+    // ensure all writeDB task that submitted before has finished before we exec this flushdb
     int32_t wait_ms = 250;
     while (unfinished_async_write_db_task_count_.load(std::memory_order::memory_order_seq_cst) > 0) {
       std::this_thread::sleep_for(std::chrono::milliseconds(wait_ms));
