@@ -27,7 +27,7 @@ int Setnonblocking(int sockfd) {
   return flags;
 }
 
-uint32_t TimerTaskManager::AddTimerTask(const std::string& task_name, int interval_ms, bool repeat_exec,
+TimerTaskID TimerTaskManager::AddTimerTask(const std::string& task_name, int interval_ms, bool repeat_exec,
                                         const std::function<void()>& task) {
   TimedTask new_task = {last_task_id_++, task_name, interval_ms, repeat_exec, task};
   id_to_task_[new_task.task_id] = new_task;
@@ -84,7 +84,7 @@ int64_t TimerTaskManager::ExecTimerTask() {
   return gap_between_now_and_next_task;
 }
 
-bool TimerTaskManager::DelTimerTaskByTaskId(uint32_t task_id) {
+bool TimerTaskManager::DelTimerTaskByTaskId(TimerTaskID task_id) {
   // remove the task
   auto task_to_del = id_to_task_.find(task_id);
   if (task_to_del == id_to_task_.end()) {

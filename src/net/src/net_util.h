@@ -51,16 +51,16 @@ class TimerTaskManager {
  public:
   TimerTaskManager() = default;
   ~TimerTaskManager() = default;
-  uint32_t AddTimerTask(const std::string& task_name, int interval_ms, bool repeat_exec, const std::function<void()> &task);
+  TimerTaskID AddTimerTask(const std::string& task_name, int interval_ms, bool repeat_exec, const std::function<void()> &task);
   //return the time gap between now and next task-expired time, which can be used as the timeout value of epoll
   int64_t ExecTimerTask();
-  bool DelTimerTaskByTaskId(uint32_t task_id);
+  bool DelTimerTaskByTaskId(TimerTaskID task_id);
   int64_t NowInMs();
   bool Empty() const { return exec_queue_.empty(); }
  private:
   //items stored in std::set are ascending ordered, we regard it as an auto sorted queue
   std::set<ExecTsWithId> exec_queue_;
-  std::unordered_map<uint32_t, TimedTask> id_to_task_;
+  std::unordered_map<TimerTaskID, TimedTask> id_to_task_;
   TimerTaskID last_task_id_{0};
 };
 
@@ -80,11 +80,11 @@ class TimerTaskThread : public Thread {
   int StopThread() override;
   void set_thread_name(const std::string& name) override { Thread::set_thread_name(name); }
 
-  uint32_t AddTimerTask(const std::string& task_name, int interval_ms, bool repeat_exec, const std::function<void()> &task){
+  TimerTaskID AddTimerTask(const std::string& task_name, int interval_ms, bool repeat_exec, const std::function<void()> &task){
       return timer_task_manager_.AddTimerTask(task_name, interval_ms, repeat_exec, task);
   };
 
-  bool DelTimerTaskByTaskId(uint32_t task_id){
+  bool DelTimerTaskByTaskId(TimerTaskID task_id){
     return timer_task_manager_.DelTimerTaskByTaskId(task_id);
 };
 
