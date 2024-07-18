@@ -3149,7 +3149,7 @@ void PKPatternMatchDelCmd::Do() {
   int64_t count = 0;
   rocksdb::Status s = db_->storage()->PKPatternMatchDelWithRemoveKeys(pattern_, &count, &remove_keys_, max_count_);
 
-  if(s.ok()){
+  if(s.ok()) {
     res_.AppendInteger(count);
     s_ = rocksdb::Status::OK();
     std::vector<std::string>::const_iterator it;

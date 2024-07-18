@@ -1417,21 +1417,6 @@ Status Storage::PKPatternMatchDelWithRemoveKeys(const std::string& pattern, int6
   return s;
 }
 
-Status Storage::PKPatternMatchDel(const DataType& data_type, const std::string& pattern, int32_t* ret) {
-  Status s;
-  *ret = 0;
-  for (const auto& inst : insts_) {
-    int32_t tmp_ret = 0;
-    s = inst->PKPatternMatchDel(pattern, &tmp_ret);
-    if (!s.ok()) {
-      *ret += tmp_ret;
-      return s;
-    }
-    *ret += tmp_ret;
-  }
-  return s;
-}
-
 Status Storage::Scanx(const DataType& data_type, const std::string& start_key, const std::string& pattern,
                       int64_t count, std::vector<std::string>* keys, std::string* next_key) {
   Status s;
