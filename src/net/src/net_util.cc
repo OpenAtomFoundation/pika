@@ -48,12 +48,12 @@ int64_t TimerTaskManager::ExecTimerTask() {
   std::vector<ExecTsWithId> fired_tasks_;
   int64_t now_in_ms = NowInMs();
   // traverse in ascending order, and exec expired tasks
-  for (auto pair : exec_queue_) {
-    if (pair.exec_ts <= now_in_ms) {
-      auto it = id_to_task_.find(pair.id);
+  for (const auto& task : exec_queue_) {
+    if (task.exec_ts <= now_in_ms) {
+      auto it = id_to_task_.find(task.id);
       assert(it != id_to_task_.end());
       it->second.fun();
-      fired_tasks_.push_back({pair.exec_ts, pair.id});
+      fired_tasks_.push_back({task.exec_ts, task.id});
       now_in_ms = NowInMs();
     } else {
       break;
