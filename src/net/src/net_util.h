@@ -62,7 +62,7 @@ class TimerTaskManager {
   int64_t ExecTimerTask();
   bool DelTimerTaskByTaskId(uint32_t task_id);
   int64_t NowInMs();
-  bool Empty() const { return 0 == last_task_id_; }
+  bool Empty() const { return exec_queue_.empty(); }
  private:
   //items stored in std::set are ascending ordered, we regard it as an auto sorted queue
   std::set<ExecTsWithId> exec_queue_;
