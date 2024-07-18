@@ -659,7 +659,7 @@ void PikaServer::RemoveMaster() {
 
     if (!master_ip_.empty() && master_port_ != -1) {
       g_pika_rm->CloseReplClientConn(master_ip_, master_port_ + kPortShiftReplServer);
-      g_pika_rm->LostConnection(master_ip_, master_port_);
+      g_pika_rm->DeactivateSyncSlaveDB(master_ip_, master_port_);
       UpdateMetaSyncTimestampWithoutLock();
       LOG(INFO) << "Remove Master Success, ip_port: " << master_ip_ << ":" << master_port_;
     }
