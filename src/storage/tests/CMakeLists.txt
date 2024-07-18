@@ -16,6 +16,7 @@ foreach(blackwindow_test_source ${BLACKWINDOW_TEST_SOURCE})
   target_include_directories(${blackwindow_test_name}
     PUBLIC ${PROJECT_SOURCE_DIR}/include
     PUBLIC ${PROJECT_SOURCE_DIR}/..
+    PUBLIC ${PROJECT_SOURCE_DIR}/src
     ${ROCKSDB_INCLUDE_DIR}
     ${ROCKSDB_SOURCE_DIR}
   )

@@ -348,6 +348,7 @@ Status RedisStreams::Open(const StorageOptions& storage_options, const std::stri
   rocksdb::ColumnFamilyOptions meta_cf_ops(storage_options.options);
   rocksdb::ColumnFamilyOptions data_cf_ops(storage_options.options);
   // Notice: Stream's Meta dose not have timestamp and version, so it does not need to be filtered.
+  data_cf_ops.compaction_filter_factory = std::make_shared<StreamsDataFilterFactory>(&db_, &handles_);
 
   // use the bloom filter policy to reduce disk reads
   rocksdb::BlockBasedTableOptions table_ops(storage_options.table_options);
