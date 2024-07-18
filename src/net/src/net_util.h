@@ -47,12 +47,6 @@ struct ExecTsWithId {
   }
 };
 
-/*
- * For simplicity, current version of TimerTaskThread has no lock inside and all task should be registered before TimerTaskThread started,
- * but if you have the needs of dynamically add/remove timer task after TimerTaskThread started, you can simply add a mutex to protect
- * the timer_task_manager_ and also a pipe to wake up the maybe being endless-wait epoll(if all task consumed, epoll will sink into
- * endless wait) to implement the feature.
- */
 class TimerTaskManager {
  public:
   TimerTaskManager() = default;
