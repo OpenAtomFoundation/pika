@@ -77,8 +77,7 @@ int64_t TimerTaskManager::ExecTimerTask() {
     //to avoid wasting of cpu resources, epoll use 5000ms as timeout value when no task to exec
     return 5000;
   }
-  // gap_between_now_and_next_task will be used as epoll_wait's para 'timeout' and which is an int32_t,
-  // so here we explicitly cast it to int32_t instead of let it be implicitly truncated when passing it to epoll_wait.
+  
   int64_t gap_between_now_and_next_task = exec_queue_.begin()->exec_ts - NowInMs();
   gap_between_now_and_next_task = gap_between_now_and_next_task < 0 ? 0 : gap_between_now_and_next_task;
   return gap_between_now_and_next_task;
