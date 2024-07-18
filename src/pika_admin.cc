@@ -3138,7 +3138,7 @@ void PKPatternMatchDelCmd::DoInitial() {
   pattern_ = argv_[1];
   max_count_ = storage::BATCH_DELETE_LIMIT;
   if (argv_.size() > 2) {
-    if (pstd::string2int(argv_[2].data(), argv_[2].size(), &max_count_) == 0 || max_count_ > storage::BATCH_DELETE_LIMIT) {
+    if (pstd::string2int(argv_[2].data(), argv_[2].size(), &max_count_) == 0 ||  max_count_ < 1 || max_count_ > storage::BATCH_DELETE_LIMIT) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
@@ -3152,17 +3152,15 @@ void PKPatternMatchDelCmd::Do() {
   if(s.ok()) {
     res_.AppendInteger(count);
     s_ = rocksdb::Status::OK();
-    std::vector<std::string>::const_iterator it;
-    for (it = remove_keys_.begin(); it != remove_keys_.end(); it++) {
-      RemSlotKey(*it, db_);
+    for (const auto& key : remove_keys_) {
+      RemSlotKey(key, db_);
     }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     if (count >= 0) {
       s_ = rocksdb::Status::OK();
-      std::vector<std::string>::const_iterator it;
-      for (it = remove_keys_.begin(); it != remove_keys_.end(); it++) {
-        RemSlotKey(*it, db_);
+      for (const auto& key : remove_keys_) {
+        RemSlotKey(key, db_);
       }
     }
   }

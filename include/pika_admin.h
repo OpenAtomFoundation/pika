@@ -474,6 +474,7 @@ class PKPatternMatchDelCmd : public Cmd {
   void DoBinlog() override;
 
  private:
+  storage::DataType type_;
   std::vector<std::string> remove_keys_;
   std::string pattern_;
   int64_t max_count_;
