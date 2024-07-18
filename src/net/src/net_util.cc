@@ -44,7 +44,7 @@ int64_t TimerTaskManager::NowInMs() {
   return std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count();
 }
 
-int32_t TimerTaskManager::ExecTimerTask() {
+int64_t TimerTaskManager::ExecTimerTask() {
   std::vector<ExecTsWithId> fired_tasks_;
   int64_t now_in_ms = NowInMs();
   // traverse in ascending order, and exec expired tasks
@@ -79,7 +79,7 @@ int32_t TimerTaskManager::ExecTimerTask() {
   }
   // gap_between_now_and_next_task will be used as epoll_wait's para 'timeout' and which is an int32_t,
   // so here we explicitly cast it to int32_t instead of let it be implicitly truncated when passing it to epoll_wait.
-  int32_t gap_between_now_and_next_task = static_cast<int32_t>(exec_queue_.begin()->exec_ts - NowInMs());
+  int64_t gap_between_now_and_next_task = exec_queue_.begin()->exec_ts - NowInMs();
   gap_between_now_and_next_task = gap_between_now_and_next_task < 0 ? 0 : gap_between_now_and_next_task;
   return gap_between_now_and_next_task;
 }
@@ -132,9 +132,9 @@ int TimerTaskThread::StopThread() {
 }
 
 void* TimerTaskThread::ThreadMain() {
-  int timeout;
+  int32_t timeout;
   while (!should_stop()) {
-    timeout = timer_task_manager_.ExecTimerTask();
+    timeout = static_cast<int32_t>(timer_task_manager_.ExecTimerTask());
     net_multiplexer_->NetPoll(timeout);
   }
   return nullptr;

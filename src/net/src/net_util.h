@@ -21,9 +21,9 @@
 namespace net {
 
 int Setnonblocking(int sockfd);
-
+using TimerTaskID = int64_t;
 struct TimedTask{
-  uint32_t task_id;
+  TimerTaskID task_id;
   std::string task_name;
   int interval_ms;
   bool repeat_exec;
@@ -34,7 +34,7 @@ struct ExecTsWithId {
   //the next exec time of the task, unit in ms
   int64_t exec_ts;
   //id of the task to be exec
-  uint32_t id;
+  TimerTaskID id;
 
   bool operator<(const ExecTsWithId& other) const{
     if(exec_ts == other.exec_ts){
@@ -57,19 +57,17 @@ class TimerTaskManager {
  public:
   TimerTaskManager() = default;
   ~TimerTaskManager() = default;
-
   uint32_t AddTimerTask(const std::string& task_name, int interval_ms, bool repeat_exec, const std::function<void()> &task);
   //return the time gap between now and next task-expired time, which can be used as the timeout value of epoll
-  int ExecTimerTask();
+  int64_t ExecTimerTask();
   bool DelTimerTaskByTaskId(uint32_t task_id);
   int64_t NowInMs();
   bool Empty() const { return 0 == last_task_id_; }
-
  private:
   //items stored in std::set are ascending ordered, we regard it as an auto sorted queue
   std::set<ExecTsWithId> exec_queue_;
   std::unordered_map<uint32_t, TimedTask> id_to_task_;
-  uint32_t last_task_id_{0};
+  TimerTaskID last_task_id_{0};
 };
 
 
