@@ -66,7 +66,7 @@ void ExecCmd::Do() {
       }
       client_conn->SetTxnFailedFromDBs(each_cmd_info.db_->GetDBName());
     } else {
-      cmd->Do();
+      cmd->DoCommand();
       if (cmd->res().ok() && cmd->is_write()) {
         cmd->DoBinlog();
         auto db_keys = cmd->current_key();
