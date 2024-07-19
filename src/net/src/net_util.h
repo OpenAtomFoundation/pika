@@ -21,9 +21,9 @@
 namespace net {
 
 int Setnonblocking(int sockfd);
-
+using TimerTaskID = int64_t;
 struct TimedTask{
-  uint32_t task_id;
+  TimerTaskID task_id;
   std::string task_name;
   int interval_ms;
   bool repeat_exec;
@@ -34,7 +34,7 @@ struct ExecTsWithId {
   //the next exec time of the task, unit in ms
   int64_t exec_ts;
   //id of the task to be exec
-  uint32_t id;
+  TimerTaskID id;
 
   bool operator<(const ExecTsWithId& other) const{
     if(exec_ts == other.exec_ts){
@@ -47,36 +47,28 @@ struct ExecTsWithId {
   }
 };
 
-/*
- * For simplicity, current version of TimerTaskThread has no lock inside and all task should be registered before TimerTaskThread started,
- * but if you have the needs of dynamically add/remove timer task after TimerTaskThread started, you can simply add a mutex to protect
- * the timer_task_manager_ and also a pipe to wake up the maybe being endless-wait epoll(if all task consumed, epoll will sink into
- * endless wait) to implement the feature.
- */
 class TimerTaskManager {
  public:
   TimerTaskManager() = default;
   ~TimerTaskManager() = default;
-
-  uint32_t AddTimerTask(const std::string& task_name, int interval_ms, bool repeat_exec, const std::function<void()> &task);
-  //return the newest min_minterval_ms
-  int ExecTimerTask();
-  bool DelTimerTaskByTaskId(uint32_t task_id);
-  int GetMinIntervalMs() const { return min_interval_ms_; }
+  TimerTaskID AddTimerTask(const std::string& task_name, int interval_ms, bool repeat_exec, const std::function<void()> &task);
+  //return the time gap between now and next task-expired time, which can be used as the timeout value of epoll
+  int64_t ExecTimerTask();
+  bool DelTimerTaskByTaskId(TimerTaskID task_id);
   int64_t NowInMs();
-  void RenewMinIntervalMs();
-  bool Empty(){ return 0 == last_task_id_; }
-
+  bool Empty() const { return exec_queue_.empty(); }
  private:
   //items stored in std::set are ascending ordered, we regard it as an auto sorted queue
   std::set<ExecTsWithId> exec_queue_;
-  std::unordered_map<uint32_t, TimedTask> id_to_task_;
-  uint32_t last_task_id_{0};
-  int min_interval_ms_{-1};
+  std::unordered_map<TimerTaskID, TimedTask> id_to_task_;
+  TimerTaskID last_task_id_{0};
 };
 
 
-
+/*
+ * For simplicity, current version of TimerTaskThread has no lock inside and all task should be registered before TimerTaskThread started,
+ * but if you have the needs of dynamically add/remove timer task after TimerTaskThread started, you can simply add a mutex to protect the timer_task_manager_
+ */
 class TimerTaskThread : public Thread {
  public:
   TimerTaskThread(){
@@ -88,11 +80,11 @@ class TimerTaskThread : public Thread {
   int StopThread() override;
   void set_thread_name(const std::string& name) override { Thread::set_thread_name(name); }
 
-  uint32_t AddTimerTask(const std::string& task_name, int interval_ms, bool repeat_exec, const std::function<void()> &task){
+  TimerTaskID AddTimerTask(const std::string& task_name, int interval_ms, bool repeat_exec, const std::function<void()> &task){
       return timer_task_manager_.AddTimerTask(task_name, interval_ms, repeat_exec, task);
   };
 
-  bool DelTimerTaskByTaskId(uint32_t task_id){
+  bool DelTimerTaskByTaskId(TimerTaskID task_id){
     return timer_task_manager_.DelTimerTaskByTaskId(task_id);
 };
 

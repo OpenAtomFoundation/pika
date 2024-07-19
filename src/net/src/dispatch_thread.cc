@@ -66,7 +66,7 @@ int DispatchThread::StartThread() {
   // Adding timer tasks and run timertaskThread
   timer_task_thread_.AddTimerTask("blrpop_blocking_info_scan", 250, true,
                                 [this] { this->ScanExpiredBlockedConnsOfBlrpop(); });
-  timer_task_thread_.set_thread_name("TimerTaskThread");
+  timer_task_thread_.set_thread_name("DispacherTimerTaskThread");
   timer_task_thread_.StartThread();
   return ServerThread::StartThread();
 }
