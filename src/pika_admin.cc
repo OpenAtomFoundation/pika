@@ -1306,12 +1306,7 @@ void InfoCmd::InfoRocksDB(std::string& info) {
     }
     std::string rocksdb_info;
     db_item.second->DBLockShared();
-    if (g_pika_conf->open_rocksdb_statistics_tickers()) {
-      db_item.second->storage()->GetRocksDBInfo(rocksdb_info, true);
-    } else {
-      db_item.second->storage()->GetRocksDBInfo(rocksdb_info, false);
-    }
-
+    db_item.second->storage()->GetRocksDBInfo(rocksdb_info);
     db_item.second->DBUnlockShared();
     tmp_stream << rocksdb_info;
   }
@@ -2152,10 +2147,16 @@ void ConfigCmd::ConfigGet(std::string& ret) {
                                       : EncodeString(&config_body, "resetchannels");
   }
 
-  if (pstd::stringmatch(pattern.data(), "open-rocksdb-statistics-tickers", 1)) {
+  if (pstd::stringmatch(pattern.data(), "enable-db-statistics", 1)) {
     elements += 2;
-    EncodeString(&config_body, "open-rocksdb-statistics-tickers");
-    EncodeString(&config_body, g_pika_conf->open_rocksdb_statistics_tickers() ? "yes" : "no");
+    EncodeString(&config_body, "enable-db-statistics");
+    EncodeString(&config_body, g_pika_conf->enable_db_statistics() ? "yes" : "no");
+  }
+
+  if (pstd::stringmatch(pattern.data(), "db-statistics-level", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "db-statistics-level");
+    EncodeNumber(&config_body, g_pika_conf->db_statistics_level());
   }
 
   std::stringstream resp;

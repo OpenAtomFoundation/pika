@@ -244,7 +244,7 @@ class Redis {
   std::vector<rocksdb::ColumnFamilyHandle*> GetStreamCFHandles() {
     return {handles_.begin() + kMetaCF, handles_.end()};
   }
-  void GetRocksDBInfo(std::string &info, const char *prefix, bool open_ticker);
+  void GetRocksDBInfo(std::string &info, const char *prefix);
 
   // Sets Commands
   Status SAdd(const Slice& key, const std::vector<std::string>& members, int32_t* ret);

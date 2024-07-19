@@ -174,8 +174,12 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return max_total_wal_size_;
   }
-  bool open_rocksdb_statistics_tickers() {
-    return open_rocksdb_statistics_tickers_;
+  bool enable_db_statistics() {
+    return enable_db_statistics_;
+  }
+  int db_statistics_level() {
+    std::shared_lock l(rwlock_);
+    return db_statistics_level_;
   }
   int64_t max_client_response_size() {
     std::shared_lock l(rwlock_);
@@ -890,7 +894,8 @@ class PikaConf : public pstd::BaseConf {
   int64_t thread_migrate_keys_num_ = 0;
   int64_t max_write_buffer_size_ = 0;
   int64_t max_total_wal_size_ = 0;
-  bool open_rocksdb_statistics_tickers_ = false;
+  bool enable_db_statistics_ = false;
+  int db_statistics_level_ = 0;
   int max_write_buffer_num_ = 0;
   int min_write_buffer_number_to_merge_ = 1;
   int level0_stop_writes_trigger_ =  36;
