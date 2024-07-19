@@ -428,18 +428,6 @@ void PikaClientConn::SetTxnFailedIfKeyExists(std::string target_db_name) {
   }
 }
 
-void PikaClientConn::SetTxnFailedFromDBs(std::string db_name) {
-  auto dispatcher = dynamic_cast<net::DispatchThread*>(server_thread());
-  if (dispatcher != nullptr) {
-    auto involved_conns = dispatcher->GetDBTxns(db_name);
-    for (auto& conn : involved_conns) {
-      if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr) {
-        c->SetTxnWatchFailState(true);
-      }
-    }
-  }
-}
-
 void PikaClientConn::ExitTxn() {
   if (IsInTxn()) {
     RemoveWatchedKeys();

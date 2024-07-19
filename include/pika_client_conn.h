@@ -100,7 +100,6 @@ class PikaClientConn : public net::RedisConn {
   void RemoveWatchedKeys();
   void SetTxnFailedFromKeys(const std::vector<std::string>& db_keys);
   void SetTxnFailedIfKeyExists(const std::string target_db_name = "");
-  void SetTxnFailedFromDBs(std::string db_name);
   void ExitTxn();
   bool IsInTxn();
   bool IsTxnInitFailed();
