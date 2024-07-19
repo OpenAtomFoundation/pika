@@ -434,7 +434,6 @@ void PikaClientConn::SetTxnFailedFromDBs(std::string db_name) {
     auto involved_conns = dispatcher->GetDBTxns(db_name);
     for (auto& conn : involved_conns) {
       if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr) {
-        LOG(INFO) << "SetTxnFailedFromDBs";
         c->SetTxnWatchFailState(true);
       }
     }
