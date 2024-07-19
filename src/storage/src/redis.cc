@@ -7,10 +7,9 @@
 
 #include "rocksdb/env.h"
 
-#include "include/pika_server.h"
-#include "src/base_filter.h"
-#include "src/lists_filter.h"
 #include "src/redis.h"
+#include "src/lists_filter.h"
+#include "src/base_filter.h"
 #include "src/zsets_filter.h"
 
 namespace storage {
@@ -67,9 +66,9 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
 
   rocksdb::DBOptions db_ops(storage_options.options);
   db_ops.create_missing_column_families = true;
-  if (g_pika_conf->enable_db_statistics()) {
+  if (storage_options.enable_db_statistics) {
     db_statistics_ = rocksdb::CreateDBStatistics();
-    db_statistics_->set_stats_level(static_cast<rocksdb::StatsLevel>(g_pika_conf->db_statistics_level()));
+    db_statistics_->set_stats_level(static_cast<rocksdb::StatsLevel>(storage_options.db_statistics_level));
     db_ops.statistics = db_statistics_;
   }
 
@@ -381,6 +380,7 @@ void Redis::GetRocksDBInfo(std::string& info, const char* prefix) {
     write_aggregated_int_property(rocksdb::DB::Properties::kBlobCacheUsage, "blob_cache_usage");
     write_aggregated_int_property(rocksdb::DB::Properties::kBlobCachePinnedUsage, "blob_cache_pinned_usage");
 
+    //rocksdb ticker
     {
       // memtables num
       write_ticker_count(rocksdb::Tickers::MEMTABLE_HIT, "memtable_hit");

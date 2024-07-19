@@ -1416,6 +1416,9 @@ void PikaServer::InitStorageOptions() {
     storage_options_.table_options.pin_top_level_index_and_filter = true; 
     storage_options_.table_options.optimize_filters_for_memory = true;
   }
+  // For statistics
+  storage_options_.enable_db_statistics = g_pika_conf->enable_db_statistics();
+  storage_options_.db_statistics_level = g_pika_conf->db_statistics_level();
 }
 
 storage::Status PikaServer::RewriteStorageOptions(const storage::OptionType& option_type,

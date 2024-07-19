@@ -21,7 +21,7 @@
 #include "include/pika_repl_client_thread.h"
 
 #include "net/include/thread_pool.h"
-#include "pika_inner_message.pb. h"
+#include "pika_inner_message.pb.h"
 
 
 struct ReplClientTaskArg {

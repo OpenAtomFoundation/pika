@@ -696,7 +696,7 @@ int PikaConf::Load() {
 
   // rocksdb_statistics_tickers
   std::string open_tickers;
-  GetConfStr("open-rocksdb-statistics-tickers", &open_tickers);
+  GetConfStr("enable-db-statistics", &open_tickers);
   enable_db_statistics_ = open_tickers == "yes";
 
   db_statistics_level_ = 0;
