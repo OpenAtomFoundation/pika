@@ -15,7 +15,6 @@ set ::all_tests {
     unit/printver
     unit/basic
     unit/scan
-    unit/multi
     unit/quit
     unit/pubsub
     unit/slowlog
@@ -32,6 +31,7 @@ set ::all_tests {
     unit/type/zset
     unit/type/string
     unit/type/hash
+    unit/type/multi
     unit/type/stream
     # unit/expire
     # unit/protocol
@@ -79,7 +79,7 @@ set ::force_failure 0
 set ::timeout 600; # 10 minutes without progresses will quit the test.
 set ::last_progress [clock seconds]
 set ::active_servers {} ; # Pids of active Redis instances.
-
+set ::tls 0
 # Set to 1 when we are running in client mode. The Redis test uses a
 # server-client model to run tests simultaneously. The server instance
 # runs the specified number of client instances that will actually run tests.
@@ -177,6 +177,26 @@ proc cleanup {} {
     catch {exec rm -rf {*}[glob tests/tmp/redis.conf.*]}
     catch {exec rm -rf {*}[glob tests/tmp/server.*]}
     if {!$::quiet} {puts "OK"}
+}
+
+proc redis_client {args} {
+    set level 0
+    if {[llength $args] > 0 && [string is integer [lindex $args 0]]} {
+        set level [lindex $args 0]
+        set args [lrange $args 1 end]
+    }
+
+    # create client that won't defers reading reply
+    set client [redis [srv $level "host"] [srv $level "port"] 0 $::tls]
+
+    # select the right db and read the response (OK), or at least ping
+    # the server if we're in a singledb mode.
+    if {$::singledb} {
+        $client ping
+    } else {
+        $client select 9
+    }
+    return $client
 }
 
 proc test_server_main {} {
