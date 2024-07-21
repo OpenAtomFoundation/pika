@@ -78,6 +78,102 @@ jobs:
           chmod +x integrate_test.sh
           sh integrate_test.sh
 
+  build_on_rocky:
+    runs-on: ubuntu-latest
+    container:
+      image: rockylinux:9
+
+    steps:
+      - name: set up mirror
+        run: |
+          rm -rf /etc/yum.repos.d/Rocky-Base.repo
+          cat > /etc/yum.repos.d/Rocky-Base.repo << EOL
+          [base]
+          name=Rocky-\$releasever - Base
+          baseurl=https://mirrors.aliyun.com/rockylinux/9.4/BaseOS/\$basearch/os/
+          gpgcheck=1
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky
+
+          [extras]
+          name=Rocky-\$releasever - Extras
+          baseurl=https://mirrors.aliyun.com/rockylinux/9.4/extras/\$basearch/os/
+          gpgcheck=1
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky
+
+          [rockyplus]
+          name=rockylinux-\$releasever - Plus
+          baseurl=https://mirrors.aliyun.com/rockylinux/9.4/plus/\$basearch/os/
+          gpgcheck=1
+          enabled=0
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky
+          EOL
+
+          rpm --import https://mirrors.jlu.edu.cn/rocky/RPM-GPG-KEY-Rocky-9
+
+          dnf clean all
+          dnf makecache
+
+      - name: Install deps
+        run: |
+          dnf update -y
+          dnf install -y bash cmake
+          dnf install -y wget git autoconf gcc perl-Digest-SHA
+          dnf install -y tcl which tar g++ tar epel-release gcc-c++ libstdc++-devel
+          dnf install -y gcc-toolset-13
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address .
+
+      - uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/deps
+          key: ${{ runner.os }}-rocky-deps-${{ hashFiles('**/CMakeLists.txt') }}
+
+      - uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/buildtrees
+          key: ${{ runner.os }}-rocky-buildtrees-${{ hashFiles('**/CMakeLists.txt') }}
+
+      - name: Build
+        run: |
+          cmake --build build --config ${{ env.BUILD_TYPE }}
+
+      - name: Test
+        working-directory: ${{ github.workspace }}/build
+        run: ctest -C ${{ env.BUILD_TYPE }}
+
+      - name: Unit Test
+        working-directory: ${{ github.workspace }}
+        run: ./pikatests.sh all
+
+      - name: Start codis, pika master and pika slave
+        working-directory: ${{ github.workspace }}/build
+        run: |
+          chmod +x ../tests/integration/start_master_and_slave.sh
+          ../tests/integration/start_master_and_slave.sh
+          chmod +x ../tests/integration/start_codis.sh
+          ../tests/integration/start_codis.sh
+
+      - name: Run Go E2E Tests
+        working-directory: ${{ github.workspace }}/build
+        run: |
+          cd ../tools/pika_keys_analysis/
+          go test -v ./...
+          cd ../../tests/integration/
+          chmod +x integrate_test.sh
+          sh integrate_test.sh
+
   build_on_macos:
     runs-on: macos-12
 

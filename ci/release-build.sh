@@ -22,6 +22,9 @@ function configure_cmake() {
     cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DUSE_PIKA_TOOLS=ON -DCMAKE_BUILD_TYPE=$BUILD_TYPE
   elif [[ $OS == *"ubuntu"* ]]; then
     cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS="-s" -DCMAKE_EXE_LINKER_FLAGS="-s"
+  elif [[ $OS == *"rocky"* ]]; then
+    source /opt/rh/gcc-toolset-13/enable
+    cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
   fi
   echo "configure cmake after ..."
 }
