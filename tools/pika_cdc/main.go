@@ -20,4 +20,8 @@ func main() {
 	}
 	defer messageQue.Close()
 	time.Sleep(time.Second)
+
+	//pikaServer := pika.New(conf.ConfigInstance.PikaServer)
+	//pikaServer.Start()
+	//defer pikaServer.Close()
 }

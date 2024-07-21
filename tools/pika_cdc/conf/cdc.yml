@@ -1,15 +1,21 @@
 # todo(leehao): The parameter configuration file for canal should be available for reference
 # https://github.com/alibaba/canal/wiki/Canal-Kafka-RocketMQ-QuickStart
-
+# pika_server
+pika_server : 127.0.0.1:9221
 # if there are more than one, separated by commas, like this
 # 127.0.0.1:9092, 127.0.0.1:9091
-servers : 127.0.0.1:9092
+mq_servers : 127.0.0.1:9092
 # will create this topic, if this topic not exist
 # and all servers will use same name topic
 topic : test
 # retry times while send message failed
 retries : 0
-
+# retry interval while send message failed(ms)
+retry_interval: 10
+# Canal默认支持并行处理和发送数据到Kafka,这表示Canal将使用5个线程并行处理和发送数据到Kafka。
+parallel_thread_size: 5
+## 是否并发，如果保证并发的情况下，就会采用分区的方式发送数据，
+#parallel: true
 
 
 

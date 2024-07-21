@@ -16,8 +16,9 @@ type Kafka struct {
 	retries     int
 	conns       []*kafka.Conn
 	wg          sync.WaitGroup
-	messageChan chan kafka.Message // 就非缓冲队列就可以了
+	messageChan chan kafka.Message
 	stopChan    chan bool
+	once        sync.Once
 }
 
 func (k *Kafka) SendCmdMessage(cmd pika.Cmd) error {
@@ -65,8 +66,10 @@ func NewKafka(servers []string, topic string, retries int) (*Kafka, error) {
 	return k, nil
 }
 
-func (k *Kafka) Close() error {
+func (k *Kafka) close() error {
 	k.stopChan <- true
+	close(k.stopChan)
+	close(k.messageChan)
 	for _, conn := range k.conns {
 		err := conn.Close()
 		if err != nil {
@@ -75,4 +78,12 @@ func (k *Kafka) Close() error {
 		}
 	}
 	return nil
+}
+func (k *Kafka) Close() error {
+	var err error
+	err = nil
+	k.once.Do(func() {
+		err = k.close()
+	})
+	return err
 }

@@ -22,9 +22,8 @@ const (
 func (f *Factory) GetMq(t Type, config conf.PikaCdcConfig) (Mq, error) {
 	switch t {
 	case KAFKA:
-		return NewKafka(config.Servers, config.Topic, config.Retries)
+		return NewKafka(config.MqServers, config.Topic, config.Retries)
 	default:
-
 	}
 	panic("unimplemented")
 }
