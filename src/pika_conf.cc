@@ -166,9 +166,32 @@ int PikaConf::Load() {
     slow_cmd_thread_pool_size_ = 50;
   }
 
+  GetConfInt("admin-thread-pool-size", &admin_thread_pool_size_);
+  if (admin_thread_pool_size_ <= 0) {
+    admin_thread_pool_size_ = 2;
+  }
+  if (admin_thread_pool_size_ > 4) {
+    admin_thread_pool_size_ = 4;
+  }
+
   std::string slow_cmd_list;
   GetConfStr("slow-cmd-list", &slow_cmd_list);
   SetSlowCmd(slow_cmd_list);
+
+  std::string admin_cmd_list;
+  GetConfStr("admin-cmd-list", &admin_cmd_list);
+  if (admin_cmd_list == ""){
+    admin_cmd_list = "info, monitor, ping";
+    SetAdminCmd(admin_cmd_list);
+  }
+
+  std::string unfinished_full_sync;
+  GetConfStr("internal-used-unfinished-full-sync", &unfinished_full_sync);
+  if (replication_id_.empty()) {
+    unfinished_full_sync.clear();
+  }
+  SetInternalUsedUnFinishedFullSync(unfinished_full_sync);
+
 
   GetConfInt("sync-thread-num", &sync_thread_num_);
   if (sync_thread_num_ <= 0) {
@@ -647,7 +670,7 @@ int PikaConf::Load() {
 
   // rocksdb blob configure
   GetConfBool("enable-blob-files", &enable_blob_files_);
-  GetConfInt64("min-blob-size", &min_blob_size_);
+  GetConfInt64Human("min-blob-size", &min_blob_size_);
   if (min_blob_size_ <= 0) {
     min_blob_size_ = 4096;
   }
@@ -686,6 +709,7 @@ int PikaConf::Load() {
   } else {
     rsync_timeout_ms_.store(tmp_rsync_timeout_ms);
   }
+
   return ret;
 }
 
@@ -759,6 +783,7 @@ int PikaConf::ConfigRewrite() {
   SetConfDouble("min-check-resume-ratio", min_check_resume_ratio_);
   SetConfInt("slave-priority", slave_priority_);
   SetConfInt("throttle-bytes-per-second", throttle_bytes_per_second_);
+  SetConfStr("internal-used-unfinished-full-sync", pstd::Set2String(internal_used_unfinished_full_sync_, ','));
   SetConfInt("max-rsync-parallel-num", max_rsync_parallel_num_);
   SetConfInt("sync-window-size", sync_window_size_.load());
   SetConfInt("consensus-level", consensus_level_.load());
@@ -813,6 +838,7 @@ int PikaConf::ConfigRewrite() {
 int PikaConf::ConfigRewriteReplicationID() {
   std::lock_guard l(rwlock_);
   SetConfStr("replication-id", replication_id_);
+  SetConfStr("internal-used-unfinished-full-sync", pstd::Set2String(internal_used_unfinished_full_sync_, ','));
   if (!diff_commands_.empty()) {
     std::vector<pstd::BaseConf::Rep::ConfItem> filtered_items;
     for (const auto& diff_command : diff_commands_) {

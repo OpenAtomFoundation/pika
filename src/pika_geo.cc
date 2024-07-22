@@ -10,6 +10,7 @@
 #include "pstd/include/pstd_string.h"
 
 #include "include/pika_geohash_helper.h"
+#include "rocksdb/status.h"
 
 void GeoAddCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -59,7 +60,7 @@ void GeoAddCmd::Do() {
   rocksdb::Status s = db_->storage()->ZAdd(key_, score_members, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
-  } else if (s_.IsInvalidArgument()) {
+  } else if (s.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -103,7 +104,7 @@ void GeoPosCmd::Do() {
     } else if (s.IsNotFound()) {
       res_.AppendStringLen(-1);
       continue;
-    } else if (s_.IsInvalidArgument()) {
+    } else if (s.IsInvalidArgument()) {
       res_.SetRes(CmdRes::kMultiKey);
       continue;
     } else {
@@ -163,13 +164,14 @@ void GeoDistCmd::Do() {
   double first_xy[2];
   double second_xy[2];
   rocksdb::Status s = db_->storage()->ZScore(key_, first_pos_, &first_score);
+  
   if (s.ok()) {
     GeoHashBits hash = {.bits = static_cast<uint64_t>(first_score), .step = GEO_STEP_MAX};
     geohashDecodeToLongLatWGS84(hash, first_xy);
   } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
     return;
-  } else if (s_.IsInvalidArgument()) {
+  } else if (s.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
   } else {
@@ -241,7 +243,7 @@ void GeoHashCmd::Do() {
     } else if (s.IsNotFound()) {
       res_.AppendStringLen(-1);
       continue;
-    } else if (s_.IsInvalidArgument()) {
+    } else if (s.IsInvalidArgument()) {
       res_.SetRes(CmdRes::kMultiKey);
       continue;
     } else {
@@ -300,6 +302,7 @@ static void GetAllNeighbors(const std::shared_ptr<DB>& db, std::string& key, Geo
     if (HASHISZERO(neighbors[i])) {
       continue;
     }
+
     min = geohashAlign52Bits(neighbors[i]);
     neighbors[i].bits++;
     max = geohashAlign52Bits(neighbors[i]);
@@ -312,8 +315,13 @@ static void GetAllNeighbors(const std::shared_ptr<DB>& db, std::string& key, Geo
     std::vector<storage::ScoreMember> score_members;
     s = db->storage()->ZRangebyscore(key, static_cast<double>(min), static_cast<double>(max), true, true, &score_members);
     if (!s.ok() && !s.IsNotFound()) {
-      res.SetRes(CmdRes::kErrOther, s.ToString());
-      return;
+      if (s.IsInvalidArgument()) {
+        res.SetRes(CmdRes::kMultiKey);
+        return;
+      } else {
+        res.SetRes(CmdRes::kErrOther, s.ToString());
+        return;
+      }
     }
     // Insert into result only if the point is within the search area.
     for (auto & score_member : score_members) {
@@ -339,12 +347,14 @@ static void GetAllNeighbors(const std::shared_ptr<DB>& db, std::string& key, Geo
     count_limit = static_cast<int32_t>(result.size());
   }
   // If using sort option
-  if (range.sort == Asc) {
-    std::sort(result.begin(), result.end(), sort_distance_asc);
-  } else if (range.sort == Desc) {
-    std::sort(result.begin(), result.end(), sort_distance_desc);
+  if (range.sort != Unsort) {
+    if (range.sort == Asc) {
+      std::sort(result.begin(), result.end(), sort_distance_asc);
+    } else if (range.sort == Desc) {
+      std::sort(result.begin(), result.end(), sort_distance_desc);
+    }
   }
-
+  
   if (range.store || range.storedist) {
     // Target key, create a sorted set with the results.
     std::vector<storage::ScoreMember> score_members;
@@ -354,10 +364,18 @@ static void GetAllNeighbors(const std::shared_ptr<DB>& db, std::string& key, Geo
       score_members.push_back({score, result[i].member});
     }
     int32_t count = 0;
+    int32_t card = db->storage()->Exists({range.storekey});
+    if (card) {
+      if (db->storage()->Del({range.storekey}) > 0){
+        db->cache()->Del({range.storekey});
+      }
+    }
     s = db->storage()->ZAdd(range.storekey, score_members, &count);
     if (!s.ok()) {
       res.SetRes(CmdRes::kErrOther, s.ToString());
       return;
+    } else {
+      s = db->cache()->ZAdd(range.storekey, score_members);
     }
     res.AppendInteger(count_limit);
     return;
@@ -426,6 +444,7 @@ void GeoRadiusCmd::DoInitial() {
     return;
   }
   size_t pos = 6;
+  range_.sort = Asc;
   while (pos < argv_.size()) {
     if (strcasecmp(argv_[pos].c_str(), "withdist") == 0) {
       range_.withdist = true;
@@ -555,6 +574,10 @@ void GeoRadiusByMemberCmd::DoInitial() {
 void GeoRadiusByMemberCmd::Do() {
   double score = 0.0;
   rocksdb::Status s = db_->storage()->ZScore(key_, range_.member, &score);
+  if (s.IsNotFound() && !s.ToString().compare("NotFound: Invalid member")) {
+    res_.SetRes(CmdRes::kErrOther, "could not decode requested zset member");
+    return;
+  }
   if (s.ok()) {
     double xy[2];
     GeoHashBits hash = {.bits = static_cast<uint64_t>(score), .step = GEO_STEP_MAX};
