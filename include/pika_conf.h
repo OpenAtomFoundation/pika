@@ -61,6 +61,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return slow_cmd_thread_pool_size_;
   }
+  int admin_thread_pool_size() {
+    std::shared_lock l(rwlock_);
+    return admin_thread_pool_size_;
+  }
   int sync_thread_num() {
     std::shared_lock l(rwlock_);
     return sync_thread_num_;
@@ -435,10 +439,17 @@ class PikaConf : public pstd::BaseConf {
   int64_t rsync_timeout_ms() {
       return rsync_timeout_ms_.load(std::memory_order::memory_order_relaxed);
   }
+
   // Slow Commands configuration
   const std::string GetSlowCmd() {
     std::shared_lock l(rwlock_);
     return pstd::Set2String(slow_cmd_set_, ',');
+  }
+
+  // Admin Commands configuration
+  const std::string GetAdminCmd() {
+    std::shared_lock l(rwlock_);
+    return pstd::Set2String(admin_cmd_set_, ',');
   }
 
   const std::string GetUserBlackList() {
@@ -449,6 +460,10 @@ class PikaConf : public pstd::BaseConf {
   bool is_slow_cmd(const std::string& cmd) {
     std::shared_lock l(rwlock_);
     return slow_cmd_set_.find(cmd) != slow_cmd_set_.end();
+  }
+
+  bool is_admin_cmd(const std::string& cmd) {
+    return admin_cmd_set_.find(cmd) != admin_cmd_set_.end();
   }
 
   // Immutable config items, we don't use lock.
@@ -487,6 +502,11 @@ class PikaConf : public pstd::BaseConf {
   void SetLowLevelThreadPoolSize(const int value) {
     std::lock_guard l(rwlock_);
     slow_cmd_thread_pool_size_ = value;
+  }
+
+  void SetAdminThreadPoolSize(const int value) {
+    std::lock_guard l(rwlock_);
+    admin_thread_pool_size_ = value;
   }
 
   void SetSlaveof(const std::string& value) {
@@ -806,6 +826,7 @@ class PikaConf : public pstd::BaseConf {
   }
 
   int64_t cache_maxmemory() { return cache_maxmemory_; }
+
   void SetSlowCmd(const std::string& value) {
     std::lock_guard l(rwlock_);
     std::string lower_value = value;
@@ -814,6 +835,48 @@ class PikaConf : public pstd::BaseConf {
     pstd::StringSplit2Set(lower_value, ',', slow_cmd_set_);
   }
 
+  void SetAdminCmd(const std::string& value) {
+    std::lock_guard l(rwlock_);
+    std::string lower_value = value;
+    pstd::StringToLower(lower_value);
+    TryPushDiffCommands("admin-cmd-list", lower_value);
+    pstd::StringSplit2Set(lower_value, ',', admin_cmd_set_);
+  }
+
+  void SetInternalUsedUnFinishedFullSync(const std::string& value) {
+    std::lock_guard l(rwlock_);
+    std::string lower_value = value;
+    pstd::StringToLower(lower_value);
+    TryPushDiffCommands("internal-used-unfinished-full-sync", lower_value);
+    pstd::StringSplit2Set(lower_value, ',', internal_used_unfinished_full_sync_);
+  }
+
+  void AddInternalUsedUnfinishedFullSync(const std::string& db_name) {
+    {
+      std::lock_guard l(rwlock_);
+      internal_used_unfinished_full_sync_.insert(db_name);
+      std::string lower_value = pstd::Set2String(internal_used_unfinished_full_sync_, ',');
+      pstd::StringToLower(lower_value);
+      TryPushDiffCommands("internal-used-unfinished-full-sync", lower_value);
+    }
+    ConfigRewrite();
+  }
+
+  void RemoveInternalUsedUnfinishedFullSync(const std::string& db_name) {
+    {
+      std::lock_guard l(rwlock_);
+      internal_used_unfinished_full_sync_.erase(db_name);
+      std::string lower_value = pstd::Set2String(internal_used_unfinished_full_sync_, ',');
+      pstd::StringToLower(lower_value);
+      TryPushDiffCommands("internal-used-unfinished-full-sync", lower_value);
+    }
+    ConfigRewrite();
+  }
+
+  size_t GetUnfinishedFullSyncCount() {
+    std::shared_lock l(rwlock_);
+    return internal_used_unfinished_full_sync_.size();
+  }
   void SetCacheType(const std::string &value);
   void SetCacheDisableFlag() { tmp_cache_disable_flag_ = true; }
   int zset_cache_start_direction() { return zset_cache_start_direction_; }
@@ -832,7 +895,9 @@ class PikaConf : public pstd::BaseConf {
   int thread_num_ = 0;
   int thread_pool_size_ = 0;
   int slow_cmd_thread_pool_size_ = 0;
+  int admin_thread_pool_size_ = 0;
   std::unordered_set<std::string> slow_cmd_set_;
+  std::unordered_set<std::string> admin_cmd_set_ = {"info", "ping", "monitor"};
   int sync_thread_num_ = 0;
   int sync_binlog_thread_num_ = 0;
   int expire_dump_days_ = 3;
@@ -985,6 +1050,9 @@ class PikaConf : public pstd::BaseConf {
   int throttle_bytes_per_second_ = 200 << 20; // 200MB/s
   int max_rsync_parallel_num_ = kMaxRsyncParallelNum;
   std::atomic_int64_t rsync_timeout_ms_ = 1000;
+
+  //Internal used metrics Persisted by pika.conf
+  std::unordered_set<std::string> internal_used_unfinished_full_sync_;
 };
 
 #endif

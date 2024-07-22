@@ -184,6 +184,9 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
   slave_db->StopRsync();
   slave_db->SetReplState(ReplState::kWaitDBSync);
   LOG(INFO) << "DB: " << db_name << " Need Wait To Sync";
+
+  //now full sync is starting, add an unfinished full sync count
+  g_pika_conf->AddInternalUsedUnfinishedFullSync(slave_db->DBName());
 }
 
 void PikaReplClientConn::HandleTrySyncResponse(void* arg) {

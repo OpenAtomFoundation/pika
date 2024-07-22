@@ -517,7 +517,6 @@ Status Redis::ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<
       }
       int32_t cur_index = 0;
       ScoreMember score_member;
-
       ZSetsScoreKey zsets_score_key(key, version, std::numeric_limits<double>::lowest(), Slice());
       KeyStatisticsDurationGuard guard(this, DataType::kZSets, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[kZsetsScoreCF]);
@@ -1130,7 +1129,7 @@ Status Redis::ZRevrank(const Slice& key, const Slice& member, int32_t* rank) {
       ZSetsScoreKey zsets_score_key(key, version, std::numeric_limits<double>::max(), Slice());
       KeyStatisticsDurationGuard guard(this, DataType::kZSets, key.ToString());
       rocksdb::Iterator* iter = db_->NewIterator(read_options, handles_[kZsetsScoreCF]);
-      for (iter->SeekForPrev(zsets_score_key.Encode()); iter->Valid() && left >= 0; iter->Prev(), --left, ++rev_index) {
+      for (iter->SeekForPrev(zsets_score_key.Encode()); iter->Valid() && left > 0; iter->Prev(), --left, ++rev_index) {
         ParsedZSetsScoreKey parsed_zsets_score_key(iter->key());
         if (parsed_zsets_score_key.member().compare(member) == 0) {
           found = true;
@@ -1187,6 +1186,8 @@ Status Redis::ZScore(const Slice& key, const Slice& member, double* score) {
         uint64_t tmp = DecodeFixed64(data_value.data());
         const void* ptr_tmp = reinterpret_cast<const void*>(&tmp);
         *score = *reinterpret_cast<const double*>(ptr_tmp);
+      } else if (s.IsNotFound()) {
+        return Status::NotFound("Invalid member");
       } else {
         return s;
       }
