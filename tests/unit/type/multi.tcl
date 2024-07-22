@@ -944,20 +944,21 @@ start_server {tags {"multi"}} {
       }
 }
 
-start_server {overrides {appendonly {yes} appendfilename {appendonly.aof} appendfsync always} tags {external:skip}} {
-     test {MULTI with FLUSHALL and AOF} {
-         set aof [get_last_incr_aof_path r]
-         r multi
-         r set foo bar
-         r flushall
-         r exec
-         assert_aof_content $aof {
-             {multi}
-             {select *}
-             {set *}
-             {flushall}
-             {exec}
-         }
-         r get foo
-     } {}
-}
+# Pika does not support AOF
+# start_server {overrides {appendonly {yes} appendfilename {appendonly.aof} appendfsync always} tags {external:skip}} {
+#      test {MULTI with FLUSHALL and AOF} {
+#          set aof [get_last_incr_aof_path r]
+#          r multi
+#          r set foo bar
+#          r flushall
+#          r exec
+#          assert_aof_content $aof {
+#              {multi}
+#              {select *}
+#              {set *}
+#              {flushall}
+#              {exec}
+#          }
+#          r get foo
+#      } {}
+# }
