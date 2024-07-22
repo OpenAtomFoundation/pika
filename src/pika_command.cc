@@ -875,27 +875,26 @@ void Cmd::InternalProcessCommand(const HintKeys& hint_keys) {
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     start_us = pstd::NowMicros();
   }
+
+  if (!IsSuspend()) {
+    db_->DBLockShared();
+  }
+
   DoCommand(hint_keys);
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     do_duration_ += pstd::NowMicros() - start_us;
   }
-
   DoBinlog();
 
+  if (!IsSuspend()) {
+    db_->DBUnlockShared();
+  }
   if (is_write()) {
     record_lock.Unlock(current_key());
   }
 }
 
 void Cmd::DoCommand(const HintKeys& hint_keys) {
-  if (!IsSuspend()) {
-    db_->DBLockShared();
-  }
-  DEFER {
-    if (!IsSuspend()) {
-      db_->DBUnlockShared();
-    }
-  };
   if (IsNeedCacheDo()
       && PIKA_CACHE_NONE != g_pika_conf->cache_mode()
       && db_->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
