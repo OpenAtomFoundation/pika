@@ -166,6 +166,7 @@ class PikaReplicaManager {
   void RmStatus(std::string* debug_info);
   pstd::Status CheckDBRole(const std::string& table, int* role);
   pstd::Status LostConnection(const std::string& ip, int port);
+  pstd::Status DeactivateSyncSlaveDB(const std::string& ip, int port);
 
   // Update binlog win and try to send next binlog
   pstd::Status UpdateSyncBinlogStatus(const RmNode& slave, const LogOffset& offset_start, const LogOffset& offset_end);
