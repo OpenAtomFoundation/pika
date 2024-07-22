@@ -6,7 +6,8 @@ metadata:
   labels: {{ include "pika-cluster.labels" . | nindent 4 }}
 spec:
   clusterDefinitionRef: pika  # ref clusterDefinition.name
-  clusterVersionRef: pika-{{ default .Chart.AppVersion .Values.clusterVersionOverride }} # ref clusterVersion.name
+  #clusterVersionRef: pika-{{ default .Chart.AppVersion .Values.clusterVersionOverride }} # ref clusterVersion.name 已弃用
+  topology: replication-codis
   terminationPolicy: {{ .Values.terminationPolicy }}
   affinity:
     {{- with .Values.topologyKeys }}
@@ -51,13 +52,13 @@ spec:
     {{- if .Values.useLegacyCompDef }}
     {{- range $i := until (int .Values.groupCount) }}
     - name: pika-group-{{ add ($i) 1 }} # user-defined
-      componentDefRef: pika-group # ref clusterDefinition.componentDefs[x].name
-      monitor: {{ $.Values.monitor.enabled | default false }}
+      componentDef: pika-group # ref clusterDefinition.componentDefs[x].name
+      # monitor: {{ $.Values.monitor.enabled | default false }} 已被弃用
       enabledLogs: {{ $.Values.enabledLogs | toJson | indent 4 }}
       replicas: {{ add (int $.Values.slaveCount) 1 | default 2 }}
       serviceAccountName: {{ include "pika-cluster.serviceAccountName" $ }}
-      switchPolicy:
-        type: {{ $.Values.switchPolicy.type}}
+      #switchPolicy: 已被弃用
+      #  type: {{ $.Values.switchPolicy.type}} 
       {{- with  $.Values.resources.pikaGroup }}
       resources:
         limits:
@@ -83,12 +84,8 @@ spec:
       {{- end }}
       {{- end }}
     - name: etcd # user-defined
-      {{- if .Values.useLegacyCompDef }}
-      componentDefRef: etcd # ref clusterDefinition.componentDefs[x].name
-      {{- else }}
       componentDef: pika-etcd # ref componentDefinition name
-      {{- end }}
-      monitor: {{ .Values.monitor.enabled | default false }}
+      #monitor: {{ .Values.monitor.enabled | default false }}
       replicas: {{ .Values.etcdReplicaCount| default 3 }}
       {{- with  .Values.resources.etcd }}
       resources:
@@ -117,12 +114,8 @@ spec:
         {{- end }}
       {{- end }}
     - name: pika-exporter
-      {{- if .Values.useLegacyCompDef }}
-      componentDefRef: pika-exporter # ref clusterDefinition.componentDefs[x].name
-      {{- else }}
       componentDef: pika-exporter # ref componentDefinition name
-      {{- end }}
-      monitor: {{ .Values.monitor.enabled | default false }}
+      #monitor: {{ .Values.monitor.enabled | default false }}
       replicas: 1
       {{- with  .Values.resources.pikaExporter }}
       resources:
@@ -134,11 +127,7 @@ spec:
           memory: {{ .requests.memory | quote }}
       {{- end }}
     - name: codis-proxy
-      {{- if .Values.useLegacyCompDef }}
-      componentDefRef: codis-proxy # ref clusterDefinition.componentDefs[x].name
-      {{- else }}
       componentDef: pika-codis-proxy # ref componentDefinition name
-      {{- end }}
       replicas: {{ .Values.codisProxyReplicaCount | default 2 }}
       {{- with  .Values.resources.codisProxy }}
       resources:
@@ -150,11 +139,7 @@ spec:
           memory: {{ .requests.memory | quote }}
       {{- end }}
     - name: codis-fe
-      {{- if .Values.useLegacyCompDef }}
-      componentDefRef: codis-fe # ref clusterDefinition.componentDefs[x].name
-      {{- else }}
       componentDef: pika-codis-fe # ref componentDefinition name
-      {{- end }}
       replicas: {{ .Values.codisFeReplicaCount | default 1 }}
       {{- with  .Values.resources.codisFe }}
       resources:
@@ -166,11 +151,7 @@ spec:
           memory: {{ .requests.memory | quote }}
       {{- end }}
     - name: codis-dashboard
-      {{- if .Values.useLegacyCompDef }}
-      componentDefRef: codis-dashboard # ref clusterDefinition.componentDefs[x].name
-      {{- else }}
       componentDef: pika-codis-dashboard # ref componentDefinition name
-      {{- end }}
       replicas: 1
     {{- with  .Values.resources.codisFe }}
       resources:
