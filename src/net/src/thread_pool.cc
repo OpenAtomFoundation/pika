@@ -5,9 +5,11 @@
 
 #include "net/include/thread_pool.h"
 #include "net/src/net_thread_name.h"
+#include "pstd/include/env.h"
 
 #include <sys/time.h>
 
+#include <string>
 #include <cassert>
 #include <thread>
 #include <utility>
@@ -46,14 +48,15 @@ int ThreadPool::Worker::stop() {
 }
 
 ThreadPool::ThreadPool(size_t worker_num, size_t max_queue_size, std::string thread_pool_name)
-    : nlinks_((worker_num + nworkers_per_link_ - 1) / nworkers_per_link_),
+    : nlinks_(nworkers_per_link_ > worker_num ? 1 : (worker_num + nworkers_per_link_ - 1) / nworkers_per_link_),
       // : nlinks_(worker_num),
       newest_node_(nlinks_),
       node_cnt_(0),
       time_newest_node_(nlinks_),
       time_node_cnt_(0),
-      queue_slow_size_(std::max(10UL, std::min(worker_num * max_queue_size / 100, max_queue_size))),
-      max_queue_size_(max_queue_size),
+      max_queue_size_(1000 * nlinks_),
+      queue_slow_size_(worker_num > 10 ? (100 * nlinks_) : std::max(worker_num, 3UL)),
+      // queue_slow_size_(std::max(10UL, std::min(worker_num * max_queue_size / 100, max_queue_size))),
       max_yield_usec_(100),
       slow_yield_usec_(3),
       adp_ctx(),
@@ -74,7 +77,7 @@ ThreadPool::~ThreadPool() { stop_thread_pool(); }
 int ThreadPool::start_thread_pool() {
   if (!running_.load()) {
     should_stop_.store(false);
-    for (size_t i = 0; i < nlinks_; ++i) {
+    for (size_t i = 0; i < worker_num_; ++i) {
       workers_.push_back(new Worker(this, i));
       int res = workers_[i]->start();
       if (res != 0) {
@@ -112,9 +115,11 @@ bool ThreadPool::should_stop() { return should_stop_.load(); }
 void ThreadPool::set_should_stop() { should_stop_.store(true); }
 
 void ThreadPool::Schedule(TaskFunc func, void* arg) {
+  node_cnt_++;
   // stop until the size of tasks queue is not greater than max_queue_size_
   while (node_cnt_.load(std::memory_order_relaxed) >= max_queue_size_) {
     std::this_thread::yield();
+    // pstd::SleepForMicroseconds(1);
   }
   // slow like above
   if (node_cnt_.load(std::memory_order_relaxed) >= queue_slow_size_) {
@@ -125,7 +130,6 @@ void ThreadPool::Schedule(TaskFunc func, void* arg) {
     auto node = new Node(func, arg);
     auto idx = ++task_idx_;
     LinkOne(node, &newest_node_[idx % nlinks_]);
-    node_cnt_++;
     rsignal_[idx % nlinks_].notify_one();
   }
 }
@@ -163,152 +167,37 @@ void ThreadPool::runInThread(const int idx) {
   Node* time_last = nullptr;
 
   auto& newest_node = newest_node_[idx % nlinks_];
-  auto& time_newest_node = time_newest_node_[idx % nlinks_];
   auto& mu = mu_[idx % nlinks_];
   auto& rsignal = rsignal_[idx % nlinks_];
 
   while (LIKELY(!should_stop())) {
     std::unique_lock lock(mu);
-    rsignal.wait(lock, [this, &newest_node, &time_newest_node]() {
-      return newest_node.load(std::memory_order_relaxed) != nullptr ||
-             UNLIKELY(time_newest_node.load(std::memory_order_relaxed) != nullptr) || UNLIKELY(should_stop());
+    rsignal.wait(lock, [this, &newest_node]() {
+      return newest_node.load(std::memory_order_relaxed) != nullptr || UNLIKELY(should_stop());
     });
     lock.unlock();
 
-  retry:
     if (UNLIKELY(should_stop())) {
       break;
     }
 
+  retry:
     last = newest_node.exchange(nullptr);
-    time_last = time_newest_node.exchange(nullptr);
-    if (last == nullptr && LIKELY(time_last == nullptr)) {
-      // 1. loop for short time
-      for (uint32_t tries = 0; tries < 200; ++tries) {
-        if (newest_node.load(std::memory_order_acquire) != nullptr) {
-          last = newest_node.exchange(nullptr);
-          if (last != nullptr) {
-            goto exec;
-          }
-        }
-        if (UNLIKELY(time_newest_node.load(std::memory_order_acquire) != nullptr)) {
-          time_last = time_newest_node.exchange(nullptr);
-          if (time_last != nullptr) {
-            goto exec;
-          }
-        }
-        AsmVolatilePause();
-      }
-
-      // 2. loop for a little short time again
-      const size_t kMaxSlowYieldsWhileSpinning = 3;
-      auto& yield_credit = adp_ctx.value;
-      bool update_ctx = false;
-      bool would_spin_again = false;
-      const int sampling_base = 256;
-
-      update_ctx = Random::GetTLSInstance()->OneIn(sampling_base);
-
-      if (update_ctx || yield_credit.load(std::memory_order_relaxed) >= 0) {
-        auto spin_begin = std::chrono::steady_clock::now();
-
-        size_t slow_yield_count = 0;
-
-        auto iter_begin = spin_begin;
-        while ((iter_begin - spin_begin) <= std::chrono::microseconds(max_yield_usec_)) {
-          std::this_thread::yield();
-
-          if (newest_node.load(std::memory_order_acquire) != nullptr) {
-            last = newest_node.exchange(nullptr);
-            if (last != nullptr) {
-              would_spin_again = true;
-              // success
-              break;
-            }
-          }
-          if (UNLIKELY(time_newest_node.load(std::memory_order_acquire) != nullptr)) {
-            time_last = time_newest_node.exchange(nullptr);
-            if (time_last != nullptr) {
-              would_spin_again = true;
-              // success
-              break;
-            }
-          }
-
-          auto now = std::chrono::steady_clock::now();
-          if (now == iter_begin || now - iter_begin >= std::chrono::microseconds(slow_yield_usec_)) {
-            ++slow_yield_count;
-            if (slow_yield_count >= kMaxSlowYieldsWhileSpinning) {
-              update_ctx = true;
-              break;
-            }
-          }
-          iter_begin = now;
-        }
-      }
-
-      // update percentage of next loop 2
-      if (update_ctx) {
-        auto v = yield_credit.load(std::memory_order_relaxed);
-        v = v - (v / 1024) + (would_spin_again ? 1 : -1) * 131072;
-        yield_credit.store(v, std::memory_order_relaxed);
-      }
-
-      if (!would_spin_again) {
-        // 3. wait for new task
-        continue;
-      }
+    if (last == nullptr) {
+      continue;
     }
 
-  exec:
     // do all normal tasks older than this task pointed last
-    if (LIKELY(last != nullptr)) {
-      int cnt = 1;
-      auto first = CreateMissingNewerLinks(last, &cnt);
-      // node_cnt_ -= cnt;
-      assert(!first->is_time_task);
-      do {
-        first->Exec();
-        tmp = first;
-        first = first->Next();
-        node_cnt_--;
-        delete tmp;
-      } while (first != nullptr);
-    }
-
-    // do all time tasks older than this task pointed time_last
-    if (UNLIKELY(time_last != nullptr)) {
-      int cnt = 1;
-      auto time_first = CreateMissingNewerLinks(time_last, &cnt);
-      do {
-        // time task may block normal task
-        auto now = std::chrono::system_clock::now();
-        uint64_t unow = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
-
-        auto [exec_time, func, arg] = time_first->task;
-        assert(time_first->is_time_task);
-        if (unow >= exec_time) {
-          time_first->Exec();
-        } else {
-          lock.lock();
-          // if task is coming now, do task immediately
-          auto res = rsignal.wait_for(lock, std::chrono::microseconds(exec_time - unow), [this, &newest_node]() {
-            return newest_node.load(std::memory_order_relaxed) != nullptr || UNLIKELY(should_stop());
-          });
-          lock.unlock();
-          if (res) {
-            // re-push the timer tasks
-            ReDelaySchedule(time_first);
-            goto retry;
-          }
-          time_first->Exec();
-        }
-        tmp = time_first;
-        time_first = time_first->Next();
-        time_node_cnt_--;
-        delete tmp;
-      } while (time_first != nullptr);
-    }
+    int cnt = 1;
+    auto first = CreateMissingNewerLinks(last, &cnt);
+    assert(!first->is_time_task);
+    do {
+      first->Exec();
+      tmp = first;
+      first = first->Next();
+      node_cnt_--;
+      delete tmp;
+    } while (first != nullptr);
     goto retry;
   }
 }
