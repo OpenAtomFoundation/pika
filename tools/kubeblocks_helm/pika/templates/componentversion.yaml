@@ -1,0 +1,48 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentVersion
+metadata:
+  name: pika-{{ default .Chart.AppVersion .Values.clusterVersionOverride }}
+  labels:
+    {{- include "pika.labels" . | nindent 4 }}
+spec:
+  releases:
+  - name: pika-group
+    serviceVersion: 3.5.3
+    images:
+      pika: {{ include "pika.image" . }}
+      codis-admin: {{ include "codis.image" . }}
+  - name: etcd
+    serviceVersion: 3.5.9
+    images:
+      etcd: {{ include "etcd.image" . }}
+  - name: pika-exporter
+    serviceVersion: 3.5.3
+    images:
+      pika-exporter: {{ include "pikaExporter.image" . }}
+  - name: codis-proxy
+    serviceVersion: 3.5.3
+    images:
+      codis-proxy: {{ include "codis.image" . }}
+  - name: codis-fe
+    serviceVersion: 3.5.3
+    images:
+      codis-fe: {{ include "codis.image" . }}
+  - name: codis-dashboard
+    serviceVersion: 3.5.3
+    images:
+      codis-dashboard: {{ include "codis.image" . }}
+  compatibilityRules:
+  - compDefs:
+    - pika-group
+    - etcd
+    - pika-exporter
+    - codis-proxy
+    - codis-fe
+    - codis-dashboard
+    releases:
+    - 3.5.3
+    - 3.5.9
+    - 3.5.3
+    - 3.5.3
+    - 3.5.3
+    - 3.5.3
