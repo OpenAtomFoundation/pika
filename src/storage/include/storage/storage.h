@@ -1027,6 +1027,13 @@ class Storage {
   // return > 0 TTL in seconds
   int64_t TTL(const Slice& key);
 
+  // Returns the remaining time to live of a key that has a timeout.
+  // return -3 operation exception errors happen in database
+  // return -2 if the key does not exist
+  // return -1 if the key exists but has not associated expire
+  // return > 0 TTL in milliseconds
+  int64_t PTTL(const Slice& key);
+
   // Reutrns the data all type of the key
   // if single is true, the query will return the first one
   Status GetType(const std::string& key, enum DataType& type);

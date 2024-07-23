@@ -31,8 +31,7 @@ Status Redis::ScanHashesKeyNum(KeyInfo* key_info) {
   iterator_options.snapshot = snapshot;
   iterator_options.fill_cache = false;
 
-  int64_t curtime;
-  rocksdb::Env::Default()->GetCurrentTime(&curtime);
+  int64_t curtime = rocksdb::Env::Default()->NowMicros() / 1000;
 
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kMetaCF]);
   for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
@@ -253,8 +252,7 @@ Status Redis::HGetallWithTTL(const Slice& key, std::vector<FieldValue>* fvs, int
       if (*ttl == 0) {
         *ttl = -1;
       } else {
-        int64_t curtime;
-        rocksdb::Env::Default()->GetCurrentTime(&curtime);
+        int64_t curtime = rocksdb::Env::Default()->NowMicros() / 1000;
         *ttl = *ttl - curtime >= 0 ? *ttl - curtime : -2;
       }
 
@@ -1345,8 +1343,7 @@ Status Redis::HashesTTL(const Slice& key, int64_t* timestamp, std::string&& pref
       if (*timestamp == 0) {
         *timestamp = -1;
       } else {
-        int64_t curtime;
-        rocksdb::Env::Default()->GetCurrentTime(&curtime);
+        int64_t curtime = rocksdb::Env::Default()->NowMicros() / 1000;
         *timestamp = *timestamp - curtime >= 0 ? *timestamp - curtime : -2;
       }
     }

@@ -52,9 +52,8 @@ public:
   void SetEtime(uint64_t etime = 0) { etime_ = etime; }
   void setCtime(uint64_t ctime) { ctime_ = ctime; }
   rocksdb::Status SetRelativeTimestamp(int64_t ttl) {
-    int64_t unix_time;
-    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-    etime_ = uint64_t(unix_time + ttl);
+    int64_t unix_time = rocksdb::Env::Default()->NowMicros() / 1000;
+    etime_ = uint64_t(unix_time) + ttl * 1000;
     return rocksdb::Status::OK();
   }
   void SetVersion(uint64_t version = 0) { version_ = version; }
@@ -123,9 +122,8 @@ public:
   }
 
   void SetRelativeTimestamp(int64_t ttl) {
-    int64_t unix_time;
-    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-    etime_ = unix_time + ttl;
+    int64_t unix_time = rocksdb::Env::Default()->NowMicros() / 1000;
+    etime_ = unix_time + ttl * 1000;
     SetEtimeToValue();
   }
 
@@ -135,8 +133,7 @@ public:
     if (etime_ == 0) {
       return false;
     }
-    int64_t unix_time;
-    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
+    int64_t unix_time = rocksdb::Env::Default()->NowMicros() / 1000;
     return etime_ < unix_time;
   }
 

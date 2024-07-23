@@ -943,8 +943,7 @@ TEST_F(StringsTest, PKSetexAtTest) {
 #ifdef OS_MACOSX
   return ;
 #endif
-  int64_t unix_time;
-  rocksdb::Env::Default()->GetCurrentTime(&unix_time);
+  int64_t unix_time = rocksdb::Env::Default()->NowMicros() / 1000;
   int64_t ttl_ret;
   std::map<storage::DataType, Status> type_status;
 

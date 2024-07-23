@@ -1433,7 +1433,7 @@ void PttlCmd::DoInitial() {
 }
 
 void PttlCmd::Do() {
-  int64_t timestamp = db_->storage()->TTL(key_);
+  int64_t timestamp = db_->storage()->PTTL(key_);
   if (timestamp == -3) {
     res_.SetRes(CmdRes::kErrOther, "ttl internal error");
   } else {
@@ -1442,19 +1442,8 @@ void PttlCmd::Do() {
 }
 
 void PttlCmd::ReadCache() {
-  int64_t timestamp = db_->cache()->TTL(key_);
-  if (timestamp == -3) {
-    res_.SetRes(CmdRes::kErrOther, "ttl internal error");
-  } else if (timestamp != -2) {
-    if (timestamp == -1) {
-      res_.AppendInteger(-1);
-    } else {
-      res_.AppendInteger(timestamp * 1000);
-    }
-  } else {
-    // mean this key not exist
-    res_.SetRes(CmdRes::kCacheMiss);
-  }
+  // redis cache donnot support pttl cache, so read directly from db
+  DoThroughDB();
 }
 
 void PttlCmd::DoThroughDB() {

@@ -125,9 +125,7 @@ Status Storage::StoreCursorStartKey(const DataType& dtype, int64_t cursor, char 
   return cursors_store_->Insert(index_key, index_value);
 }
 
-std::unique_ptr<Redis>& Storage::GetDBInstance(const Slice& key) {
-  return GetDBInstance(key.ToString());
-}
+std::unique_ptr<Redis>& Storage::GetDBInstance(const Slice& key) { return GetDBInstance(key.ToString()); }
 
 std::unique_ptr<Redis>& Storage::GetDBInstance(const std::string& key) {
   auto inst_index = slot_indexer_->GetInstanceID(GetSlotID(slot_num_, key));
@@ -1470,12 +1468,24 @@ int32_t Storage::Persist(const Slice& key) {
   return count;
 }
 
-int64_t Storage::TTL(const Slice& key) {
+int64_t Storage::PTTL(const Slice& key) {
   int64_t timestamp = 0;
   auto& inst = GetDBInstance(key);
   Status s = inst->TTL(key, &timestamp);
   if (s.ok() || s.IsNotFound()) {
     return timestamp;
+  } else if (!s.IsNotFound()) {
+    return -3;
+  }
+  return timestamp;
+}
+
+int64_t Storage::TTL(const Slice& key) {
+  int64_t timestamp = 0;
+  auto& inst = GetDBInstance(key);
+  Status s = inst->TTL(key, &timestamp);
+  if (s.ok() || s.IsNotFound()) {
+    return timestamp > 0 ? timestamp / 1000 : timestamp;
   } else if (!s.IsNotFound()) {
     return -3;
   }
@@ -1775,7 +1785,7 @@ Status Storage::SetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys) {
 }
 
 Status Storage::SetSmallCompactionThreshold(uint32_t small_compaction_threshold) {
-  for (const auto& inst: insts_) {
+  for (const auto& inst : insts_) {
     inst->SetSmallCompactionThreshold(small_compaction_threshold);
   }
   return Status::OK();
