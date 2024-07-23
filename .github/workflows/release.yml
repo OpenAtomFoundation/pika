@@ -47,9 +47,50 @@ jobs:
           name: ${{ matrix.name }}.sha256sum
           path: build/${{ matrix.name }}.sha256sum
 
+  rocky:
+    runs-on: ubuntu-latest
+    container:
+      image: rockylinux:9
+    env:
+      name: ${{ github.event.repository.name }}-${{ github.ref_name }}-rocky-amd64.tar.gz
+    steps:
+      - name: Install deps
+        run: |
+          dnf update -y
+          dnf install -y bash cmake net-tools
+          dnf install -y wget git autoconf gcc perl-Digest-SHA
+          dnf install -y tcl which tar g++ tar epel-release gcc-c++ libstdc++-devel
+          dnf install -y gcc-toolset-13
+
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Release build os - rocky
+        run: |
+          chmod +x ci/release-build.sh
+          ./ci/release-build.sh install rocky ${{ env.BUILD_TYPE }} -xe
+
+      - name: Calculate checksum and rename binary
+        shell: bash
+        run: ./ci/release-build.sh checksum ${{ github.event.repository.name }} ${{ env.name }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.name }}
+          path: build/${{ env.name }}
+
+      - name: Upload checksum of artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.name }}.sha256sum
+          path: build/${{ env.name }}.sha256sum
+
   release:
     name: Release artifacts
-    needs: [ build ]
+    needs: [ build, rocky ]
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
