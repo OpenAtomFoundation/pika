@@ -6,7 +6,6 @@ metadata:
   labels: {{ include "pika-cluster.labels" . | nindent 4 }}
 spec:
   clusterDefinitionRef: pika  # ref clusterDefinition.name
-  #clusterVersionRef: pika-{{ default .Chart.AppVersion .Values.clusterVersionOverride }} # ref clusterVersion.name 已弃用
   topology: replication-codis
   terminationPolicy: {{ .Values.terminationPolicy }}
   affinity:
@@ -17,13 +16,14 @@ spec:
   tolerations: {{ . | toYaml | nindent 4 }}
   {{- end }}
   ## define pika group with shardingSpecs API which is supported in KubeBlocks v0.8.2
-  {{- if not .Values.useLegacyCompDef }}
   shardingSpecs:
   - name: group
     shards: {{ .Values.groupCount }}
     template:
       name: pika
       componentDef: pika-group
+      enabledLogs: {{ $.Values.enabledLogs | toJson | indent 4 }}
+      serviceAccountName: {{ include "pika-cluster.serviceAccountName" $ }}
       replicas: {{ add (int $.Values.slaveCount) 1 | default 2 }}
       {{- with  $.Values.resources.pikaGroup }}
       resources:
@@ -47,18 +47,15 @@ spec:
                 storage: {{ .size }}
         {{- end }}
       {{- end }}
-  {{- end }}
   componentSpecs:
-    {{- if .Values.useLegacyCompDef }}
-    {{- range $i := until (int .Values.groupCount) }}
-    - name: pika-group-{{ add ($i) 1 }} # user-defined
+    - name: pika-group # user-defined
       componentDef: pika-group # ref clusterDefinition.componentDefs[x].name
-      # monitor: {{ $.Values.monitor.enabled | default false }} 已被弃用
+      monitor: {{ $.Values.monitor.enabled | default false }}
       enabledLogs: {{ $.Values.enabledLogs | toJson | indent 4 }}
       replicas: {{ add (int $.Values.slaveCount) 1 | default 2 }}
       serviceAccountName: {{ include "pika-cluster.serviceAccountName" $ }}
-      #switchPolicy: 已被弃用
-      #  type: {{ $.Values.switchPolicy.type}} 
+      switchPolicy:
+        type: {{ $.Values.switchPolicy.type}}
       {{- with  $.Values.resources.pikaGroup }}
       resources:
         limits:
@@ -80,8 +77,6 @@ spec:
               requests:
                 storage: {{ .size }}
         {{- end }}
-      {{- end }}
-      {{- end }}
       {{- end }}
     - name: etcd # user-defined
       componentDef: pika-etcd # ref componentDefinition name
@@ -112,19 +107,6 @@ spec:
               requests:
                 storage: {{ .size }}
         {{- end }}
-      {{- end }}
-    - name: pika-exporter
-      componentDef: pika-exporter # ref componentDefinition name
-      #monitor: {{ .Values.monitor.enabled | default false }}
-      replicas: 1
-      {{- with  .Values.resources.pikaExporter }}
-      resources:
-        limits:
-          cpu: {{ .limits.cpu | quote }}
-          memory: {{ .limits.memory | quote }}
-        requests:
-          cpu: {{ .requests.cpu | quote }}
-          memory: {{ .requests.memory | quote }}
       {{- end }}
     - name: codis-proxy
       componentDef: pika-codis-proxy # ref componentDefinition name

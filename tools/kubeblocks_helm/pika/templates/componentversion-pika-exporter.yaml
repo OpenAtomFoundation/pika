@@ -1,0 +1,18 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentVersion
+metadata:
+  name: pika-exporter
+  labels:
+    {{- include "pika.labels" . | nindent 4 }}
+spec:
+  compatibilityRules:
+    - compDefs: 
+      - pika-exporter
+      releases: 
+        - 3.5.3
+  releases:
+    - name: 3.5.3
+      changes:
+      serviceVersion: 3.5.3
+      images:
+        codis-dashboard: {{ include "pikaExporter.image" . }}

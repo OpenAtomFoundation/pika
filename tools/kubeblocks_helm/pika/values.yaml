@@ -42,9 +42,6 @@ roleProbe:
     failureThreshold: 2
     periodSeconds: 1
     timeoutSeconds: 1
-
-componentVersionOverride: 3.5.3
 nameOverride: ""
 fullnameOverride: ""
-
 clusterDomain: ".cluster.local"

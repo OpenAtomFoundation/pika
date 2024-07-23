@@ -9,15 +9,13 @@ spec:
   - name: replication-codis
     components:
     - name: pika-group
-      compDef: componentdefinition-pika-group
+      compDef: pika-group
     - name: etcd
-      compDef: componentdefinition-etcd
-    - name: pika-exporter
-      compDef: componentdefinition-pika-exporter
+      compDef: pika-etcd
     - name: codis-proxy
-      compDef: componentdefinition-codis-proxy
+      compDef: pika-codis-proxy
     - name: codis-fe
-      compDef: componentdefinition-codis-fe
+      compDef: pika-codis-fe
     - name: codis-dashboard
-      compDef: componentdefinition-codis-dashboard
+      compDef: pika-codis-dashboard
     default: true
