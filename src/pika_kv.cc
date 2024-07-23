@@ -1442,7 +1442,7 @@ void PttlCmd::Do() {
 }
 
 void PttlCmd::ReadCache() {
-  // redis cache donnot support pttl cache, so read directly from db
+  // redis cache don't support pttl cache, so read directly from db
   DoThroughDB();
 }
 
