@@ -1472,7 +1472,9 @@ int64_t Storage::PTTL(const Slice& key) {
   int64_t timestamp = 0;
   auto& inst = GetDBInstance(key);
   Status s = inst->TTL(key, &timestamp);
-  if (!s.IsNotFound()) {
+  if (s.ok() || s.IsNotFound()) {
+    return timestamp;
+  } else if (!s.IsNotFound()) {
     return -3;
   }
   return timestamp;
@@ -1482,7 +1484,9 @@ int64_t Storage::TTL(const Slice& key) {
   int64_t timestamp = 0;
   auto& inst = GetDBInstance(key);
   Status s = inst->TTL(key, &timestamp);
-  if (!s.IsNotFound()) {
+  if (s.ok() || s.IsNotFound()) {
+    return timestamp > 0 ? timestamp / 1000 : timestamp;
+  } else if (!s.IsNotFound()) {
     return -3;
   }
   return timestamp > 0 ? timestamp / 1000 : timestamp;
