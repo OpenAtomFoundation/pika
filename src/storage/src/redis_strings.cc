@@ -33,7 +33,7 @@ Status Redis::ScanStringsKeyNum(KeyInfo* key_info) {
   iterator_options.snapshot = snapshot;
   iterator_options.fill_cache = false;
 
-  int64_t curtime = rocksdb::Env::Default()->NowMicros() / 1000;
+  int64_t curtime = pstd::NowMillis();
 
   // Note: This is a string type and does not need to pass the column family as
   // a parameter, use the default column family
@@ -377,7 +377,7 @@ void ClearValueAndSetTTL(std::string* value, int64_t* ttl, int64_t ttl_value) {
 }
 
 int64_t CalculateTTL(int64_t expiry_time) {
-  int64_t current_time = rocksdb::Env::Default()->NowMicros() / 1000;
+  int64_t current_time = pstd::NowMillis();
   return expiry_time - current_time >= 0 ? expiry_time - current_time : -2;
 }
 
@@ -553,7 +553,7 @@ Status Redis::GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t 
       if (*ttl == 0) {
         *ttl = -1;
       } else {
-        int64_t curtime = rocksdb::Env::Default()->NowMicros() / 1000;
+        int64_t curtime = pstd::NowMillis();
         *ttl = *ttl - curtime >= 0 ? *ttl - curtime : -2;
       }
 
@@ -1466,7 +1466,7 @@ Status Redis::StringsTTL(const Slice& key, int64_t* timestamp, std::string&& pre
       if (*timestamp == 0) {
         *timestamp = -1;
       } else {
-        int64_t curtime = rocksdb::Env::Default()->NowMicros() / 1000;
+        int64_t curtime = pstd::NowMillis();
         *timestamp = *timestamp - curtime >= 0 ? *timestamp - curtime : -2;
       }
     }

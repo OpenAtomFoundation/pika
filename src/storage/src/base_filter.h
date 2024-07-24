@@ -28,7 +28,7 @@ class BaseMetaFilter : public rocksdb::CompactionFilter {
   BaseMetaFilter() = default;
   bool Filter(int level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
               bool* value_changed) const override {
-    auto cur_time = rocksdb::Env::Default()->NowMicros() / 1000;
+    auto cur_time = pstd::NowMillis();
     /*
      * For the filtering of meta information, because the field designs of string
      * and list are different, their filtering policies are written separately.
@@ -179,7 +179,7 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
       return true;
     }
 
-    int64_t unix_time = rocksdb::Env::Default()->NowMicros() / 1000;
+    int64_t unix_time = pstd::NowMillis();
     if (cur_meta_etime_ != 0 && cur_meta_etime_ < static_cast<uint64_t>(unix_time)) {
       TRACE("Drop[Timeout]");
       return true;

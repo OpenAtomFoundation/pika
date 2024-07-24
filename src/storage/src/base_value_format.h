@@ -41,7 +41,7 @@ constexpr char DataTypeToTag(DataType type) {
 class InternalValue {
 public:
  explicit InternalValue(DataType type, const rocksdb::Slice& user_value) : type_(type), user_value_(user_value) {
-   ctime_ = pstd::NowMicros() / 1e6;
+   ctime_ = pstd::NowMillis();
  }
 
  virtual ~InternalValue() {
@@ -52,7 +52,7 @@ public:
   void SetEtime(uint64_t etime = 0) { etime_ = etime; }
   void setCtime(uint64_t ctime) { ctime_ = ctime; }
   rocksdb::Status SetRelativeTimestamp(int64_t ttl) {
-    int64_t unix_time = rocksdb::Env::Default()->NowMicros() / 1000;
+    int64_t unix_time = pstd::NowMillis();
     etime_ = uint64_t(unix_time) + ttl * 1000;
     return rocksdb::Status::OK();
   }
@@ -122,7 +122,7 @@ public:
   }
 
   void SetRelativeTimestamp(int64_t ttl) {
-    int64_t unix_time = rocksdb::Env::Default()->NowMicros() / 1000;
+    int64_t unix_time = pstd::NowMillis();
     etime_ = unix_time + ttl * 1000;
     SetEtimeToValue();
   }
@@ -133,7 +133,7 @@ public:
     if (etime_ == 0) {
       return false;
     }
-    int64_t unix_time = rocksdb::Env::Default()->NowMicros() / 1000;
+    int64_t unix_time = pstd::NowMillis();
     return etime_ < unix_time;
   }
 

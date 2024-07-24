@@ -51,7 +51,7 @@ class ListsMetaValue : public InternalValue {
   }
 
   uint64_t UpdateVersion() {
-    int64_t unix_time = rocksdb::Env::Default()->NowMicros() / 1000;
+    int64_t unix_time = pstd::NowMillis();
     if (version_ >= static_cast<uint64_t>(unix_time)) {
       version_++;
     } else {
@@ -197,7 +197,7 @@ class ParsedListsMetaValue : public ParsedInternalValue {
   }
 
   uint64_t UpdateVersion() {
-    int64_t unix_time = rocksdb::Env::Default()->NowMicros() / 1000;
+    int64_t unix_time = pstd::NowMillis();
     if (version_ >= static_cast<uint64_t>(unix_time)) {
       version_++;
     } else {
