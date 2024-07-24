@@ -940,15 +940,13 @@ TEST_F(StringsTest, BitPosTest) {
 
 // PKSetexAt
 TEST_F(StringsTest, PKSetexAtTest) {
-#ifdef OS_MACOSX
-  return ;
-#endif
-  int64_t unix_time = rocksdb::Env::Default()->NowMicros() / 1000;
+  int64_t unix_time;
   int64_t ttl_ret;
   std::map<storage::DataType, Status> type_status;
 
   // ***************** Group 1 Test *****************
-  s = db.PKSetexAt("GP1_PKSETEX_KEY", "VALUE", unix_time + 100);
+  unix_time = rocksdb::Env::Default()->NowMicros() / 1000;
+  s = db.PKSetexAt("GP1_PKSETEX_KEY", "VALUE", unix_time + 100*1000);
   ASSERT_TRUE(s.ok());
 
   type_status.clear();
@@ -958,9 +956,10 @@ TEST_F(StringsTest, PKSetexAtTest) {
   ASSERT_GE(ttl_ret, 90);
 
   // ***************** Group 2 Test *****************
+  unix_time = rocksdb::Env::Default()->NowMicros() / 1000;
   s = db.Set("GP2_PKSETEX_KEY", "VALUE");
   ASSERT_TRUE(s.ok());
-  s = db.PKSetexAt("GP2_PKSETEX_KEY", "VALUE", unix_time + 100);
+  s = db.PKSetexAt("GP2_PKSETEX_KEY", "VALUE", unix_time + 100*1000);
   ASSERT_TRUE(s.ok());
 
   type_status.clear();
@@ -970,7 +969,8 @@ TEST_F(StringsTest, PKSetexAtTest) {
   ASSERT_GE(ttl_ret, 90);
 
   // ***************** Group 3 Test *****************
-  s = db.PKSetexAt("GP3_PKSETEX_KEY", "VALUE", unix_time - 100);
+  unix_time = rocksdb::Env::Default()->NowMicros() / 1000;
+  s = db.PKSetexAt("GP3_PKSETEX_KEY", "VALUE", unix_time - 100*1000);
   ASSERT_TRUE(s.ok());
 
   type_status.clear();
@@ -978,9 +978,10 @@ TEST_F(StringsTest, PKSetexAtTest) {
   ASSERT_EQ(ttl_ret, -2);
 
   // ***************** Group 4 Test *****************
+  unix_time = rocksdb::Env::Default()->NowMicros() / 1000;
   s = db.Set("GP4_PKSETEX_KEY", "VALUE");
   ASSERT_TRUE(s.ok());
-  s = db.PKSetexAt("GP4_PKSETEX_KEY", "VALUE", unix_time - 100);
+  s = db.PKSetexAt("GP4_PKSETEX_KEY", "VALUE", unix_time - 100*1000);
   ASSERT_TRUE(s.ok());
 
   type_status.clear();
@@ -988,6 +989,7 @@ TEST_F(StringsTest, PKSetexAtTest) {
   ASSERT_EQ(ttl_ret, -2);
 
   // ***************** Group 5 Test *****************
+  unix_time = rocksdb::Env::Default()->NowMicros() / 1000;
   s = db.PKSetexAt("GP5_PKSETEX_KEY", "VALUE", -unix_time);
   ASSERT_TRUE(s.ok());
 
@@ -996,6 +998,7 @@ TEST_F(StringsTest, PKSetexAtTest) {
   ASSERT_EQ(ttl_ret, -2);
 
   // ***************** Group 6 Test *****************
+  unix_time = rocksdb::Env::Default()->NowMicros() / 1000;
   s = db.Set("GP6_PKSETEX_KEY", "VALUE");
   ASSERT_TRUE(s.ok());
   s = db.PKSetexAt("GP6_PKSETEX_KEY", "VALUE", -unix_time);
