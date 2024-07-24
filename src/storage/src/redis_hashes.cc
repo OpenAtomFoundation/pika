@@ -1119,7 +1119,7 @@ Status Redis::PKHRScanRange(const Slice& key, const Slice& field_start, const st
       return Status::NotFound();
     } else {
       uint64_t version = parsed_hashes_meta_value.Version();
-      int32_t start_key_version = start_no_limit ? version + 1 : version;
+      uint64_t start_key_version = start_no_limit ? version + 1 : version;
       std::string start_key_field = start_no_limit ? "" : field_start.ToString();
       HashesDataKey hashes_data_prefix(key, version, Slice());
       HashesDataKey hashes_start_data_key(key, start_key_version, start_key_field);
