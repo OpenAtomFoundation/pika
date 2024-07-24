@@ -32,3 +32,7 @@ func (s *Server) Close() {
 func (s *Server) GetMessage() {
 
 }
+
+func (s *Server) SendMetaSync() {
+
+}
