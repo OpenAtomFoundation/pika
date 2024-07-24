@@ -9,7 +9,7 @@ set_instance_role() {
 
 # set group id
 set_group_id() {
-  GROUP_ID=${KB_POD_NAME##*-}
+  GROUP_ID=${KB_COMP_NAME##*-}
   echo "GROUP_ID: "${GROUP_ID}
 }
 

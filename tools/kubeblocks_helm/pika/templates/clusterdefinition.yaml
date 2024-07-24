@@ -4,18 +4,3 @@ metadata:
   name: pika
   labels:
     {{- include "pika.labels" . | nindent 4 }}
-spec:
-  topologies: 
-  - name: replication-codis
-    components:
-    - name: pika-group
-      compDef: pika-group
-    - name: etcd
-      compDef: pika-etcd
-    - name: codis-proxy
-      compDef: pika-codis-proxy
-    - name: codis-fe
-      compDef: pika-codis-fe
-    - name: codis-dashboard
-      compDef: pika-codis-dashboard
-    default: true

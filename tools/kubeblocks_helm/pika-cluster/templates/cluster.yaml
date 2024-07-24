@@ -5,8 +5,6 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels: {{ include "pika-cluster.labels" . | nindent 4 }}
 spec:
-  clusterDefinitionRef: pika  # ref clusterDefinition.name
-  topology: replication-codis
   terminationPolicy: {{ .Values.terminationPolicy }}
   affinity:
     {{- with .Values.topologyKeys }}
@@ -15,7 +13,6 @@ spec:
   {{- with $.Values.tolerations }}
   tolerations: {{ . | toYaml | nindent 4 }}
   {{- end }}
-  ## define pika group with shardingSpecs API which is supported in KubeBlocks v0.8.2
   shardingSpecs:
   - name: group
     shards: {{ .Values.groupCount }}
@@ -48,36 +45,6 @@ spec:
         {{- end }}
       {{- end }}
   componentSpecs:
-    - name: pika-group # user-defined
-      componentDef: pika-group # ref clusterDefinition.componentDefs[x].name
-      monitor: {{ $.Values.monitor.enabled | default false }}
-      enabledLogs: {{ $.Values.enabledLogs | toJson | indent 4 }}
-      replicas: {{ add (int $.Values.slaveCount) 1 | default 2 }}
-      serviceAccountName: {{ include "pika-cluster.serviceAccountName" $ }}
-      switchPolicy:
-        type: {{ $.Values.switchPolicy.type}}
-      {{- with  $.Values.resources.pikaGroup }}
-      resources:
-        limits:
-          cpu: {{ .limits.cpu | quote }}
-          memory: {{ .limits.memory | quote }}
-        requests:
-          cpu: {{ .requests.cpu | quote }}
-          memory: {{ .requests.memory | quote }}
-      {{- end }}
-      {{- if $.Values.persistence.enabled }}
-      volumeClaimTemplates:
-        {{- with  $.Values.persistence.pikaData }}
-        - name: data # ref clusterdefinition components.containers.volumeMounts.name
-          spec:
-            storageClassName: {{ .storageClassName }}
-            accessModes:
-              - ReadWriteOnce
-            resources:
-              requests:
-                storage: {{ .size }}
-        {{- end }}
-      {{- end }}
     - name: etcd # user-defined
       componentDef: pika-etcd # ref componentDefinition name
       #monitor: {{ .Values.monitor.enabled | default false }}
