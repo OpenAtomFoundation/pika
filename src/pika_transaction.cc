@@ -258,7 +258,7 @@ void WatchCmd::DoInitial() {
   size_t pos = 1;
   while (pos < argv_.size()) {
     keys_.emplace_back(argv_[pos]);
-    db_keys_.push_back(db_name() + "_" +argv_[pos++]);
+    db_keys_.push_back(db_name() + "_" + argv_[pos++]);
   }
 }
 
