@@ -891,7 +891,7 @@ class PikaConf : public pstd::BaseConf {
  private:
   // TODO: replace mutex with atomic value
   int port_ = 0;
-  int slave_priority_ = 0;
+  int slave_priority_ = 100;
   int thread_num_ = 0;
   int thread_pool_size_ = 0;
   int slow_cmd_thread_pool_size_ = 0;
