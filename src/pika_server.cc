@@ -40,6 +40,7 @@ void DoPurgeDir(void* arg) {
   LOG(INFO) << "Delete dir: " << *path << " done";
 }
 
+
 PikaServer::PikaServer()
     : exit_(false),
       slow_cmd_thread_pool_flag_(g_pika_conf->slow_cmd_pool()),
@@ -819,6 +820,7 @@ void PikaServer::PurgeDir(const std::string& path) {
   auto dir_path = new std::string(path);
   PurgeDirTaskSchedule(&DoPurgeDir, static_cast<void*>(dir_path));
 }
+
 
 void PikaServer::PurgeDirTaskSchedule(void (*function)(void*), void* arg) {
   purge_thread_.set_thread_name("PurgeDirTask");

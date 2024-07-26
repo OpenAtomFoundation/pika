@@ -60,7 +60,7 @@ void ExecCmd::Do() {
       client_conn->SetAllTxnFailed();
     } else if (cmd->name() == kCmdNameFlushdb) {
       auto flushdb = std::dynamic_pointer_cast<FlushdbCmd>(cmd);
-      flushdb->FlushAllDBsWithoutLock();
+      flushdb->DoWithoutLock();
       if (cmd->res().ok()) {
         cmd->res().SetRes(CmdRes::kOk);
       }

@@ -520,6 +520,7 @@ void SelectCmd::Do() {
 }
 
 void FlushallCmd::DoInitial() {
+  flushall_succeed_ = false;
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameFlushall);
     return;
@@ -538,13 +539,20 @@ void FlushallCmd::Do() {
   for (const auto& db_item : g_pika_server->GetDB()) {
     db_item.second->DBLock();
   }
-  FlushAllWithoutLock();
+  flushall_succeed_ = FlushAllWithoutLock();
   for (const auto& db_item : g_pika_server->GetDB()) {
     db_item.second->DBUnlock();
   }
   g_pika_rm->DBUnlock();
-  if (res_.ok()) {
+  if (flushall_succeed_) {
     res_.SetRes(CmdRes::kOk);
+  } else if (res_.ret() == CmdRes::kErrOther){
+    //flushdb failed and the res_ was set
+  } else {
+    //flushall failed, but res_ was not set
+    res_.SetRes(CmdRes::kErrOther,
+                "Flushall failed, maybe only some of the dbs successfully flushed while some not, check WARNING/ERROR log to know "
+                "more, you can try again moment later");
   }
 }
 
@@ -553,37 +561,55 @@ void FlushallCmd::DoThroughDB() {
 }
 
 void FlushallCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+  if (!flushall_succeed_) {
+    //flushdb failed, also don't clear the cache
+    return;
+  }
   // clear cache
   if (PIKA_CACHE_NONE != g_pika_conf->cache_mode()) {
     g_pika_server->ClearCacheDbAsync(db);
   }
 }
 
-void FlushallCmd::FlushAllWithoutLock() {
+bool FlushallCmd::FlushAllWithoutLock() {
   for (const auto& db_item : g_pika_server->GetDB()) {
     std::shared_ptr<DB> db = db_item.second;
     DBInfo p_info(db->GetDBName());
     if (g_pika_rm->GetSyncMasterDBs().find(p_info) == g_pika_rm->GetSyncMasterDBs().end()) {
-      res_.SetRes(CmdRes::kErrOther, "DB not found");
-      return;
+      LOG(ERROR) << p_info.db_name_ + " not found when flushall db";
+      res_.SetRes(CmdRes::kErrOther,p_info.db_name_ + " not found when flushall db");
+      return false;
     }
-    DoWithoutLock(db);
+    bool success = DoWithoutLock(db);
+    if (!success) { return false; }
   }
-  if (res_.ok()) {
-    res_.SetRes(CmdRes::kOk);
-  }
+  return true;
 }
 
-void FlushallCmd::DoWithoutLock(std::shared_ptr<DB> db) {
+bool FlushallCmd::DoWithoutLock(std::shared_ptr<DB> db) {
   if (!db) {
-    LOG(INFO) << "Flushall, but DB not found";
-  } else {
-    db->FlushDBWithoutLock();
-    DoUpdateCache(db);
+    LOG(ERROR) << "Flushall, but DB not found";
+    res_.SetRes(CmdRes::kErrOther,db->GetDBName() + " not found when flushall db");
+    return false;
+  }
+  bool success = db->FlushDBWithoutLock();
+  if (!success) {
+    // if the db is not flushed, return before clear the cache
+    res_.SetRes(CmdRes::kErrOther,db->GetDBName() + " flushall failed due to other Errors, please check Error/Warning log to know more");
+    return false;
+  }
+  DoUpdateCache(db);
+
+  return true;
+}
+void FlushallCmd::DoBinlog() {
+  if (flushall_succeed_) {
+    Cmd::DoBinlog();
   }
 }
 
 void FlushdbCmd::DoInitial() {
+  flush_succeed_ = false;
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameFlushdb);
     return;
@@ -610,16 +636,22 @@ void FlushdbCmd::DoInitial() {
 
 void FlushdbCmd::Do() {
   if (!db_) {
-    res_.SetRes(CmdRes::kInvalidDB);
+    res_.SetRes(CmdRes::kInvalidDB, "DB not found while flushdb");
+    return;
+  }
+  if (db_->IsKeyScaning()) {
+    res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
+    return;
+  }
+  std::lock_guard s_prw(g_pika_rm->GetDBLock());
+  std::lock_guard l_prw(db_->GetDBLock());
+  flush_succeed_ = DoWithoutLock();
+  if (flush_succeed_) {
+    res_.SetRes(CmdRes::kOk);
+  } else if (res_.ret() == CmdRes::kErrOther || res_.ret() == CmdRes::kInvalidParameter) {
+    //flushdb failed and res_ was set
   } else {
-    if (db_->IsKeyScaning()) {
-      res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
-    } else {
-      std::lock_guard s_prw(g_pika_rm->GetDBLock());
-      std::lock_guard l_prw(db_->GetDBLock());
-      FlushAllDBsWithoutLock();
-      res_.SetRes(CmdRes::kOk);
-    }
+    res_.SetRes(CmdRes::kErrOther, "flushdb failed, maybe you cna try again later(check WARNING/ERROR log to know more)");
   }
 }
 
@@ -628,31 +660,34 @@ void FlushdbCmd::DoThroughDB() {
 }
 
 void FlushdbCmd::DoUpdateCache() {
+  if (!flush_succeed_) {
+    //if flushdb failed, also do not clear the cache
+    return;
+  }
   // clear cache
   if (g_pika_conf->cache_mode() != PIKA_CACHE_NONE) {
     g_pika_server->ClearCacheDbAsync(db_);
   }
 }
 
-void FlushdbCmd::FlushAllDBsWithoutLock() {
+bool FlushdbCmd::DoWithoutLock() {
+  if (!db_) {
+    LOG(ERROR) << db_name_ << " Flushdb, but DB not found";
+    res_.SetRes(CmdRes::kErrOther, db_name_ + " Flushdb, but DB not found");
+    return false;
+  }
   DBInfo p_info(db_->GetDBName());
   if (g_pika_rm->GetSyncMasterDBs().find(p_info) == g_pika_rm->GetSyncMasterDBs().end()) {
-    res_.SetRes(CmdRes::kErrOther, "DB not found");
-    return;
+    LOG(ERROR) << "DB not found when flushing " << db_->GetDBName();
+    res_.SetRes(CmdRes::kErrOther, db_->GetDBName() + " Flushdb, but DB not found");
+    return false;
   }
-  DoWithoutLock();
+  return db_->FlushDBWithoutLock();
 }
 
-void FlushdbCmd::DoWithoutLock() {
-  if (!db_) {
-    LOG(INFO) << "Flushdb, but DB not found";
-  } else {
-    if (db_name_ == "all") {
-      db_->FlushDBWithoutLock();
-    } else {
-      //Floyd does not support flushdb by type
-      LOG(ERROR) << "cannot flushdb by type in floyd";
-    }
+void FlushdbCmd::DoBinlog() {
+  if (flush_succeed_) {
+    Cmd::DoBinlog();
   }
 }
 
