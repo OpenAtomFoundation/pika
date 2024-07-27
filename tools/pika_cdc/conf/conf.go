@@ -1,12 +1,17 @@
 package conf
 
 import (
-	"gopkg.in/yaml.v3"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 )
 
 type PikaCdcConfig struct {
@@ -32,6 +37,16 @@ func init() {
 	if err != nil {
 		log.Fatal("fail to yaml unmarshal:", err)
 	}
+
+	logrus.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp: true,
+		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+			return "", fmt.Sprintf("%s:%d", path.Base(f.File), f.Line)
+		},
+	})
+
+	logrus.SetReportCaller(true)
+	logrus.SetOutput(os.Stdout)
 }
 
 func (c *PikaCdcConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
