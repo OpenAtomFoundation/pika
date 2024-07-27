@@ -40,7 +40,8 @@ public:
     dst += user_value_.size();
     memcpy(dst, reserve_, kSuffixReserveLength);
     dst += kSuffixReserveLength;
-    EncodeFixed64(dst, ctime_);
+    uint64_t ctime = (ctime_ |= (1LL << 63));
+    EncodeFixed64(dst, ctime);
     dst += kTimestampLength;
     return rocksdb::Slice(start_pos, needed);
   }
@@ -58,7 +59,8 @@ public:
     if (value_->size() >= kBaseDataValueSuffixLength) {
       user_value_ = rocksdb::Slice(value_->data(), value_->size() - kBaseDataValueSuffixLength);
       memcpy(reserve_, value_->data() + user_value_.size(), kSuffixReserveLength);
-      ctime_ = DecodeFixed64(value_->data() + user_value_.size() + kSuffixReserveLength);
+      uint64_t ctime = DecodeFixed64(value_->data() + user_value_.size() + kSuffixReserveLength);
+      ctime_ = (ctime &= ~(1LL << 63));
     }
   }
 
@@ -70,7 +72,8 @@ public:
     if (value.size() >= kBaseDataValueSuffixLength) {
       user_value_ = rocksdb::Slice(value.data(), value.size() - kBaseDataValueSuffixLength);
       memcpy(reserve_, value.data() + user_value_.size(), kSuffixReserveLength);
-      ctime_ = DecodeFixed64(value.data() + user_value_.size() + kSuffixReserveLength);
+      uint64_t ctime = DecodeFixed64(value.data() + user_value_.size() + kSuffixReserveLength);
+      ctime_ = (ctime &= ~(1LL << 63));
     }
   }
 
