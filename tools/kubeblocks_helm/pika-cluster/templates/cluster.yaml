@@ -13,6 +13,7 @@ spec:
   {{- with $.Values.tolerations }}
   tolerations: {{ . | toYaml | nindent 4 }}
   {{- end }}
+  {{- if not .Values.useLegacyCompDef }}
   shardingSpecs:
   - name: group
     shards: {{ .Values.groupCount }}
@@ -44,7 +45,39 @@ spec:
                 storage: {{ .size }}
         {{- end }}
       {{- end }}
+  {{- end }}
   componentSpecs:
+    {{- if .Values.useLegacyCompDef }}
+    {{- range $i := until (int .Values.groupCount) }}
+    - name: pika-group-{{ add ($i) 1 }} # user-defined
+      componentDef: pika-group # ref clusterDefinition.componentDefs[x].name
+      enabledLogs: {{ $.Values.enabledLogs | toJson | indent 4 }}
+      replicas: {{ add (int $.Values.slaveCount) 1 | default 2 }}
+      serviceAccountName: {{ include "pika-cluster.serviceAccountName" $ }}
+      {{- with  $.Values.resources.pikaGroup }}
+      resources:
+        limits:
+          cpu: {{ .limits.cpu | quote }}
+          memory: {{ .limits.memory | quote }}
+        requests:
+          cpu: {{ .requests.cpu | quote }}
+          memory: {{ .requests.memory | quote }}
+      {{- end }}
+      {{- if $.Values.persistence.enabled }}
+      volumeClaimTemplates:
+        {{- with  $.Values.persistence.pikaData }}
+        - name: data # ref clusterdefinition components.containers.volumeMounts.name
+          spec:
+            storageClassName: {{ .storageClassName }}
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: {{ .size }}
+        {{- end }}
+      {{- end }}
+      {{- end }}
+      {{- end }}
     - name: etcd # user-defined
       componentDef: pika-etcd # ref componentDefinition name
       #monitor: {{ .Values.monitor.enabled | default false }}
