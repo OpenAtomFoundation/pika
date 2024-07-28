@@ -367,6 +367,9 @@ Status Storage::Strlen(const Slice& key, int32_t* len) {
 
 Status Storage::PKSetexAt(const Slice& key, const Slice& value, int64_t timestamp) {
   auto& inst = GetDBInstance(key);
+  if(timestamp < 0) {
+    timestamp = pstd::NowMillis()-1;
+  }
   return inst->PKSetexAt(key, value, timestamp);
 }
 

@@ -1286,7 +1286,9 @@ Status Redis::BitPos(const Slice& key, int32_t bit, int64_t start_offset, int64_
 //TODO(wangshaoyi): timestamp uint64_t
 Status Redis::PKSetexAt(const Slice& key, const Slice& value, int64_t timestamp) {
   StringsValue strings_value(value);
-
+  if(timestamp < 0) {
+    timestamp = pstd::NowMillis()-1;
+  }
   BaseKey base_key(key);
   ScopeRecordLock l(lock_mgr_, key);
   strings_value.SetEtime(uint64_t(timestamp));
