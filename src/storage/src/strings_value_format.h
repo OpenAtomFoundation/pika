@@ -37,10 +37,10 @@ class StringsValue : public InternalValue {
     dst += kSuffixReserveLength;
     // The most significant bit is 1 for milliseconds and 0 for seconds.
     // The previous data was stored in seconds, but the subsequent data was stored in milliseconds
-    uint64_t ctime = (ctime_ | (1ULL << 63));
+    uint64_t ctime = ctime_ > 0 ? (ctime_ | (1ULL << 63)) : 0;
     EncodeFixed64(dst, ctime);
     dst += kTimestampLength;
-    uint64_t etime = (etime_ | (1ULL << 63));
+    uint64_t etime = etime_ > 0 ? (etime_ | (1ULL << 63)) : 0;
     EncodeFixed64(dst, etime);
     return {start_, needed};
   }

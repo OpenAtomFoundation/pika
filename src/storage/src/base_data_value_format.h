@@ -40,7 +40,7 @@ public:
     dst += user_value_.size();
     memcpy(dst, reserve_, kSuffixReserveLength);
     dst += kSuffixReserveLength;
-    uint64_t ctime = (ctime_ | (1ULL << 63));
+    uint64_t ctime = ctime_ > 0 ? (ctime_ | (1ULL << 63)) : 0;
     EncodeFixed64(dst, ctime);
     dst += kTimestampLength;
     return rocksdb::Slice(start_pos, needed);
