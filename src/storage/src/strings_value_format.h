@@ -37,10 +37,10 @@ class StringsValue : public InternalValue {
     dst += kSuffixReserveLength;
     // The most significant bit is 1 for milliseconds and 0 for seconds.
     // The previous data was stored in seconds, but the subsequent data was stored in milliseconds
-    uint64_t ctime = (ctime_ |= (1LL << 63));
+    uint64_t ctime = (ctime_ | (1ULL << 63));
     EncodeFixed64(dst, ctime);
     dst += kTimestampLength;
-    uint64_t etime = (etime_ |= (1LL << 63));
+    uint64_t etime = (etime_ | (1ULL << 63));
     EncodeFixed64(dst, etime);
     return {start_, needed};
   }
@@ -86,12 +86,12 @@ class ParsedStringsValue : public ParsedInternalValue {
       offset += sizeof(ctime_);
       uint64_t etime = DecodeFixed64(internal_value_str->data() + offset);
 
-      ctime_ = (ctime &= ~(1LL << 63));
+      ctime_ = (ctime & ~(1ULL << 63));
       // if ctime_==ctime, means ctime_ storaged in seconds
       if(ctime_ == ctime) {
         ctime_ *= 1000;
       }
-      etime_ = (etime &= ~(1LL << 63));
+      etime_ = (etime & ~(1ULL << 63));
       // if etime_==etime, means etime_ storaged in seconds
       if(etime == etime_) {
         etime_ *= 1000;
@@ -113,12 +113,12 @@ class ParsedStringsValue : public ParsedInternalValue {
       offset += kTimestampLength;
       uint64_t etime = DecodeFixed64(internal_value_slice.data() + offset);
 
-      ctime_ = (ctime &= ~(1LL << 63));
+      ctime_ = (ctime & ~(1ULL << 63));
       // if ctime_==ctime, means ctime_ storaged in seconds
       if(ctime_ == ctime) {
         ctime_ *= 1000;
       }
-      etime_ = (etime &= ~(1LL << 63));
+      etime_ = (etime & ~(1ULL << 63));
       // if etime_==etime, means etime_ storaged in seconds
       if(etime == etime_) {
         etime_ *= 1000;
@@ -140,7 +140,8 @@ class ParsedStringsValue : public ParsedInternalValue {
     if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() -
                   kStringsValueSuffixLength + kSuffixReserveLength;
-      EncodeFixed64(dst, ctime_);
+      uint64_t ctime = (ctime_ | (1LL << 63));
+      EncodeFixed64(dst, ctime);
     }
   }
 
@@ -148,7 +149,8 @@ class ParsedStringsValue : public ParsedInternalValue {
     if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() -
                   kStringsValueSuffixLength + kSuffixReserveLength + kTimestampLength;
-      EncodeFixed64(dst, etime_);
+      uint64_t etime = (etime_ | (1LL << 63));
+      EncodeFixed64(dst, etime);
     }
   }
 

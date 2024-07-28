@@ -46,10 +46,10 @@ class ListsMetaValue : public InternalValue {
     dst += kSuffixReserveLength;
     // The most significant bit is 1 for milliseconds and 0 for seconds.
     // The previous data was stored in seconds, but the subsequent data was stored in milliseconds
-    uint64_t ctime = (ctime_ |= (1LL << 63));
+    uint64_t ctime = (ctime_ | (1ULL << 63));
     EncodeFixed64(dst, ctime);
     dst += kTimestampLength;
-    uint64_t etime = (etime_ |= (1LL << 63));
+    uint64_t etime = (etime_ | (1ULL << 63));
     EncodeFixed64(dst, etime);
     return {start_, needed};
   }
@@ -103,12 +103,12 @@ class ParsedListsMetaValue : public ParsedInternalValue {
       uint64_t etime = DecodeFixed64(internal_value_str->data() + offset);
       offset += kTimestampLength;
 
-      ctime_ = (ctime &= ~(1LL << 63));
+      ctime_ = (ctime & ~(1ULL << 63));
       // if ctime_==ctime, means ctime_ storaged in seconds
       if(ctime_ == ctime) {
         ctime_ *= 1000;
       }
-      etime_ = (etime &= ~(1LL << 63));
+      etime_ = (etime & ~(1ULL << 63));
       // if etime_==etime, means etime_ storaged in seconds
       if(etime == etime_) {
         etime_ *= 1000;
@@ -141,12 +141,12 @@ class ParsedListsMetaValue : public ParsedInternalValue {
       uint64_t etime = DecodeFixed64(internal_value_slice.data() + offset);
       offset += kTimestampLength;
 
-      ctime_ = (ctime &= ~(1LL << 63));
+      ctime_ = (ctime & ~(1ULL << 63));
       // if ctime_==ctime, means ctime_ storaged in seconds
       if(ctime_ == ctime) {
         ctime_ *= 1000;
       }
-      etime_ = (etime &= ~(1LL << 63));
+      etime_ = (etime & ~(1ULL << 63));
       // if etime_==etime, means etime_ storaged in seconds
       if(etime == etime_) {
         etime_ *= 1000;
@@ -171,14 +171,16 @@ class ParsedListsMetaValue : public ParsedInternalValue {
   void SetCtimeToValue() override {
     if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() - 2 * kTimestampLength;
-      EncodeFixed64(dst, ctime_);
+      uint64_t ctime = (ctime_ | (1LL << 63));
+      EncodeFixed64(dst, ctime);
     }
   }
 
   void SetEtimeToValue() override {
     if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() - kTimestampLength;
-      EncodeFixed64(dst, etime_);
+      uint64_t etime = (etime_ | (1LL << 63));
+      EncodeFixed64(dst, etime);
     }
   }
 

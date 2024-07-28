@@ -40,7 +40,7 @@ public:
     dst += user_value_.size();
     memcpy(dst, reserve_, kSuffixReserveLength);
     dst += kSuffixReserveLength;
-    uint64_t ctime = (ctime_ |= (1LL << 63));
+    uint64_t ctime = (ctime_ | (1ULL << 63));
     EncodeFixed64(dst, ctime);
     dst += kTimestampLength;
     return rocksdb::Slice(start_pos, needed);
@@ -60,7 +60,7 @@ public:
       user_value_ = rocksdb::Slice(value_->data(), value_->size() - kBaseDataValueSuffixLength);
       memcpy(reserve_, value_->data() + user_value_.size(), kSuffixReserveLength);
       uint64_t ctime = DecodeFixed64(value_->data() + user_value_.size() + kSuffixReserveLength);
-      ctime_ = (ctime &= ~(1LL << 63));
+      ctime_ = (ctime & ~(1ULL << 63));
     }
   }
 
@@ -73,7 +73,7 @@ public:
       user_value_ = rocksdb::Slice(value.data(), value.size() - kBaseDataValueSuffixLength);
       memcpy(reserve_, value.data() + user_value_.size(), kSuffixReserveLength);
       uint64_t ctime = DecodeFixed64(value.data() + user_value_.size() + kSuffixReserveLength);
-      ctime_ = (ctime &= ~(1LL << 63));
+      ctime_ = (ctime & ~(1ULL << 63));
     }
   }
 
@@ -84,7 +84,8 @@ public:
   void SetCtimeToValue() override {
     if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() - kTimestampLength;
-      EncodeFixed64(dst, ctime_);
+      uint64_t ctime = (ctime_ | (1LL << 63));
+      EncodeFixed64(dst, ctime);
     }
   }
 
