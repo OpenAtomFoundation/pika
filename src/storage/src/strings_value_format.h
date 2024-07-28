@@ -140,7 +140,7 @@ class ParsedStringsValue : public ParsedInternalValue {
     if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() -
                   kStringsValueSuffixLength + kSuffixReserveLength;
-      uint64_t ctime = (ctime_ | (1LL << 63));
+      uint64_t ctime = ctime_ > 0 ? (ctime_ | (1ULL << 63)) : 0;
       EncodeFixed64(dst, ctime);
     }
   }
@@ -149,7 +149,7 @@ class ParsedStringsValue : public ParsedInternalValue {
     if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() -
                   kStringsValueSuffixLength + kSuffixReserveLength + kTimestampLength;
-      uint64_t etime = (etime_ | (1LL << 63));
+      uint64_t etime = etime_ > 0 ? (etime_ | (1ULL << 63)) : 0;
       EncodeFixed64(dst, etime);
     }
   }

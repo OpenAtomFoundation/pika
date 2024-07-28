@@ -84,7 +84,7 @@ public:
   void SetCtimeToValue() override {
     if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() - kTimestampLength;
-      uint64_t ctime = (ctime_ | (1LL << 63));
+      uint64_t ctime = ctime_ > 0 ? (ctime_ | (1ULL << 63)) : 0;
       EncodeFixed64(dst, ctime);
     }
   }

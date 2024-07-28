@@ -140,7 +140,7 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
   void SetCtimeToValue() override {
     if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() - 2 * kTimestampLength;
-      uint64_t ctime = (ctime_ | (1LL << 63));
+      uint64_t ctime = ctime_ > 0 ? (ctime_ | (1ULL << 63)) : 0;
       EncodeFixed64(dst, ctime);
     }
   }
@@ -148,7 +148,7 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
   void SetEtimeToValue() override {
     if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() - kTimestampLength;
-      uint64_t etime = (etime_ | (1LL << 63));
+      uint64_t etime = etime_ > 0 ? (etime_ | (1ULL << 63)) : 0;
       EncodeFixed64(dst, etime);
     }
   }
