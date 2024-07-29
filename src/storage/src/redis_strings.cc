@@ -1477,5 +1477,4 @@ void RedisStrings::ScanDatabase() {
   }
   delete iter;
 }
-
 }  //  namespace storage
