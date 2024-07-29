@@ -9,6 +9,12 @@ function install_deps() {
   elif [[ $OS == *"ubuntu"* ]]; then
     sudo apt-get install -y autoconf libprotobuf-dev protobuf-compiler
     sudo apt-get install -y clang-tidy-12
+  elif [[ $OS == *"rocky"* ]]; then
+    sudo dnf update -y
+    sudo dnf install -y bash cmake
+    sudo dnf install -y wget git autoconf gcc perl-Digest-SHA
+    sudo dnf install -y tcl which tar g++ tar epel-release gcc-c++ libstdc++-devel
+    sudo dnf install -y gcc-toolset-13
   else
     echo "not support $OS"
   fi
@@ -22,8 +28,8 @@ function configure_cmake() {
     cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DUSE_PIKA_TOOLS=ON -DCMAKE_BUILD_TYPE=$BUILD_TYPE
   elif [[ $OS == *"ubuntu"* ]]; then
     cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS="-s" -DCMAKE_EXE_LINKER_FLAGS="-s"
-  elif [[ $OS == *"centos"* ]]; then
-    source /opt/rh/devtoolset-10/enable
+  elif [[ $OS == *"rocky"* ]]; then
+    source /opt/rh/gcc-toolset-13/enable
     cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
   fi
   echo "configure cmake after ..."

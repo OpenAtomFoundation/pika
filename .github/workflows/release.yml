@@ -47,33 +47,27 @@ jobs:
           name: ${{ matrix.name }}.sha256sum
           path: build/${{ matrix.name }}.sha256sum
 
-  centos:
+  rocky:
     runs-on: ubuntu-latest
     container:
-      image: centos:7
+      image: rockylinux:9
     env:
-      name: ${{ github.event.repository.name }}-${{ github.ref_name }}-centos-amd64.tar.gz
+      name: ${{ github.event.repository.name }}-${{ github.ref_name }}-rocky-amd64.tar.gz
     steps:
       - name: Install deps
         run: |
-          yum install -y wget git autoconf centos-release-scl gcc perl-Digest-SHA
-          yum install -y devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-make devtoolset-10-bin-util
-          yum install -y llvm-toolset-7 llvm-toolset-7-clang tcl which 
-
-      - name: Install cmake
-        run: |
-          wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.sh
-          bash ./cmake-3.26.4-linux-x86_64.sh --skip-license --prefix=/usr
+          dnf update -y
+          dnf install -y bash cmake wget git autoconf gcc perl-Digest-SHA tcl which tar g++ tar epel-release gcc-c++ libstdc++-devel gcc-toolset-13
 
       - name: Checkout sources
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Release build os - centos
+      - name: Release build os - rocky
         run: |
           chmod +x ci/release-build.sh
-          ./ci/release-build.sh install centos ${{ env.BUILD_TYPE }} -xe
+          ./ci/release-build.sh install rocky ${{ env.BUILD_TYPE }} -xe
 
       - name: Calculate checksum and rename binary
         shell: bash
@@ -93,7 +87,7 @@ jobs:
 
   release:
     name: Release artifacts
-    needs: [ build,centos ]
+    needs: [ build, rocky ]
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
