@@ -166,10 +166,12 @@ class ConsensusCoordinator {
 
   void IncrUnfinishedAsyncWriteDbTaskCount(int32_t step_size) {
     unfinished_async_write_db_task_count_.fetch_add(step_size, std::memory_order::memory_order_seq_cst);
+    LOG(INFO) << "incur 1, curr:" << unfinished_async_write_db_task_count_.load();
   }
 
   void DecrUnfinishedAsyncWriteDbTaskCount(int32_t step_size) {
     unfinished_async_write_db_task_count_.fetch_sub(step_size, std::memory_order::memory_order_seq_cst);
+    LOG(INFO) << "decr 1, curr:" << unfinished_async_write_db_task_count_.load();
   }
 
  private:

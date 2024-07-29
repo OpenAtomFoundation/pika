@@ -44,9 +44,8 @@ struct ReplClientWriteBinlogTaskArg {
 
 struct ReplClientWriteDBTaskArg {
   const std::shared_ptr<Cmd> cmd_ptr;
-  std::function<void()> call_back_fun;
-  explicit ReplClientWriteDBTaskArg(std::shared_ptr<Cmd> _cmd_ptr, std::function<void()> call_back)
-      : cmd_ptr(std::move(_cmd_ptr)), call_back_fun(std::move(call_back)) {}
+  explicit ReplClientWriteDBTaskArg(std::shared_ptr<Cmd> _cmd_ptr)
+      : cmd_ptr(std::move(_cmd_ptr)) {}
   ~ReplClientWriteDBTaskArg() = default;
 };
 
