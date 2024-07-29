@@ -3181,16 +3181,53 @@ void PKPatternMatchDelCmd::DoInitial() {
     return;
   }
   pattern_ = argv_[1];
+  max_count_ = storage::BATCH_DELETE_LIMIT;
+  if (argv_.size() > 2) {
+    if (pstd::string2int(argv_[2].data(), argv_[2].size(), &max_count_) == 0 ||  max_count_ < 1 || max_count_ > storage::BATCH_DELETE_LIMIT) {
+      res_.SetRes(CmdRes::kInvalidInt);
+      return;
+    }
+  }
 }
 
-//TODO: may lead to inconsistent between rediscache and db, because currently it only cleans db
 void PKPatternMatchDelCmd::Do() {
-  int ret = 0;
-  rocksdb::Status s = db_->storage()->PKPatternMatchDel(type_, pattern_, &ret);
-  if (s.ok()) {
-    res_.AppendInteger(ret);
+  int64_t count = 0;
+  rocksdb::Status s = db_->storage()->PKPatternMatchDelWithRemoveKeys(pattern_, &count, &remove_keys_, max_count_);
+
+  if(s.ok()) {
+    res_.AppendInteger(count);
+    s_ = rocksdb::Status::OK();
+    for (const auto& key : remove_keys_) {
+      RemSlotKey(key, db_);
+    }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
+    if (count >= 0) {
+      s_ = rocksdb::Status::OK();
+      for (const auto& key : remove_keys_) {
+        RemSlotKey(key, db_);
+      }
+    }
+  }
+}
+
+void PKPatternMatchDelCmd::DoThroughDB() {
+  Do();
+}
+
+void PKPatternMatchDelCmd::DoUpdateCache() {
+  if(s_.ok()) {
+    db_->cache()->Del(remove_keys_);
+  }
+}
+
+void PKPatternMatchDelCmd::DoBinlog() {
+  std::string opt = "del";
+  for(auto& key: remove_keys_) {
+    argv_.clear();
+    argv_.emplace_back(opt);
+    argv_.emplace_back(key);
+    Cmd::DoBinlog();
   }
 }
 

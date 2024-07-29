@@ -475,13 +475,18 @@ class PKPatternMatchDelCmd : public Cmd {
   PKPatternMatchDelCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
   void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new PKPatternMatchDelCmd(*this); }
+  void DoBinlog() override;
 
  private:
-  storage::DataType type_ = storage::DataType::kAll;
+  storage::DataType type_;
+  std::vector<std::string> remove_keys_;
   std::string pattern_;
+  int64_t max_count_;
   void DoInitial() override;
 };
 
