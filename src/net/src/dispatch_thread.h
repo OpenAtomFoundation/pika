@@ -161,7 +161,7 @@ class DispatchThread : public ServerThread {
    */
   std::shared_mutex block_mtx_;
 
-  TimerTaskThread timerTaskThread_;
+  TimerTaskThread timer_task_thread_;
 };  // class DispatchThread
 
 }  // namespace net

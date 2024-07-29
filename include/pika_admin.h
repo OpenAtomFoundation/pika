@@ -185,11 +185,15 @@ class FlushallCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new FlushallCmd(*this); }
-  void FlushAllWithoutLock();
+  bool FlushAllWithoutLock();
+  void DoBinlog() override;
 
  private:
   void DoInitial() override;
-  void DoWithoutLock(std::shared_ptr<DB> db);
+  bool DoWithoutLock(std::shared_ptr<DB> db);
+  void Clear() override { flushall_succeed_ = false; }
+
+  bool flushall_succeed_{false};
 };
 
 class FlushdbCmd : public Cmd {
@@ -204,14 +208,19 @@ class FlushdbCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new FlushdbCmd(*this); }
-  void FlushAllDBsWithoutLock();
   std::string GetFlushDBname() { return db_name_; }
+  void DoBinlog() override;
+  bool DoWithoutLock();
 
  private:
-  std::string db_name_;
   void DoInitial() override;
-  void Clear() override { db_name_.clear(); }
-  void DoWithoutLock();
+  void Clear() override {
+    db_name_.clear();
+    flush_succeed_ = false;
+  }
+
+  bool flush_succeed_{false};
+  std::string db_name_;
 };
 
 class ClientCmd : public Cmd {
@@ -466,13 +475,18 @@ class PKPatternMatchDelCmd : public Cmd {
   PKPatternMatchDelCmd(const std::string& name, int arity, uint32_t flag)
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::ADMIN)) {}
   void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new PKPatternMatchDelCmd(*this); }
+  void DoBinlog() override;
 
  private:
-  storage::DataType type_ = storage::DataType::kAll;
+  storage::DataType type_;
+  std::vector<std::string> remove_keys_;
   std::string pattern_;
+  int64_t max_count_;
   void DoInitial() override;
 };
 

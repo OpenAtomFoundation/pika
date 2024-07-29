@@ -204,15 +204,23 @@ bool DB::FlushDBWithoutLock() {
   if (dbpath[dbpath.length() - 1] == '/') {
     dbpath.erase(dbpath.length() - 1);
   }
-  dbpath.append("_deleting/");
-  pstd::RenameFile(db_path_, dbpath);
-
+  std::string delete_suffix("_deleting_");
+  delete_suffix.append(std::to_string(NowMicros()));
+  delete_suffix.append("/");
+  dbpath.append(delete_suffix);
+  auto rename_success = pstd::RenameFile(db_path_, dbpath);
   storage_ = std::make_shared<storage::Storage>(g_pika_conf->db_instance_num(),
       g_pika_conf->default_slot_num(), g_pika_conf->classic_mode());
   rocksdb::Status s = storage_->Open(g_pika_server->storage_options(), db_path_);
   assert(storage_);
   assert(s.ok());
+  if (rename_success == -1) {
+    //the storage_->Open actually opened old RocksDB instance, so flushdb failed
+    LOG(WARNING)  << db_name_ << " FlushDB failed due to rename old db_path_ failed";
+    return false;
+  }
   LOG(INFO) << db_name_ << " Open new db success";
+
   g_pika_server->PurgeDir(dbpath);
   return true;
 }
@@ -398,16 +406,19 @@ Status DB::GetBgSaveUUID(std::string* snapshot_uuid) {
 // 2, Replace the old db
 // 3, Update master offset, and the PikaAuxiliaryThread cron will connect and do slaveof task with master
 bool DB::TryUpdateMasterOffset() {
-  std::string info_path = dbsync_path_ + kBgsaveInfoFile;
-  if (!pstd::FileExists(info_path)) {
-    LOG(WARNING) << "info path: " << info_path << " not exist";
-    return false;
-  }
-
   std::shared_ptr<SyncSlaveDB> slave_db =
       g_pika_rm->GetSyncSlaveDBByName(DBInfo(db_name_));
   if (!slave_db) {
-    LOG(WARNING) << "Slave DB: " << db_name_ << " not exist";
+    LOG(ERROR) << "Slave DB: " << db_name_ << " not exist";
+    slave_db->SetReplState(ReplState::kError);
+    return false;
+  }
+
+  std::string info_path = dbsync_path_ + kBgsaveInfoFile;
+  if (!pstd::FileExists(info_path)) {
+    LOG(WARNING) << "info path: " << info_path << " not exist, Slave DB:" << GetDBName() << " will restart the sync process...";
+    // May failed in RsyncClient, thus the complete snapshot dir got deleted
+    slave_db->SetReplState(ReplState::kTryConnect);
     return false;
   }
 
@@ -475,10 +486,15 @@ bool DB::TryUpdateMasterOffset() {
       g_pika_rm->GetSyncMasterDBByName(DBInfo(db_name_));
   if (!master_db) {
     LOG(WARNING) << "Master DB: " << db_name_ << " not exist";
+    slave_db->SetReplState(ReplState::kError);
     return false;
   }
   master_db->Logger()->SetProducerStatus(filenum, offset);
   slave_db->SetReplState(ReplState::kTryConnect);
+
+  //now full sync is finished, remove unfinished full sync count
+  g_pika_conf->RemoveInternalUsedUnfinishedFullSync(slave_db->DBName());
+
   return true;
 }
 

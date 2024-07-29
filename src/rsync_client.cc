@@ -49,7 +49,9 @@ void RsyncClient::Copy(const std::set<std::string>& file_set, int index) {
       break;
     }
   }
-  LOG(INFO) << "work_thread index: " << index << " copy remote files done";
+  if (!error_stopped_.load()) {
+    LOG(INFO) << "work_thread index: " << index << " copy remote files done";
+  }
   finished_work_cnt_.fetch_add(1);
   cond_.notify_all();
 }
@@ -77,8 +79,10 @@ bool RsyncClient::Init() {
 
 void* RsyncClient::ThreadMain() {
   if (file_set_.empty()) {
-    LOG(INFO) << "No remote files need copy, RsyncClient exit";
+    LOG(INFO) << "No remote files need copy, RsyncClient exit and going to delete dir:" << dir_;
+    DeleteDirIfExist(dir_);
     state_.store(STOP);
+    all_worker_exited_.store(true);
     return nullptr;
   }
 
@@ -89,7 +93,7 @@ void* RsyncClient::ThreadMain() {
   for (const auto& file : file_set_) {
     file_vec[index++ % GetParallelNum()].insert(file);
   }
-
+  all_worker_exited_.store(false);
   for (int i = 0; i < GetParallelNum(); i++) {
     work_threads_[i] = std::move(std::thread(&RsyncClient::Copy, this, file_vec[i], i));
   }
@@ -98,8 +102,9 @@ void* RsyncClient::ThreadMain() {
   std::ofstream outfile;
   outfile.open(meta_file_path, std::ios_base::app);
   if (!outfile.is_open()) {
-    LOG(FATAL) << "unable to open meta file " << meta_file_path << ", error:"  << strerror(errno);
-    return nullptr;
+    LOG(ERROR) << "unable to open meta file " << meta_file_path << ", error:"  << strerror(errno);
+    error_stopped_.store(true);
+    state_.store(STOP);
   }
   DEFER {
     outfile.close();
@@ -144,7 +149,18 @@ void* RsyncClient::ThreadMain() {
   }
   finished_work_cnt_.store(0);
   state_.store(STOP);
-  LOG(INFO) << "RsyncClient copy remote files done";
+  if (!error_stopped_.load()) {
+    LOG(INFO) << "RsyncClient copy remote files done";
+  } else {
+    if (DeleteDirIfExist(dir_)) {
+      //the dir_ doesn't not exist OR it's existing but successfully deleted
+      LOG(ERROR) << "RsyncClient stopped with errors, deleted:" << dir_;
+    } else {
+      //the dir_ exists but failed to delete
+      LOG(ERROR) << "RsyncClient stopped with errors, but failed to delete " << dir_ << " when cleaning";
+    }
+  }
+  all_worker_exited_.store(true);
   return nullptr;
 }
 
@@ -217,8 +233,9 @@ Status RsyncClient::CopyRemoteFile(const std::string& filename, int index) {
 
       if (resp->snapshot_uuid() != snapshot_uuid_) {
         LOG(WARNING) << "receive newer dump, reset state to STOP, local_snapshot_uuid:"
-                     << snapshot_uuid_ << "remote snapshot uuid: " << resp->snapshot_uuid();
+                     << snapshot_uuid_ << ", remote snapshot uuid: " << resp->snapshot_uuid();
         state_.store(STOP);
+        error_stopped_.store(true);
         return s;
       }
 
@@ -314,7 +331,8 @@ bool RsyncClient::ComparisonUpdate() {
     return false;
   }
 
-  state_ = RUNNING;
+  state_.store(RUNNING);
+  error_stopped_.store(false);
   LOG(INFO) << "copy meta data done, db name: " << db_name_
             << " snapshot_uuid: " << snapshot_uuid_
             << " file count: " << file_set_.size()

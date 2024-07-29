@@ -439,6 +439,7 @@ class PikaConf : public pstd::BaseConf {
   int64_t rsync_timeout_ms() {
       return rsync_timeout_ms_.load(std::memory_order::memory_order_relaxed);
   }
+
   // Slow Commands configuration
   const std::string GetSlowCmd() {
     std::shared_lock l(rwlock_);
@@ -825,6 +826,7 @@ class PikaConf : public pstd::BaseConf {
   }
 
   int64_t cache_maxmemory() { return cache_maxmemory_; }
+
   void SetSlowCmd(const std::string& value) {
     std::lock_guard l(rwlock_);
     std::string lower_value = value;
@@ -841,6 +843,40 @@ class PikaConf : public pstd::BaseConf {
     pstd::StringSplit2Set(lower_value, ',', admin_cmd_set_);
   }
 
+  void SetInternalUsedUnFinishedFullSync(const std::string& value) {
+    std::lock_guard l(rwlock_);
+    std::string lower_value = value;
+    pstd::StringToLower(lower_value);
+    TryPushDiffCommands("internal-used-unfinished-full-sync", lower_value);
+    pstd::StringSplit2Set(lower_value, ',', internal_used_unfinished_full_sync_);
+  }
+
+  void AddInternalUsedUnfinishedFullSync(const std::string& db_name) {
+    {
+      std::lock_guard l(rwlock_);
+      internal_used_unfinished_full_sync_.insert(db_name);
+      std::string lower_value = pstd::Set2String(internal_used_unfinished_full_sync_, ',');
+      pstd::StringToLower(lower_value);
+      TryPushDiffCommands("internal-used-unfinished-full-sync", lower_value);
+    }
+    ConfigRewrite();
+  }
+
+  void RemoveInternalUsedUnfinishedFullSync(const std::string& db_name) {
+    {
+      std::lock_guard l(rwlock_);
+      internal_used_unfinished_full_sync_.erase(db_name);
+      std::string lower_value = pstd::Set2String(internal_used_unfinished_full_sync_, ',');
+      pstd::StringToLower(lower_value);
+      TryPushDiffCommands("internal-used-unfinished-full-sync", lower_value);
+    }
+    ConfigRewrite();
+  }
+
+  size_t GetUnfinishedFullSyncCount() {
+    std::shared_lock l(rwlock_);
+    return internal_used_unfinished_full_sync_.size();
+  }
   void SetCacheType(const std::string &value);
   void SetCacheDisableFlag() { tmp_cache_disable_flag_ = true; }
   int zset_cache_start_direction() { return zset_cache_start_direction_; }
@@ -855,7 +891,7 @@ class PikaConf : public pstd::BaseConf {
  private:
   // TODO: replace mutex with atomic value
   int port_ = 0;
-  int slave_priority_ = 0;
+  int slave_priority_ = 100;
   int thread_num_ = 0;
   int thread_pool_size_ = 0;
   int slow_cmd_thread_pool_size_ = 0;
@@ -1014,6 +1050,9 @@ class PikaConf : public pstd::BaseConf {
   int throttle_bytes_per_second_ = 200 << 20; // 200MB/s
   int max_rsync_parallel_num_ = kMaxRsyncParallelNum;
   std::atomic_int64_t rsync_timeout_ms_ = 1000;
+
+  //Internal used metrics Persisted by pika.conf
+  std::unordered_set<std::string> internal_used_unfinished_full_sync_;
 };
 
 #endif

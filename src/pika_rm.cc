@@ -726,6 +726,17 @@ bool PikaReplicaManager::CheckSlaveDBState(const std::string& ip, const int port
   return true;
 }
 
+Status PikaReplicaManager::DeactivateSyncSlaveDB(const std::string& ip, int port) {
+  std::shared_lock l(dbs_rw_);
+  for (auto& iter : sync_slave_dbs_) {
+    std::shared_ptr<SyncSlaveDB> db = iter.second;
+    if (db->MasterIp() == ip && db->MasterPort() == port) {
+      db->Deactivate();
+    }
+  }
+  return Status::OK();
+}
+
 Status PikaReplicaManager::LostConnection(const std::string& ip, int port) {
   std::shared_lock l(dbs_rw_);
   for (auto& iter : sync_master_dbs_) {
@@ -990,7 +1001,7 @@ Status PikaReplicaManager::RunSyncSlaveDBStateMachine() {
       std::shared_ptr<DB> db =
           g_pika_server->GetDB(p_info.db_name_);
       if (db) {
-        if (!s_db->IsRsyncRunning()) {
+        if (s_db->IsRsyncExited()) {
           db->TryUpdateMasterOffset();
         }
       } else {

@@ -659,7 +659,6 @@ ExternalProject_Add(rediscache
 set(REDISCACHE_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 set(REDISCACHE_LIBRARY ${INSTALL_LIBDIR}/librediscache.a)
 
-
 option(USE_PIKA_TOOLS "compile pika-tools" OFF)
 if (USE_PIKA_TOOLS)
   ExternalProject_Add(hiredis

@@ -65,14 +65,15 @@ func (i *InfoSlave) UnmarshalJSON(b []byte) error {
 }
 
 type InfoReplication struct {
-	Role             string      `json:"role"`
-	ConnectedSlaves  int         `json:"connected_slaves"`
-	MasterHost       string      `json:"master_host"`
-	MasterPort       string      `json:"master_port"`
-	MasterLinkStatus string      `json:"master_link_status"` // down; up
-	DbBinlogFileNum  uint64      `json:"binlog_file_num"`    // db0
-	DbBinlogOffset   uint64      `json:"binlog_offset"`      // db0
-	Slaves           []InfoSlave `json:"-"`
+	Role                        string      `json:"role"`
+	ConnectedSlaves             int         `json:"connected_slaves"`
+	MasterHost                  string      `json:"master_host"`
+	MasterPort                  string      `json:"master_port"`
+	MasterLinkStatus            string      `json:"master_link_status"` // down; up
+	DbBinlogFileNum             uint64      `json:"binlog_file_num"`    // db0
+	DbBinlogOffset              uint64      `json:"binlog_offset"`      // db0
+	IsEligibleForMasterElection bool        `json:"is_eligible_for_master_election"`
+	Slaves                      []InfoSlave `json:"-"`
 }
 
 type ReplicationState struct {
@@ -108,6 +109,7 @@ func (i *InfoReplication) UnmarshalJSON(b []byte) error {
 	i.MasterPort = kvmap["master_host"]
 	i.MasterHost = kvmap["master_port"]
 	i.MasterLinkStatus = kvmap["master_link_status"]
+	i.IsEligibleForMasterElection = kvmap["is_eligible_for_master_election"] == "true"
 
 	if val, ok := kvmap["binlog_file_num"]; ok {
 		if intval, err := strconv.ParseUint(val, 10, 64); err == nil {
