@@ -86,7 +86,7 @@ class PikaReplClient {
   std::hash<std::string> str_hash;
   std::vector<std::unique_ptr<PikaReplBgWorker>> write_binlog_workers_;
   //[NOTICE] the task queue of WriteDBWorker must never be deliberately cleared,
-  // because their queue size are related with  ConsensusCoordinator::unfinished_async_write_db_task_count_
+  // because their queue size are related with  ConsensusCoordinator::async_write_db_task_count_
   // check PR # /disscussion #2807 to know more
   std::vector<std::unique_ptr<PikaReplBgWorker>> write_db_workers_;
 };

@@ -164,14 +164,12 @@ class ConsensusCoordinator {
     return tmp_stream.str();
   }
 
-  void IncrUnfinishedAsyncWriteDbTaskCount(int32_t step_size) {
-    unfinished_async_write_db_task_count_.fetch_add(step_size, std::memory_order::memory_order_seq_cst);
-    LOG(INFO) << "incur 1, curr:" << unfinished_async_write_db_task_count_.load();
+  void IncrAsyncWriteDBTaskCount(int32_t step_size) {
+    async_write_db_task_count_.fetch_add(step_size, std::memory_order::memory_order_seq_cst);
   }
 
-  void DecrUnfinishedAsyncWriteDbTaskCount(int32_t step_size) {
-    unfinished_async_write_db_task_count_.fetch_sub(step_size, std::memory_order::memory_order_seq_cst);
-    LOG(INFO) << "decr 1, curr:" << unfinished_async_write_db_task_count_.load();
+  void DecrAsyncWriteDBTaskCount(int32_t step_size) {
+    async_write_db_task_count_.fetch_sub(step_size, std::memory_order::memory_order_seq_cst);
   }
 
  private:
@@ -213,6 +211,6 @@ class ConsensusCoordinator {
   //queued or being executing by WriteDBWorkers. If a flushdb-binlog need to apply DB, it must wait
   //util this count drop to zero. you can also check pika discussion #2807 to know more
   //it is only used in slaveNode when comsuming binlog
-  std::atomic<int32_t> unfinished_async_write_db_task_count_{0};
+  std::atomic<int32_t> async_write_db_task_count_{0};
 };
 #endif  // INCLUDE_PIKA_CONSENSUS_H_

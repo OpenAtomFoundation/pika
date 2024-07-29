@@ -37,8 +37,7 @@ std::string SyncDB::DBName() {
 /* SyncMasterDB*/
 
 SyncMasterDB::SyncMasterDB(const std::string& db_name)
-    : SyncDB(db_name),  coordinator_(db_name) {
-}
+    : SyncDB(db_name),  coordinator_(db_name) {}
 
 int SyncMasterDB::GetNumberOfSlaveNode() { return coordinator_.SyncPros().SlaveSize(); }
 
