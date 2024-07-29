@@ -5,7 +5,7 @@ on:
     branches: [ "unstable", "3.5" , "4.0"]
   pull_request:
     branches: [ "unstable", "3.5" , "4.0"]
-  workflow_dispatch:
+
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: RelWithDebInfo

@@ -120,15 +120,21 @@ func parseStreamEntryID(id string) (ts int64, seqNum int64) {
 var _ = Describe("Stream Commands", func() {
 	ctx := context.TODO()
 	var client *redis.Client
-    client = redis.NewClient(PikaOption(SINGLEADDR))
-    client.FlushDB(ctx)
+	client = redis.NewClient(PikaOption(SINGLEADDR))
+	client.FlushDB(ctx)
+	if GlobalBefore != nil {
+		GlobalBefore(ctx, client)
+	}
 
 	BeforeEach(func() {
-		if GlobalBefore != nil {
-            GlobalBefore(ctx, client)
-        }
+		// client = redis.NewClient(pikaOptions1())
+		// Expect(client.FlushDB(ctx).Err()).NotTo(HaveOccurred())
 	})
 
+	AfterEach(func() {
+		// Expect(client.Close()).NotTo(HaveOccurred())
+		// Expect(client.Del(ctx, "mystream").Err()).NotTo(HaveOccurred())
+	})
 
 	Describe("passed tests", func() {
 		It("should concurrently add and read messages in the stream with separate clients", func() {

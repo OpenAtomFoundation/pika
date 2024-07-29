@@ -73,9 +73,11 @@ class PikaClientConn : public net::RedisConn {
                  const net::HandleType& handle_type, int max_conn_rbuf_size);
   ~PikaClientConn() = default;
 
+  bool IsInterceptedByRTC(std::string& opt);
+
   void ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async, std::string* response) override;
 
-  bool BatchReadCmdInCache(const std::vector<net::RedisCmdArgsType>& argvs);
+  bool ReadCmdInCache(const net::RedisCmdArgsType& argv, const std::string& opt);
   void BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs);
   int DealMessage(const net::RedisCmdArgsType& argv, std::string* response) override { return 0; }
   static void DoBackgroundTask(void* arg);

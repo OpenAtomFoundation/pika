@@ -243,7 +243,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSet, std::move(setptr)));
   ////GetCmd
   std::unique_ptr<Cmd> getptr =
-      std::make_unique<GetCmd>(kCmdNameGet, 2, kCmdFlagsRead | kCmdFlagsKv  | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsReadCache | kCmdReadBeforeQueue | kCmdFlagsSlow);
+      std::make_unique<GetCmd>(kCmdNameGet, 2, kCmdFlagsRead | kCmdFlagsKv  | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsReadCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameGet, std::move(getptr)));
   ////DelCmd
   std::unique_ptr<Cmd> delptr =
@@ -392,11 +392,11 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHSet, std::move(hsetptr)));
   ////HGetCmd
   std::unique_ptr<Cmd> hgetptr =
-      std::make_unique<HGetCmd>(kCmdNameHGet, 3, kCmdFlagsRead |  kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdReadBeforeQueue |kCmdFlagsFast);
+      std::make_unique<HGetCmd>(kCmdNameHGet, 3, kCmdFlagsRead |  kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsReadCache |kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHGet, std::move(hgetptr)));
   ////HGetallCmd
   std::unique_ptr<Cmd> hgetallptr =
-      std::make_unique<HGetallCmd>(kCmdNameHGetall, 2, kCmdFlagsRead | kCmdFlagsHash | kCmdFlagsSlow | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdReadBeforeQueue );
+      std::make_unique<HGetallCmd>(kCmdNameHGetall, 2, kCmdFlagsRead | kCmdFlagsHash | kCmdFlagsSlow | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsReadCache);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHGetall, std::move(hgetallptr)));
   ////HExistsCmd
   std::unique_ptr<Cmd> hexistsptr =
@@ -911,8 +911,7 @@ void Cmd::DoCommand(const HintKeys& hint_keys) {
   }
 }
 
-// just read in cache
-bool Cmd::DoReadCommandInCache(const HintKeys& hint_keys) {
+bool Cmd::DoReadCommandInCache() {
   if (!IsSuspend()) {
     db_->DBLockShared();
   }
@@ -921,9 +920,8 @@ bool Cmd::DoReadCommandInCache(const HintKeys& hint_keys) {
       db_->DBUnlockShared();
     }
   };
-  if (IsNeedCacheDo()
-      && PIKA_CACHE_NONE != g_pika_conf->cache_mode()
-      && db_->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
+
+  if (db_->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
       if (IsNeedReadCache()) {
         ReadCache();
       }
@@ -965,7 +963,6 @@ void Cmd::DoBinlog() {
 bool Cmd::hasFlag(uint32_t flag) const { return (flag_ & flag); }
 bool Cmd::is_read() const { return (flag_ & kCmdFlagsRead); }
 bool Cmd::is_write() const { return (flag_ & kCmdFlagsWrite); }
-bool Cmd::isCacheRead() const { return (flag_ & kCmdReadBeforeQueue);}
 bool Cmd::IsLocal() const { return (flag_ & kCmdFlagsLocal); }
 
 int8_t Cmd::SubCmdIndex(const std::string& cmdName) {
