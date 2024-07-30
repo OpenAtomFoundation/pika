@@ -80,14 +80,12 @@ class PikaReplClient {
     int32_t db_index = db_name.back() - '0';
     assert(db_index >= 0 && db_index <= 7);
     async_write_db_task_counts_[db_index].fetch_add(incr_step, std::memory_order::memory_order_seq_cst);
-    LOG(INFO) << db_name << " incr 1, curr:" <<  async_write_db_task_counts_[db_index].load(std::memory_order_seq_cst);
   }
 
   void DecrAsyncWriteDBTaskCount(const std::string& db_name, int32_t incr_step) {
     int32_t db_index = db_name.back() - '0';
     assert(db_index >= 0 && db_index <= 7);
     async_write_db_task_counts_[db_index].fetch_sub(incr_step, std::memory_order::memory_order_seq_cst);
-    LOG(INFO) << db_name << " decr 1, curr:" <<  async_write_db_task_counts_[db_index].load(std::memory_order_seq_cst);
   }
 
   int32_t GetUnfinishedAsyncDBTaskCount(const std::string& db_name) {
