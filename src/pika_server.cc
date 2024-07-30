@@ -1280,7 +1280,9 @@ std::string log_path = g_pika_conf->log_path();
     if (interval_days > retention_time) {
       std::string log_file = log_path + "/" + file;
       LOG(INFO) << "Deleting out of date log file: " << log_file;
-      pstd::DeleteFile(log_file);
+      if (!pstd::DeleteFile(log_file)) {
+        LOG(ERROR) << "Failed to delete log file: " << log_file;
+      }
     }
   }
 }
