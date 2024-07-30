@@ -55,7 +55,7 @@ class ListsMetaValue : public InternalValue {
   }
 
   uint64_t UpdateVersion() {
-    int64_t unix_time = pstd::NowMillis();
+    pstd::TimeType unix_time = pstd::NowMillis();
     if (version_ >= static_cast<uint64_t>(unix_time)) {
       version_++;
     } else {
@@ -225,7 +225,7 @@ class ParsedListsMetaValue : public ParsedInternalValue {
   }
 
   uint64_t UpdateVersion() {
-    int64_t unix_time = pstd::NowMillis();
+    pstd::TimeType unix_time = pstd::NowMillis();
     if (version_ >= static_cast<uint64_t>(unix_time)) {
       version_++;
     } else {

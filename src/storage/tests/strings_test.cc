@@ -940,7 +940,7 @@ TEST_F(StringsTest, BitPosTest) {
 
 // PKSetexAt
 TEST_F(StringsTest, PKSetexAtTest) {
-  int64_t unix_time;
+  pstd::TimeType unix_time;
   int64_t ttl_ret;
   std::map<storage::DataType, Status> type_status;
 

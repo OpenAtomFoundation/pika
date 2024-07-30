@@ -34,7 +34,7 @@ rocksdb::Status Redis::ScanSetsKeyNum(KeyInfo* key_info) {
   iterator_options.snapshot = snapshot;
   iterator_options.fill_cache = false;
 
-  int64_t curtime = pstd::NowMillis();
+  pstd::TimeType curtime = pstd::NowMillis();
 
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kMetaCF]);
   for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
@@ -774,7 +774,7 @@ Status Redis::SMembersWithTTL(const Slice& key,
       if (*ttl == 0) {
         *ttl = -1;
       } else {
-        int64_t curtime = pstd::NowMillis();
+        pstd::TimeType curtime = pstd::NowMillis();
         *ttl = *ttl - curtime >= 0 ? *ttl - curtime : -2;
       }
 
@@ -1592,7 +1592,7 @@ rocksdb::Status Redis::SetsTTL(const Slice& key, int64_t* timestamp, std::string
       if (*timestamp == 0) {
         *timestamp = -1;
       } else {
-        int64_t curtime = pstd::NowMillis();
+        pstd::TimeType curtime = pstd::NowMillis();
         *timestamp = *timestamp - curtime >= 0 ? *timestamp - curtime : -2;
       }
     }

@@ -20,7 +20,7 @@ class StringsFilter : public rocksdb::CompactionFilter {
   StringsFilter() = default;
   bool Filter(int level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
               bool* value_changed) const override {
-    int64_t unix_time = pstd::NowMillis();
+    pstd::TimeType unix_time = pstd::NowMillis();
     auto cur_time = static_cast<uint64_t>(unix_time);
     ParsedStringsValue parsed_strings_value(value);
     TRACE("==========================START==========================");

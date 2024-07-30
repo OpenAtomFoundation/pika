@@ -217,12 +217,12 @@ uint64_t Du(const std::string& path) {
   return sum;
 }
 
-uint64_t NowMicros() {
+TimeType NowMicros() {
   auto now = std::chrono::system_clock::now();
   return std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
 }
 
-uint64_t NowMillis() {
+TimeType NowMillis() {
   auto now = std::chrono::system_clock::now();
   return std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
 }

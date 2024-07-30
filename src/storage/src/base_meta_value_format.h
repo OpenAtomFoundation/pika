@@ -50,11 +50,11 @@ class BaseMetaValue : public InternalValue {
   }
 
   uint64_t UpdateVersion() {
-    int64_t unix_time = pstd::NowMillis();
+    pstd::TimeType unix_time = pstd::NowMillis();
     if (version_ >= unix_time) {
       version_++;
     } else {
-      version_ = uint64_t(unix_time);
+      version_ = unix_time;
     }
     return version_;
   }
@@ -199,11 +199,11 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
   }
 
   uint64_t UpdateVersion() {
-    int64_t unix_time = pstd::NowMillis();
-    if (version_ >= static_cast<uint64_t>(unix_time)) {
+    pstd::TimeType unix_time = pstd::NowMillis();
+    if (version_ >= unix_time) {
       version_++;
     } else {
-      version_ = static_cast<uint64_t>(unix_time);
+      version_ = unix_time;
     }
     SetVersionToValue();
     return version_;
