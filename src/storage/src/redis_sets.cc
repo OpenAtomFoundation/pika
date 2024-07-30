@@ -123,7 +123,7 @@ rocksdb::Status Redis::SAdd(const Slice& key, const std::vector<std::string>& me
       if (cnt == 0) {
         return rocksdb::Status::OK();
       } else {
-        if (!parsed_sets_meta_value.CheckModifyCount(cnt)){
+        if (!parsed_sets_meta_value.CheckModifyCount(cnt)) {
           return Status::InvalidArgument("set size overflow");
         }
         parsed_sets_meta_value.ModifyCount(cnt);
@@ -836,7 +836,7 @@ rocksdb::Status Redis::SMove(const Slice& source, const Slice& destination, cons
       s = db_->Get(default_read_options_, handles_[kSetsDataCF], sets_member_key.Encode(), &member_value);
       if (s.ok()) {
         *ret = 1;
-        if (!parsed_sets_meta_value.CheckModifyCount(-1)){
+        if (!parsed_sets_meta_value.CheckModifyCount(-1)) {
           return Status::InvalidArgument("set size overflow");
         }
         parsed_sets_meta_value.ModifyCount(-1);
@@ -884,7 +884,7 @@ rocksdb::Status Redis::SMove(const Slice& source, const Slice& destination, cons
       SetsMemberKey sets_member_key(destination, version, member);
       s = db_->Get(default_read_options_, handles_[kSetsDataCF], sets_member_key.Encode(), &member_value);
       if (s.IsNotFound()) {
-        if (!parsed_sets_meta_value.CheckModifyCount(1)){
+        if (!parsed_sets_meta_value.CheckModifyCount(1)) {
           return Status::InvalidArgument("set size overflow");
         }
         parsed_sets_meta_value.ModifyCount(1);
@@ -996,7 +996,7 @@ rocksdb::Status Redis::SPop(const Slice& key, std::vector<std::string>* members,
           }
         }
 
-        if (!parsed_sets_meta_value.CheckModifyCount(static_cast<int32_t>(-cnt))){
+        if (!parsed_sets_meta_value.CheckModifyCount(static_cast<int32_t>(-cnt))) {
           return Status::InvalidArgument("set size overflow");
         }
         parsed_sets_meta_value.ModifyCount(static_cast<int32_t>(-cnt));
@@ -1145,7 +1145,7 @@ rocksdb::Status Redis::SRem(const Slice& key, const std::vector<std::string>& me
         }
       }
       *ret = cnt;
-      if (!parsed_sets_meta_value.CheckModifyCount(-cnt)){
+      if (!parsed_sets_meta_value.CheckModifyCount(-cnt)) {
         return Status::InvalidArgument("set size overflow");
       }
       parsed_sets_meta_value.ModifyCount(-cnt);

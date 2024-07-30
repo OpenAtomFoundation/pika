@@ -491,7 +491,7 @@ void AppendCmd::Do() {
   }
 }
 
-void AppendCmd::DoThroughDB(){
+void AppendCmd::DoThroughDB() {
   Do();
 }
 
@@ -529,7 +529,7 @@ void MgetCmd::AssembleResponseFromCache() {
 void MgetCmd::Do() {
   // Without using the cache and querying only the DB, we need to use keys_.
   // This line will only be assigned when querying the DB directly.
-  if(cache_miss_keys_.size() == 0) {
+  if (cache_miss_keys_.size() == 0) {
     cache_miss_keys_ = keys_;
   }
   db_value_status_array_.clear();
@@ -944,7 +944,7 @@ void MsetCmd::DoBinlog() {
   set_argv[0] = "set";
   set_cmd_->SetConn(GetConn());
   set_cmd_->SetResp(resp_.lock());
-  for(auto& kv: kvs_){
+  for(auto& kv: kvs_) {
     set_argv[1] = kv.key;
     set_argv[2] = kv.value;
     set_cmd_->Initial(set_argv, db_name_);
@@ -1293,7 +1293,7 @@ std::string PexpireCmd::ToRedisProtocol() {
   return content;
 }
 
-void PexpireCmd::DoThroughDB(){
+void PexpireCmd::DoThroughDB() {
   Do();
 }
 

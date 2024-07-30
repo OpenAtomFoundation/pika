@@ -81,12 +81,12 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
 
       ctime_ = (ctime & ~(1ULL << 63));
       // if ctime_==ctime, means ctime_ storaged in seconds
-      if(ctime_ == ctime) {
+      if (ctime_ == ctime) {
         ctime_ *= 1000;
       }
       etime_ = (etime & ~(1ULL << 63));
       // if etime_==etime, means etime_ storaged in seconds
-      if(etime == etime_) {
+      if (etime == etime_) {
         etime_ *= 1000;
       }
     }
@@ -112,12 +112,12 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
 
       ctime_ = (ctime & ~(1ULL << 63));
       // if ctime_!=ctime, means ctime_ storaged in seconds
-      if(ctime_ == ctime) {
+      if (ctime_ == ctime) {
         ctime_ *= 1000;
       }
       etime_ = (etime & ~(1ULL << 63));
       // if etime_!=etime, means etime_ storaged in seconds
-      if(etime == etime_) {
+      if (etime == etime_) {
         etime_ *= 1000;
       }
     }

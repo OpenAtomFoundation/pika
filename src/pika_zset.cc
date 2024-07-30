@@ -77,7 +77,7 @@ void ZCardCmd::Do() {
   }
 }
 
-void ZCardCmd::ReadCache(){
+void ZCardCmd::ReadCache() {
   res_.SetRes(CmdRes::kCacheMiss);
 }
 
@@ -590,7 +590,7 @@ void ZRevrangebyscoreCmd::Do() {
   }
 }
 
-void ZRevrangebyscoreCmd::ReadCache(){
+void ZRevrangebyscoreCmd::ReadCache() {
   if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN
       || max_score_ < min_score_) {
     res_.AppendContent("*0");
@@ -827,7 +827,7 @@ void ZUnionstoreCmd::DoBinlog() {
   del_cmd->SetResp(resp_.lock());
   del_cmd->DoBinlog();
 
-  if(value_to_dest_.empty()){
+  if (value_to_dest_.empty()) {
     // The union operation got an empty set, only use del to simulate overwrite the dest_key with empty set
     return;
   }
@@ -975,7 +975,7 @@ void ZRankCmd::ReadCache() {
   auto s = db_->cache()->ZRank(key_, member_, &rank, db_);
   if (s.ok()) {
     res_.AppendInteger(rank);
-  } else if (s.IsNotFound()){
+  } else if (s.IsNotFound()) {
     res_.SetRes(CmdRes::kCacheMiss);
   }  else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -1020,7 +1020,7 @@ void ZRevrankCmd::ReadCache() {
   auto s = db_->cache()->ZRevrank(key_, member_, &revrank, db_);
   if (s.ok()) {
     res_.AppendInteger(revrank);
-  } else if (s.IsNotFound()){
+  } else if (s.IsNotFound()) {
     res_.SetRes(CmdRes::kCacheMiss);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());

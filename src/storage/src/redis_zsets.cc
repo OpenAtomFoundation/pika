@@ -107,7 +107,7 @@ Status Redis::ZPopMax(const Slice& key, const int64_t count, std::vector<ScoreMe
         batch.Delete(handles_[kZsetsScoreCF], iter->key());
       }
       delete iter;
-      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)) {
         return Status::InvalidArgument("zset size overflow");
       }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
@@ -165,7 +165,7 @@ Status Redis::ZPopMin(const Slice& key, const int64_t count, std::vector<ScoreMe
         batch.Delete(handles_[kZsetsScoreCF], iter->key());
       }
       delete iter;
-      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)) {
         return Status::InvalidArgument("zset size overflow");
       }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
@@ -260,7 +260,7 @@ Status Redis::ZAdd(const Slice& key, const std::vector<ScoreMember>& score_membe
         cnt++;
       }
     }
-    if (!parsed_zsets_meta_value.CheckModifyCount(cnt)){
+    if (!parsed_zsets_meta_value.CheckModifyCount(cnt)) {
       return Status::InvalidArgument("zset size overflow");
     }
     parsed_zsets_meta_value.ModifyCount(cnt);
@@ -443,7 +443,7 @@ Status Redis::ZIncrby(const Slice& key, const Slice& member, double increment, d
       statistic++;
     } else if (s.IsNotFound()) {
       score = increment;
-      if (!parsed_zsets_meta_value.CheckModifyCount(1)){
+      if (!parsed_zsets_meta_value.CheckModifyCount(1)) {
         return Status::InvalidArgument("zset size overflow");
       }
       parsed_zsets_meta_value.ModifyCount(1);
@@ -795,7 +795,7 @@ Status Redis::ZRem(const Slice& key, const std::vector<std::string>& members, in
         }
       }
       *ret = del_cnt;
-      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)) {
         return Status::InvalidArgument("zset size overflow");
       }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
@@ -862,7 +862,7 @@ Status Redis::ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int
       }
       delete iter;
       *ret = del_cnt;
-      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)) {
         return Status::InvalidArgument("zset size overflow");
       }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
@@ -942,7 +942,7 @@ Status Redis::ZRemrangebyscore(const Slice& key, double min, double max, bool le
       }
       delete iter;
       *ret = del_cnt;
-      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)) {
         return Status::InvalidArgument("zset size overflow");
       }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
@@ -1654,7 +1654,7 @@ Status Redis::ZRemrangebylex(const Slice& key, const Slice& min, const Slice& ma
       delete iter;
     }
     if (del_cnt > 0) {
-      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)) {
         return Status::InvalidArgument("zset size overflow");
       }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);

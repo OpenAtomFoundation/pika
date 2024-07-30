@@ -194,7 +194,7 @@ Status Storage::MGet(const std::vector<std::string>& keys, std::vector<ValueStat
     s = inst->MGet(key, &value);
     if (s.ok()) {
       vss->push_back({value, Status::OK()});
-    } else if(s.IsNotFound()) {
+    } else if (s.IsNotFound()) {
       vss->push_back({std::string(), Status::NotFound()});
     } else {
       vss->clear();
@@ -367,7 +367,7 @@ Status Storage::Strlen(const Slice& key, int32_t* len) {
 
 Status Storage::PKSetexAt(const Slice& key, const Slice& value, int64_t timestamp) {
   auto& inst = GetDBInstance(key);
-  if(timestamp < 0) {
+  if (timestamp < 0) {
     timestamp = pstd::NowMillis() - 1;
   }
   return inst->PKSetexAt(key, value, timestamp);

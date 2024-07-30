@@ -115,7 +115,7 @@ Status Redis::HDel(const Slice& key, const std::vector<std::string>& fields, int
         }
       }
       *ret = del_cnt;
-      if (!parsed_hashes_meta_value.CheckModifyCount(-del_cnt)){
+      if (!parsed_hashes_meta_value.CheckModifyCount(-del_cnt)) {
         return Status::InvalidArgument("hash size overflow");
       }
       parsed_hashes_meta_value.ModifyCount(-del_cnt);
@@ -329,7 +329,7 @@ Status Redis::HIncrby(const Slice& key, const Slice& field, int64_t value, int64
         statistic++;
       } else if (s.IsNotFound()) {
         Int64ToStr(value_buf, 32, value);
-        if (!parsed_hashes_meta_value.CheckModifyCount(1)){
+        if (!parsed_hashes_meta_value.CheckModifyCount(1)) {
           return Status::InvalidArgument("hash size overflow");
         }
         BaseDataValue internal_value(value_buf);
@@ -423,7 +423,7 @@ Status Redis::HIncrbyfloat(const Slice& key, const Slice& field, const Slice& by
         statistic++;
       } else if (s.IsNotFound()) {
         LongDoubleToStr(long_double_by, new_value);
-        if (!parsed_hashes_meta_value.CheckModifyCount(1)){
+        if (!parsed_hashes_meta_value.CheckModifyCount(1)) {
           return Status::InvalidArgument("hash size overflow");
         }
         parsed_hashes_meta_value.ModifyCount(1);
@@ -651,7 +651,7 @@ Status Redis::HMSet(const Slice& key, const std::vector<FieldValue>& fvs) {
           return s;
         }
       }
-      if (!parsed_hashes_meta_value.CheckModifyCount(count)){
+      if (!parsed_hashes_meta_value.CheckModifyCount(count)) {
         return Status::InvalidArgument("hash size overflow");
       }
       parsed_hashes_meta_value.ModifyCount(count);
@@ -719,7 +719,7 @@ Status Redis::HSet(const Slice& key, const Slice& field, const Slice& value, int
           statistic++;
         }
       } else if (s.IsNotFound()) {
-        if (!parsed_hashes_meta_value.CheckModifyCount(1)){
+        if (!parsed_hashes_meta_value.CheckModifyCount(1)) {
           return Status::InvalidArgument("hash size overflow");
         }
         parsed_hashes_meta_value.ModifyCount(1);
@@ -786,7 +786,7 @@ Status Redis::HSetnx(const Slice& key, const Slice& field, const Slice& value, i
       if (s.ok()) {
         *ret = 0;
       } else if (s.IsNotFound()) {
-        if (!parsed_hashes_meta_value.CheckModifyCount(1)){
+        if (!parsed_hashes_meta_value.CheckModifyCount(1)) {
           return Status::InvalidArgument("hash size overflow");
         }
         parsed_hashes_meta_value.ModifyCount(1);
