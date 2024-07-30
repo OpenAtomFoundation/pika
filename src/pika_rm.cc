@@ -683,8 +683,8 @@ void PikaReplicaManager::ScheduleWriteBinlogTask(const std::string& db,
   pika_repl_client_->ScheduleWriteBinlogTask(db, res, conn, res_private_data);
 }
 
-void PikaReplicaManager::ScheduleWriteDBTask(std::shared_ptr<Cmd> cmd_ptr, std::function<void()>& call_back_fun) {
-  pika_repl_client_->ScheduleWriteDBTask(std::move(cmd_ptr), call_back_fun);
+void PikaReplicaManager::ScheduleWriteDBTask(std::shared_ptr<Cmd> cmd_ptr, const std::string& db_name) {
+  pika_repl_client_->ScheduleWriteDBTask(std::move(cmd_ptr), db_name);
 }
 
 void PikaReplicaManager::ReplServerRemoveClientConn(int fd) { pika_repl_server_->RemoveClientConn(fd); }

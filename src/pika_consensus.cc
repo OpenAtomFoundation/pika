@@ -351,14 +351,12 @@ Status ConsensusCoordinator::ProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_pt
     // apply binlog in sync way
     Status s = InternalAppendLog(cmd_ptr);
     // apply db in async way
-    IncrUnfinishedAsyncWriteDbTaskCount(1);
-    std::function<void()> call_back = [this]() { this->DecrUnfinishedAsyncWriteDbTaskCount(1); };
-    InternalApplyFollower(cmd_ptr, call_back);
+    InternalApplyFollower(cmd_ptr);
   } else {
     // this is a flushdb-binlog, both apply binlog and apply db are in sync way
     // ensure all writeDB task that submitted before has finished before we exec this flushdb
     int32_t wait_ms = 250;
-    while (async_write_db_task_count_.load(std::memory_order::memory_order_seq_cst) > 0) {
+    while (g_pika_rm->GetUnfinishedAsyncDBTaskCount(db_name_) > 0) {
       std::this_thread::sleep_for(std::chrono::milliseconds(wait_ms));
       wait_ms *= 2;
       wait_ms = wait_ms < 3000 ? wait_ms : 3000;
@@ -425,8 +423,8 @@ uint32_t ConsensusCoordinator::term() {
   return term_;
 }
 
-void ConsensusCoordinator::InternalApplyFollower(std::shared_ptr<Cmd> cmd_ptr, std::function<void()>& call_back_fun) {
-  g_pika_rm->ScheduleWriteDBTask(std::move(cmd_ptr), call_back_fun);
+void ConsensusCoordinator::InternalApplyFollower(std::shared_ptr<Cmd> cmd_ptr) {
+  g_pika_rm->ScheduleWriteDBTask(std::move(cmd_ptr), db_name_);
 }
 
 int ConsensusCoordinator::InitCmd(net::RedisParser* parser, const net::RedisCmdArgsType& argv) {

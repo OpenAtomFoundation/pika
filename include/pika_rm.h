@@ -184,7 +184,7 @@ class PikaReplicaManager {
   void ScheduleWriteBinlogTask(const std::string& db_name,
                                const std::shared_ptr<InnerMessage::InnerResponse>& res,
                                const std::shared_ptr<net::PbConn>& conn, void* res_private_data);
-  void ScheduleWriteDBTask(std::shared_ptr<Cmd> cmd_ptr, std::function<void()>& call_back_fun);
+  void ScheduleWriteDBTask(std::shared_ptr<Cmd> cmd_ptr, const std::string& db_name);
   void ScheduleReplClientBGTaskByDBName(net::TaskFunc , void* arg, const std::string &db_name);
   void ReplServerRemoveClientConn(int fd);
   void ReplServerUpdateClientConnMap(const std::string& ip_port, int fd);
@@ -203,6 +203,10 @@ class PikaReplicaManager {
   }
   std::unordered_map<DBInfo, std::shared_ptr<SyncSlaveDB>, hash_db_info>& GetSyncSlaveDBs() {
     return sync_slave_dbs_;
+  }
+
+  int32_t GetUnfinishedAsyncDBTaskCount(const std::string& db_name) {
+    return pika_repl_client_->GetUnfinishedAsyncDBTaskCount(db_name);
   }
 
  private:
