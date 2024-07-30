@@ -356,7 +356,7 @@ Status ConsensusCoordinator::ProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_pt
     // this is a flushdb-binlog, both apply binlog and apply db are in sync way
     // ensure all writeDB task that submitted before has finished before we exec this flushdb
     int32_t wait_ms = 250;
-    while (g_pika_rm->GetUnfinishedAsyncDBTaskCount(db_name_) > 0) {
+    while (g_pika_rm->GetUnfinishedAsyncWriteDBTaskCount(db_name_) > 0) {
       std::this_thread::sleep_for(std::chrono::milliseconds(wait_ms));
       wait_ms *= 2;
       wait_ms = wait_ms < 3000 ? wait_ms : 3000;

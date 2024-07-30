@@ -205,8 +205,8 @@ class PikaReplicaManager {
     return sync_slave_dbs_;
   }
 
-  int32_t GetUnfinishedAsyncDBTaskCount(const std::string& db_name) {
-    return pika_repl_client_->GetUnfinishedAsyncDBTaskCount(db_name);
+  int32_t GetUnfinishedAsyncWriteDBTaskCount(const std::string& db_name) {
+    return pika_repl_client_->GetUnfinishedAsyncWriteDBTaskCount(db_name);
   }
 
  private:

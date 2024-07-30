@@ -88,7 +88,7 @@ class PikaReplClient {
     async_write_db_task_counts_[db_index].fetch_sub(incr_step, std::memory_order::memory_order_seq_cst);
   }
 
-  int32_t GetUnfinishedAsyncDBTaskCount(const std::string& db_name) {
+  int32_t GetUnfinishedAsyncWriteDBTaskCount(const std::string& db_name) {
     int32_t db_index = db_name.back() - '0';
     assert(db_index >= 0 && db_index <= 7);
     return async_write_db_task_counts_[db_index].load(std::memory_order_seq_cst);
@@ -103,7 +103,7 @@ class PikaReplClient {
   int next_avail_ = 0;
   std::hash<std::string> str_hash;
 
-  // this is used when consuming binlog, which indicates the nums of async write-DB tasks that are
+  // async_write_db_task_counts_ is used when consuming binlog, which indicates the nums of async write-DB tasks that are
   // queued or being executing by WriteDBWorkers. If a flushdb-binlog need to apply DB, it must wait
   // util this count drop to zero. you can also check pika discussion #2807 to know more
   // it is only used in slaveNode when consuming binlog
