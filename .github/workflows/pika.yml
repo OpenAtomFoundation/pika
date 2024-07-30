@@ -78,6 +78,72 @@ jobs:
           chmod +x integrate_test.sh
           sh integrate_test.sh
 
+  build_on_rocky:
+    runs-on: ubuntu-latest
+    container:
+      image: rockylinux:9
+
+    steps:
+      - name: Install deps
+        run: |
+          dnf update -y
+          dnf install -y bash cmake wget git autoconf gcc perl-Digest-SHA tcl which tar g++ tar epel-release gcc-c++ libstdc++-devel gcc-toolset-13
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Configure CMake
+        run: |
+          source /opt/rh/gcc-toolset-13/enable
+          cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address .
+
+      - uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/deps
+          key: ${{ runner.os }}-rocky-deps-${{ hashFiles('**/CMakeLists.txt') }}
+
+      - uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/buildtrees
+          key: ${{ runner.os }}-rocky-buildtrees-${{ hashFiles('**/CMakeLists.txt') }}
+
+      - name: Build
+        run: |
+          source /opt/rh/gcc-toolset-13/enable
+          cmake --build build --config ${{ env.BUILD_TYPE }}
+
+      - name: Test
+        working-directory: ${{ github.workspace }}/build
+        run: ctest -C ${{ env.BUILD_TYPE }}
+
+      - name: Unit Test
+        working-directory: ${{ github.workspace }}
+        run: ./pikatests.sh all
+
+      - name: Start codis, pika master and pika slave
+        working-directory: ${{ github.workspace }}/build
+        run: |
+          chmod +x ../tests/integration/start_master_and_slave.sh
+          ../tests/integration/start_master_and_slave.sh
+          chmod +x ../tests/integration/start_codis.sh
+          ../tests/integration/start_codis.sh
+
+      - name: Run Go E2E Tests
+        working-directory: ${{ github.workspace }}/build
+        run: |
+          cd ../tools/pika_keys_analysis/
+          go test -v ./...
+          cd ../../tests/integration/
+          chmod +x integrate_test.sh
+          sh integrate_test.sh
+
   build_on_macos:
     runs-on: macos-12
 

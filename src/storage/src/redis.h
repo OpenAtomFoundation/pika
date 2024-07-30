@@ -149,7 +149,7 @@ class Redis {
   virtual Status SetsTTL(const Slice& key, int64_t* timestamp, std::string&& prefetch_meta = {});
 
   // Strings Commands
-  Status Append(const Slice& key, const Slice& value, int32_t* ret);
+  Status Append(const Slice& key, const Slice& value, int32_t* ret, int64_t* ttl);
   Status BitCount(const Slice& key, int64_t start_offset, int64_t end_offset, int32_t* ret, bool have_range);
   Status BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys, std::string &value_to_dest, int64_t* ret);
   Status Decrby(const Slice& key, int64_t value, int64_t* ret);
@@ -163,8 +163,8 @@ class Redis {
   Status GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t end_offset,
                            std::string* ret, std::string* value, int64_t* ttl);
   Status GetSet(const Slice& key, const Slice& value, std::string* old_value);
-  Status Incrby(const Slice& key, int64_t value, int64_t* ret, uint64_t* ttl);
-  Status Incrbyfloat(const Slice& key, const Slice& value, std::string* ret);
+  Status Incrby(const Slice& key, int64_t value, int64_t* ret, int64_t* ttl);
+  Status Incrbyfloat(const Slice& key, const Slice& value, std::string* ret, int64_t* ttl);
   Status MSet(const std::vector<KeyValue>& kvs);
   Status MSetnx(const std::vector<KeyValue>& kvs, int32_t* ret);
   Status Set(const Slice& key, const Slice& value);
@@ -199,7 +199,7 @@ class Redis {
   Status HGet(const Slice& key, const Slice& field, std::string* value);
   Status HGetall(const Slice& key, std::vector<FieldValue>* fvs);
   Status HGetallWithTTL(const Slice& key, std::vector<FieldValue>* fvs, int64_t* ttl);
-  Status HIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret, int64_t* ttl);
+  Status HIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret);
   Status HIncrbyfloat(const Slice& key, const Slice& field, const Slice& by, std::string* new_value);
   Status HKeys(const Slice& key, std::vector<std::string>* fields);
   Status HLen(const Slice& key, int32_t* ret, std::string&& prefetch_meta = {});

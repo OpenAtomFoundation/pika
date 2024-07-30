@@ -257,14 +257,13 @@ TEST_F(HashesTest, HIncrby) {
   int32_t ret;
   int64_t value;
   std::string str_value;
-  int64_t ttl;
 
   // ***************** Group 1 Test *****************
   s = db.HSet("GP1_HINCRBY_KEY", "GP1_HINCRBY_FIELD", "1", &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 1);
 
-  s = db.HIncrby("GP1_HINCRBY_KEY", "GP1_HINCRBY_FIELD", 1, &value, &ttl);
+  s = db.HIncrby("GP1_HINCRBY_KEY", "GP1_HINCRBY_FIELD", 1, &value);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(value, 2);
 
@@ -273,7 +272,7 @@ TEST_F(HashesTest, HIncrby) {
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 1);
 
-  s = db.HIncrby("GP2_HINCRBY_KEY", "GP2_HINCRBY_FIELD", 1, &value, &ttl);
+  s = db.HIncrby("GP2_HINCRBY_KEY", "GP2_HINCRBY_FIELD", 1, &value);
   ASSERT_TRUE(s.IsCorruption());
   ASSERT_EQ(value, 0);
 
@@ -282,13 +281,13 @@ TEST_F(HashesTest, HIncrby) {
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 1);
 
-  s = db.HIncrby("GP3_HINCRBY_KEY", "GP3_HINCRBY_FIELD", 1, &value, &ttl);
+  s = db.HIncrby("GP3_HINCRBY_KEY", "GP3_HINCRBY_FIELD", 1, &value);
   ASSERT_TRUE(s.IsCorruption());
   ASSERT_EQ(value, 0);
 
   // If key does not exist the value is set to 0 before the
   // operation is performed
-  s = db.HIncrby("HINCRBY_NEW_KEY", "HINCRBY_EXIST_FIELD", 1000, &value, &ttl);
+  s = db.HIncrby("HINCRBY_NEW_KEY", "HINCRBY_EXIST_FIELD", 1000, &value);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(value, 1000);
   s = db.HGet("HINCRBY_NEW_KEY", "HINCRBY_EXIST_FIELD", &str_value);
@@ -299,12 +298,12 @@ TEST_F(HashesTest, HIncrby) {
   // represented as integer
   s = db.HSet("HINCRBY_KEY", "HINCRBY_STR_FIELD", "HINCRBY_VALEU", &ret);
   ASSERT_TRUE(s.ok());
-  s = db.HIncrby("HINCRBY_KEY", "HINCRBY_STR_FIELD", 100, &value, &ttl);
+  s = db.HIncrby("HINCRBY_KEY", "HINCRBY_STR_FIELD", 100, &value);
   ASSERT_TRUE(s.IsCorruption());
 
   // If field does not exist the value is set to 0 before the
   // operation is performed
-  s = db.HIncrby("HINCRBY_KEY", "HINCRBY_NOT_EXIST_FIELD", 100, &value, &ttl);
+  s = db.HIncrby("HINCRBY_KEY", "HINCRBY_NOT_EXIST_FIELD", 100, &value);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(value, 100);
   s = db.HGet("HINCRBY_KEY", "HINCRBY_NOT_EXIST_FIELD", &str_value);
@@ -315,7 +314,7 @@ TEST_F(HashesTest, HIncrby) {
   ASSERT_TRUE(s.ok());
 
   // Positive test
-  s = db.HIncrby("HINCRBY_KEY", "HINCRBY_NUM_FIELD", 100, &value, &ttl);
+  s = db.HIncrby("HINCRBY_KEY", "HINCRBY_NUM_FIELD", 100, &value);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(value, 200);
   s = db.HGet("HINCRBY_KEY", "HINCRBY_NUM_FIELD", &str_value);
@@ -323,7 +322,7 @@ TEST_F(HashesTest, HIncrby) {
   ASSERT_EQ(atoll(str_value.data()), 200);
 
   // Negative test
-  s = db.HIncrby("HINCRBY_KEY", "HINCRBY_NUM_FIELD", -100, &value, &ttl);
+  s = db.HIncrby("HINCRBY_KEY", "HINCRBY_NUM_FIELD", -100, &value);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(value, 100);
   s = db.HGet("HINCRBY_KEY", "HINCRBY_NUM_FIELD", &str_value);
@@ -333,13 +332,13 @@ TEST_F(HashesTest, HIncrby) {
   // Larger than the maximum number 9223372036854775807
   s = db.HSet("HINCRBY_KEY", "HINCRBY_NUM_FIELD", "10", &ret);
   ASSERT_TRUE(s.ok());
-  s = db.HIncrby("HINCRBY_KEY", "HINCRBY_NUM_FIELD", 9223372036854775807, &value, &ttl);
+  s = db.HIncrby("HINCRBY_KEY", "HINCRBY_NUM_FIELD", 9223372036854775807, &value);
   ASSERT_TRUE(s.IsInvalidArgument());
 
   // Less than the minimum number -9223372036854775808
   s = db.HSet("HINCRBY_KEY", "HINCRBY_NUM_FIELD", "-10", &ret);
   ASSERT_TRUE(s.ok());
-  s = db.HIncrby("HINCRBY_KEY", "HINCRBY_NUM_FIELD", -9223372036854775807, &value, &ttl);
+  s = db.HIncrby("HINCRBY_KEY", "HINCRBY_NUM_FIELD", -9223372036854775807, &value);
   ASSERT_TRUE(s.IsInvalidArgument());
 }
 

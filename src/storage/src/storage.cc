@@ -283,9 +283,9 @@ Status Storage::GetrangeWithValue(const Slice& key, int64_t start_offset, int64_
   return inst->GetrangeWithValue(key, start_offset, end_offset, ret, value, ttl);
 }
 
-Status Storage::Append(const Slice& key, const Slice& value, int32_t* ret) {
+Status Storage::Append(const Slice& key, const Slice& value, int32_t* ret, int64_t* ttl) {
   auto& inst = GetDBInstance(key);
-  return inst->Append(key, value, ret);
+  return inst->Append(key, value, ret, ttl);
 }
 
 Status Storage::BitCount(const Slice& key, int64_t start_offset, int64_t end_offset, int32_t* ret, bool have_range) {
@@ -347,14 +347,14 @@ Status Storage::Decrby(const Slice& key, int64_t value, int64_t* ret) {
   return inst->Decrby(key, value, ret);
 }
 
-Status Storage::Incrby(const Slice& key, int64_t value, int64_t* ret, uint64_t* ttl) {
+Status Storage::Incrby(const Slice& key, int64_t value, int64_t* ret, int64_t* ttl) {
   auto& inst = GetDBInstance(key);
   return inst->Incrby(key, value, ret, ttl);
 }
 
-Status Storage::Incrbyfloat(const Slice& key, const Slice& value, std::string* ret) {
+Status Storage::Incrbyfloat(const Slice& key, const Slice& value, std::string* ret, int64_t* ttl) {
   auto& inst = GetDBInstance(key);
-  return inst->Incrbyfloat(key, value, ret);
+  return inst->Incrbyfloat(key, value, ret, ttl);
 }
 
 Status Storage::Setex(const Slice& key, const Slice& value, int64_t ttl) {
@@ -433,9 +433,9 @@ Status Storage::HExists(const Slice& key, const Slice& field) {
   return inst->HExists(key, field);
 }
 
-Status Storage::HIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret, int64_t* ttl) {
+Status Storage::HIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret) {
   auto& inst = GetDBInstance(key);
-  return inst->HIncrby(key, field, value, ret, ttl);
+  return inst->HIncrby(key, field, value, ret);
 }
 
 Status Storage::HIncrbyfloat(const Slice& key, const Slice& field, const Slice& by, std::string* new_value) {
