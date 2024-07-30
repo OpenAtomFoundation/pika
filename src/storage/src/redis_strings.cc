@@ -618,7 +618,7 @@ Status Redis::GetSet(const Slice& key, const Slice& value, std::string* old_valu
   return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
 }
 
-Status Redis::Incrby(const Slice& key, int64_t value, int64_t* ret) {
+Status Redis::Incrby(const Slice& key, int64_t value, int64_t* ret, uint64_t* ttl) {
   std::string old_value;
   std::string new_value;
   ScopeRecordLock l(lock_mgr_, key);
@@ -630,10 +630,10 @@ Status Redis::Incrby(const Slice& key, int64_t value, int64_t* ret) {
     if (ExpectedStale(old_value)) {
       s = Status::NotFound();
     } else {
-     return Status::InvalidArgument(
-        "WRONGTYPE, key: " + key.ToString() + ", expect type: " +
-        DataTypeStrings[static_cast<int>(DataType::kStrings)] + ", get type: " +
-        DataTypeStrings[static_cast<int>(GetMetaValueType(old_value))]);
+      return Status::InvalidArgument(
+          "WRONGTYPE, key: " + key.ToString() + ", expect type: " +
+          DataTypeStrings[static_cast<int>(DataType::kStrings)] + ", get type: " +
+          DataTypeStrings[static_cast<int>(GetMetaValueType(old_value))]);
     }
   }
   if (s.ok()) {
@@ -642,9 +642,11 @@ Status Redis::Incrby(const Slice& key, int64_t value, int64_t* ret) {
       *ret = value;
       Int64ToStr(buf, 32, value);
       StringsValue strings_value(buf);
+      *ttl = 0;
       return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
     } else {
       uint64_t timestamp = parsed_strings_value.Etime();
+      *ttl = timestamp;
       std::string old_user_value = parsed_strings_value.UserValue().ToString();
       char* end = nullptr;
       int64_t ival = strtoll(old_user_value.c_str(), &end, 10);
@@ -664,6 +666,7 @@ Status Redis::Incrby(const Slice& key, int64_t value, int64_t* ret) {
     *ret = value;
     Int64ToStr(buf, 32, value);
     StringsValue strings_value(buf);
+    *ttl = 0;
     return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
   } else {
     return s;

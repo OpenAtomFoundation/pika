@@ -285,7 +285,7 @@ class Storage {
 
   // Increments the number stored at key by increment.
   // If the key does not exist, it is set to 0 before performing the operation
-  Status Incrby(const Slice& key, int64_t value, int64_t* ret);
+  Status Incrby(const Slice& key, int64_t value, int64_t* ret, uint64_t* ttl);
 
   // Increment the string representing a floating point number
   // stored at key by the specified increment.
@@ -365,7 +365,7 @@ class Storage {
   // increment. If key does not exist, a new key holding a hash is created. If
   // field does not exist the value is set to 0 before the operation is
   // performed.
-  Status HIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret);
+  Status HIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret, int64_t* ttl);
 
   // Increment the specified field of a hash stored at key, and representing a
   // floating point number, by the specified increment. If the increment value

@@ -148,9 +148,12 @@ class HIncrbyCmd : public Cmd {
 
  private:
   std::string key_, field_;
+  int64_t new_value_ = 0;
   int64_t by_ = 0;
+  int64_t ttl_ = 0;
   void DoInitial() override;
   rocksdb::Status s_;
+  std::string ToRedisProtocol() override;
 };
 
 class HIncrbyfloatCmd : public Cmd {

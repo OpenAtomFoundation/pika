@@ -262,10 +262,9 @@ void HIncrbyCmd::DoInitial() {
 }
 
 void HIncrbyCmd::Do() {
-  int64_t new_value = 0;
-  s_ = db_->storage()->HIncrby(key_, field_, by_, &new_value);
+  s_ = db_->storage()->HIncrby(key_, field_, by_, &new_value_, &ttl_);
   if (s_.ok() || s_.IsNotFound()) {
-    res_.AppendContent(":" + std::to_string(new_value));
+    res_.AppendContent(":" + std::to_string(new_value_));
     AddSlotKey("h", key_, db_);
   } else if (s_.IsInvalidArgument() && s_.ToString().substr(0, std::char_traits<char>::length(ErrTypeMessage)) == ErrTypeMessage) {
     res_.SetRes(CmdRes::kMultiKey);
@@ -286,6 +285,32 @@ void HIncrbyCmd::DoUpdateCache() {
   if (s_.ok()) {
     db_->cache()->HIncrbyxx(key_, field_, by_);
   }
+}
+
+std::string HIncrbyCmd::ToRedisProtocol() {
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 4, "*");
+
+  // to pksetexat cmd
+  std::string pksetexat_cmd("pksetexat");
+  RedisAppendLenUint64(content, pksetexat_cmd.size(), "$");
+  RedisAppendContent(content, pksetexat_cmd);
+  // key
+  RedisAppendLenUint64(content, key_.size(), "$");
+  RedisAppendContent(content, key_);
+  // time_stamp
+  char buf[100];
+  auto time_stamp = time(nullptr) + ttl_;
+  pstd::ll2string(buf, 100, time_stamp);
+  std::string at(buf);
+  RedisAppendLenUint64(content, at.size(), "$");
+  RedisAppendContent(content, at);
+  // value
+  std::string new_value_str = std::to_string(new_value_);
+  RedisAppendLenUint64(content, new_value_str.size(), "$");
+  RedisAppendContent(content, new_value_str);
+  return content;
 }
 
 void HIncrbyfloatCmd::DoInitial() {

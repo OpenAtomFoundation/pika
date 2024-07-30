@@ -353,20 +353,20 @@ TEST_F(StringsTest, IncrbyTest) {
 
   // ***************** Group 1 Test *****************
   // If the key is not exist
-  s = db.Incrby("GP1_INCRBY_KEY", 5, &ret);
+  s = db.Incrby("GP1_INCRBY_KEY", 5, &ret, reinterpret_cast<uint64_t*>(&type_ttl));
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 5);
 
   // If the key contains a string that can not be represented as integer
   s = db.Set("GP1_INCRBY_KEY", "INCRBY_VALUE");
   ASSERT_TRUE(s.ok());
-  s = db.Incrby("GP1_INCRBY_KEY", 5, &ret);
+  s = db.Incrby("GP1_INCRBY_KEY", 5, &ret, reinterpret_cast<uint64_t*>(&type_ttl));
   ASSERT_TRUE(s.IsCorruption());
 
   s = db.Set("GP1_INCRBY_KEY", "1");
   ASSERT_TRUE(s.ok());
   // Less than the maximum number 9223372036854775807
-  s = db.Incrby("GP1_INCRBY_KEY", 9223372036854775807, &ret);
+  s = db.Incrby("GP1_INCRBY_KEY", 9223372036854775807, &ret, reinterpret_cast<uint64_t*>(&type_ttl));
   ASSERT_TRUE(s.IsInvalidArgument());
 
   // ***************** Group 2 Test *****************
@@ -379,7 +379,7 @@ TEST_F(StringsTest, IncrbyTest) {
   ASSERT_LE(type_ttl, 100);
   ASSERT_GE(type_ttl, 0);
 
-  s = db.Incrby("GP2_INCRBY_KEY", 5, &ret);
+  s = db.Incrby("GP2_INCRBY_KEY", 5, &ret, reinterpret_cast<uint64_t*>(&type_ttl));
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 15);
   s = db.Get("GP2_INCRBY_KEY", &value);
@@ -394,7 +394,7 @@ TEST_F(StringsTest, IncrbyTest) {
   ASSERT_TRUE(s.ok());
   make_expired(&db, "GP3_INCRBY_KEY");
 
-  s = db.Incrby("GP3_INCRBY_KEY", 5, &ret);
+  s = db.Incrby("GP3_INCRBY_KEY", 5, &ret, reinterpret_cast<uint64_t*>(&type_ttl));
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 5);
   s = db.Get("GP3_INCRBY_KEY", &value);
@@ -408,7 +408,7 @@ TEST_F(StringsTest, IncrbyTest) {
   s = db.Set("GP4_INCRBY_KEY", "50000");
   ASSERT_TRUE(s.ok());
 
-  s = db.Incrby("GP4_INCRBY_KEY", 50000, &ret);
+  s = db.Incrby("GP4_INCRBY_KEY", 50000, &ret, reinterpret_cast<uint64_t*>(&type_ttl));
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 100000);
   s = db.Get("GP4_INCRBY_KEY", &value);

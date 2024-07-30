@@ -255,9 +255,12 @@ void IncrCmd::DoInitial() {
 }
 
 void IncrCmd::Do() {
-  s_ = db_->storage()->Incrby(key_, 1, &new_value_);
+  s_ = db_->storage()->Incrby(key_, 1, &new_value_, &ttl_);
   if (s_.ok()) {
     res_.AppendContent(":" + std::to_string(new_value_));
+    if (ttl_ > 0) {
+      res_.AppendContent("\r\nTTL:" + std::to_string(ttl_));
+    }
     AddSlotKey("k", key_, db_);
   } else if (s_.IsCorruption() && s_.ToString() == "Corruption: Value is not a integer") {
     res_.SetRes(CmdRes::kInvalidInt);
@@ -280,6 +283,32 @@ void IncrCmd::DoUpdateCache() {
   }
 }
 
+std::string IncrCmd::ToRedisProtocol() {
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 4, "*");
+
+  // to pksetexat cmd
+  std::string pksetexat_cmd("pksetexat");
+  RedisAppendLenUint64(content, pksetexat_cmd.size(), "$");
+  RedisAppendContent(content, pksetexat_cmd);
+  // key
+  RedisAppendLenUint64(content, key_.size(), "$");
+  RedisAppendContent(content, key_);
+  // time_stamp
+  char buf[100];
+  auto time_stamp = time(nullptr) + ttl_;
+  pstd::ll2string(buf, sizeof(buf), time_stamp);
+  std::string at(buf);
+  RedisAppendLenUint64(content, at.size(), "$");
+  RedisAppendContent(content, at);
+  // value
+  std::string new_value_str = std::to_string(new_value_);
+  RedisAppendLenUint64(content, new_value_str.size(), "$");
+  RedisAppendContent(content, new_value_str);
+  return content;
+}
+
 void IncrbyCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameIncrby);
@@ -293,7 +322,7 @@ void IncrbyCmd::DoInitial() {
 }
 
 void IncrbyCmd::Do() {
-  s_ = db_->storage()->Incrby(key_, by_, &new_value_);
+  s_ = db_->storage()->Incrby(key_, by_, &new_value_, &ttl_);
   if (s_.ok()) {
     res_.AppendContent(":" + std::to_string(new_value_));
     AddSlotKey("k", key_, db_);
