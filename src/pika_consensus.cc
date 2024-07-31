@@ -423,7 +423,7 @@ uint32_t ConsensusCoordinator::term() {
   return term_;
 }
 
-void ConsensusCoordinator::InternalApplyFollower(std::shared_ptr<Cmd> cmd_ptr) {
+void ConsensusCoordinator::InternalApplyFollower(const std::shared_ptr<Cmd>& cmd_ptr) {
   g_pika_rm->ScheduleWriteDBTask(std::move(cmd_ptr), db_name_);
 }
 
