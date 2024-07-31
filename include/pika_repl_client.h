@@ -64,7 +64,7 @@ class PikaReplClient {
   void ScheduleByDBName(net::TaskFunc func, void* arg, const std::string& db_name);
   void ScheduleWriteBinlogTask(const std::string& db_name, const std::shared_ptr<InnerMessage::InnerResponse>& res,
                                const std::shared_ptr<net::PbConn>& conn, void* res_private_data);
-  void ScheduleWriteDBTask(std::shared_ptr<Cmd> cmd_ptr, const std::string& db_name);
+  void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const std::string& db_name);
 
   pstd::Status SendMetaSync();
   pstd::Status SendDBSync(const std::string& ip, uint32_t port, const std::string& db_name,
