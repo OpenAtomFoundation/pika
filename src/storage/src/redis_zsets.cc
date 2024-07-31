@@ -1669,7 +1669,7 @@ Status Redis::ZRemrangebylex(const Slice& key, const Slice& min, const Slice& ma
   return s;
 }
 
-Status Redis::ZsetsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta) {
+Status Redis::ZsetsExpire(const Slice& key, int64_t ttl_millsec, std::string&& prefetch_meta) {
   std::string meta_value(std::move(prefetch_meta));
   ScopeRecordLock l(lock_mgr_, key);
   BaseMetaKey base_meta_key(key);
@@ -1698,8 +1698,8 @@ Status Redis::ZsetsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_
       return Status::NotFound();
     }
 
-    if (ttl > 0) {
-      parsed_zsets_meta_value.SetRelativeTimestamp(ttl);
+    if (ttl_millsec > 0) {
+      parsed_zsets_meta_value.SetRelativeTimestamp(ttl_millsec);
     } else {
       parsed_zsets_meta_value.InitialMetaValue();
     }
@@ -1745,7 +1745,7 @@ Status Redis::ZsetsDel(const Slice& key, std::string&& prefetch_meta) {
   return s;
 }
 
-Status Redis::ZsetsExpireat(const Slice& key, int64_t timestamp, std::string&& prefetch_meta) {
+Status Redis::ZsetsExpireat(const Slice& key, int64_t timestamp_millsec, std::string&& prefetch_meta) {
   std::string meta_value(std::move(prefetch_meta));
   ScopeRecordLock l(lock_mgr_, key);
   BaseMetaKey base_meta_key(key);
@@ -1773,8 +1773,8 @@ Status Redis::ZsetsExpireat(const Slice& key, int64_t timestamp, std::string&& p
     } else if (parsed_zsets_meta_value.Count() == 0) {
       return Status::NotFound();
     } else {
-      if (timestamp > 0) {
-        parsed_zsets_meta_value.SetEtime(uint64_t(timestamp));
+      if (timestamp_millsec > 0) {
+        parsed_zsets_meta_value.SetEtime(uint64_t(timestamp_millsec));
       } else {
         parsed_zsets_meta_value.InitialMetaValue();
       }

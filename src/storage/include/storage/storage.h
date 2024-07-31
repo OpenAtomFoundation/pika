@@ -957,10 +957,10 @@ class Storage {
   // While any error happens, you need to check type_status for
   // the error message
 
-  // Set a timeout on key
+  // Set a timeout on key, milliseconds unit
   // return -1 operation exception errors happen in database
   // return >=0 success
-  int32_t Expire(const Slice& key, int64_t ttl);
+  int32_t Expire(const Slice& key, int64_t ttl_millsec);
 
   // Removes the specified keys
   // return -1 operation exception errors happen in database
@@ -1005,12 +1005,12 @@ class Storage {
 
   // EXPIREAT has the same effect and semantic as EXPIRE, but instead of
   // specifying the number of seconds representing the TTL (time to live), it
-  // takes an absolute Unix timestamp (seconds since January 1, 1970). A
+  // takes an absolute Unix timestamp (milliseconds since January 1, 1970). A
   // timestamp in the past will delete the key immediately.
   // return -1 operation exception errors happen in database
   // return 0 if key does not exist
   // return >=1 if the timueout was set
-  int32_t Expireat(const Slice& key, int64_t timestamp);
+  int32_t Expireat(const Slice& key, int64_t timestamp_millsec);
 
   // Remove the existing timeout on key, turning the key from volatile (a key
   // with an expire set) to persistent (a key that will never expire as no

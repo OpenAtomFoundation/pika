@@ -1403,7 +1403,7 @@ rocksdb::Status Redis::SScan(const Slice& key, int64_t cursor, const std::string
   return rocksdb::Status::OK();
 }
 
-rocksdb::Status Redis::SetsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta) {
+rocksdb::Status Redis::SetsExpire(const Slice& key, int64_t ttl_millsec, std::string&& prefetch_meta) {
   std::string meta_value(std::move(prefetch_meta));
   ScopeRecordLock l(lock_mgr_, key);
   BaseMetaKey base_meta_key(key);
@@ -1432,8 +1432,8 @@ rocksdb::Status Redis::SetsExpire(const Slice& key, int64_t ttl, std::string&& p
       return rocksdb::Status::NotFound();
     }
 
-    if (ttl > 0) {
-      parsed_sets_meta_value.SetRelativeTimestamp(ttl);
+    if (ttl_millsec > 0) {
+      parsed_sets_meta_value.SetRelativeTimestamp(ttl_millsec);
       s = db_->Put(default_write_options_, handles_[kMetaCF], base_meta_key.Encode(), meta_value);
     } else {
       parsed_sets_meta_value.InitialMetaValue();
@@ -1480,7 +1480,7 @@ rocksdb::Status Redis::SetsDel(const Slice& key, std::string&& prefetch_meta) {
   return s;
 }
 
-rocksdb::Status Redis::SetsExpireat(const Slice& key, int64_t timestamp, std::string&& prefetch_meta) {
+rocksdb::Status Redis::SetsExpireat(const Slice& key, int64_t timestamp_millsec, std::string&& prefetch_meta) {
   std::string meta_value(std::move(prefetch_meta));
   ScopeRecordLock l(lock_mgr_, key);
   BaseMetaKey base_meta_key(key);
@@ -1508,8 +1508,8 @@ rocksdb::Status Redis::SetsExpireat(const Slice& key, int64_t timestamp, std::st
     } else if (parsed_sets_meta_value.Count() == 0) {
       return rocksdb::Status::NotFound();
     } else {
-      if (timestamp > 0) {
-        parsed_sets_meta_value.SetEtime(static_cast<uint64_t>(timestamp));
+      if (timestamp_millsec > 0) {
+        parsed_sets_meta_value.SetEtime(static_cast<uint64_t>(timestamp_millsec));
       } else {
         parsed_sets_meta_value.InitialMetaValue();
       }

@@ -1295,7 +1295,7 @@ Status Redis::PKSetexAt(const Slice& key, const Slice& value, int64_t timestamp)
   return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
 }
 
-Status Redis::StringsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta) {
+Status Redis::StringsExpire(const Slice& key, int64_t ttl_millsec, std::string&& prefetch_meta) {
   std::string value(std::move(prefetch_meta));
 
   BaseKey base_key(key);
@@ -1321,8 +1321,8 @@ Status Redis::StringsExpire(const Slice& key, int64_t ttl, std::string&& prefetc
     if (parsed_strings_value.IsStale()) {
       return Status::NotFound("Stale");
     }
-    if (ttl > 0) {
-      parsed_strings_value.SetRelativeTimestamp(ttl);
+    if (ttl_millsec > 0) {
+      parsed_strings_value.SetRelativeTimestamp(ttl_millsec);
       return db_->Put(default_write_options_, base_key.Encode(), value);
     } else {
       return db_->Delete(default_write_options_, base_key.Encode());
@@ -1362,7 +1362,7 @@ Status Redis::StringsDel(const Slice& key, std::string&& prefetch_meta) {
   return s;
 }
 
-Status Redis::StringsExpireat(const Slice& key, int64_t timestamp, std::string&& prefetch_meta) {
+Status Redis::StringsExpireat(const Slice& key, int64_t timestamp_millsec, std::string&& prefetch_meta) {
   std::string value(std::move(prefetch_meta));
   ScopeRecordLock l(lock_mgr_, key);
   BaseKey base_key(key);
@@ -1388,8 +1388,8 @@ Status Redis::StringsExpireat(const Slice& key, int64_t timestamp, std::string&&
     if (parsed_strings_value.IsStale()) {
       return Status::NotFound("Stale");
     } else {
-      if (timestamp > 0) {
-        parsed_strings_value.SetEtime(static_cast<uint64_t>(timestamp));
+      if (timestamp_millsec > 0) {
+        parsed_strings_value.SetEtime(static_cast<uint64_t>(timestamp_millsec));
         return db_->Put(default_write_options_, base_key.Encode(), value);
       } else {
         return db_->Delete(default_write_options_, base_key.Encode());
@@ -1565,7 +1565,7 @@ rocksdb::Status Redis::Del(const Slice& key) {
   return rocksdb::Status::NotFound();
 }
 
-rocksdb::Status Redis::Expire(const Slice& key, int64_t ttl) {
+rocksdb::Status Redis::Expire(const Slice& key, int64_t ttl_millsec) {
   std::string meta_value;
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
@@ -1573,15 +1573,15 @@ rocksdb::Status Redis::Expire(const Slice& key, int64_t ttl) {
     auto type = static_cast<DataType>(static_cast<uint8_t>(meta_value[0]));
     switch (type) {
       case DataType::kSets:
-        return SetsExpire(key, ttl, std::move(meta_value));
+        return SetsExpire(key, ttl_millsec, std::move(meta_value));
       case DataType::kZSets:
-        return ZsetsExpire(key, ttl, std::move(meta_value));
+        return ZsetsExpire(key, ttl_millsec, std::move(meta_value));
       case DataType::kHashes:
-        return HashesExpire(key, ttl, std::move(meta_value));
+        return HashesExpire(key, ttl_millsec, std::move(meta_value));
       case DataType::kLists:
-        return ListsExpire(key, ttl, std::move(meta_value));
+        return ListsExpire(key, ttl_millsec, std::move(meta_value));
       case DataType::kStrings:
-        return StringsExpire(key, ttl, std::move(meta_value));
+        return StringsExpire(key, ttl_millsec, std::move(meta_value));
       default:
         return rocksdb::Status::NotFound();
     }
@@ -1589,7 +1589,7 @@ rocksdb::Status Redis::Expire(const Slice& key, int64_t ttl) {
   return rocksdb::Status::NotFound();
 }
 
-rocksdb::Status Redis::Expireat(const Slice& key, int64_t ttl) {
+rocksdb::Status Redis::Expireat(const Slice& key, int64_t timestamp_millsec) {
   std::string meta_value;
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
@@ -1597,15 +1597,15 @@ rocksdb::Status Redis::Expireat(const Slice& key, int64_t ttl) {
     auto type = static_cast<DataType>(static_cast<uint8_t>(meta_value[0]));
     switch (type) {
       case DataType::kSets:
-        return SetsExpireat(key, ttl, std::move(meta_value));
+        return SetsExpireat(key, timestamp_millsec, std::move(meta_value));
       case DataType::kZSets:
-        return ZsetsExpireat(key, ttl, std::move(meta_value));
+        return ZsetsExpireat(key, timestamp_millsec, std::move(meta_value));
       case DataType::kHashes:
-        return HashesExpireat(key, ttl, std::move(meta_value));
+        return HashesExpireat(key, timestamp_millsec, std::move(meta_value));
       case DataType::kLists:
-        return ListsExpireat(key, ttl, std::move(meta_value));
+        return ListsExpireat(key, timestamp_millsec, std::move(meta_value));
       case DataType::kStrings:
-        return StringsExpireat(key, ttl, std::move(meta_value));
+        return StringsExpireat(key, timestamp_millsec, std::move(meta_value));
       default:
         return rocksdb::Status::NotFound();
     }

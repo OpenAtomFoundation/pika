@@ -1171,10 +1171,10 @@ Status Storage::XInfo(const Slice& key, StreamInfoResult &result) {
 }
 
 // Keys Commands
-int32_t Storage::Expire(const Slice& key, int64_t ttl) {
+int32_t Storage::Expire(const Slice& key, int64_t ttl_millsec) {
   auto& inst = GetDBInstance(key);
   int32_t ret = 0;
-  Status s = inst->Expire(key, ttl);
+  Status s = inst->Expire(key, ttl_millsec);
   if (s.ok()) {
     ret++;
   } else if (!s.IsNotFound()) {
@@ -1446,11 +1446,11 @@ Status Storage::Scanx(const DataType& data_type, const std::string& start_key, c
   return Status::OK();
 }
 
-int32_t Storage::Expireat(const Slice& key, int64_t timestamp) {
+int32_t Storage::Expireat(const Slice& key, int64_t timestamp_millsec) {
   Status s;
   int32_t count = 0;
   auto& inst = GetDBInstance(key);
-  s = inst->Expireat(key, timestamp);
+  s = inst->Expireat(key, timestamp_millsec);
   if (s.ok()) {
     count++;
   } else if (!s.IsNotFound()) {

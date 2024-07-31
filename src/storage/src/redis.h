@@ -117,11 +117,11 @@ class Redis {
   Status ScanStreamsKeyNum(KeyInfo* key_info);
 
   // Keys Commands
-  virtual Status StringsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta = {});
-  virtual Status HashesExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta = {});
-  virtual Status ListsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta = {});
-  virtual Status ZsetsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta = {});
-  virtual Status SetsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta = {});
+  virtual Status StringsExpire(const Slice& key, int64_t ttl_millsec, std::string&& prefetch_meta = {});
+  virtual Status HashesExpire(const Slice& key, int64_t ttl_millsec, std::string&& prefetch_meta = {});
+  virtual Status ListsExpire(const Slice& key, int64_t ttl_millsec, std::string&& prefetch_meta = {});
+  virtual Status ZsetsExpire(const Slice& key, int64_t ttl_millsec, std::string&& prefetch_meta = {});
+  virtual Status SetsExpire(const Slice& key, int64_t ttl_millsec, std::string&& prefetch_meta = {});
 
   virtual Status StringsDel(const Slice& key, std::string&& prefetch_meta = {});
   virtual Status HashesDel(const Slice& key, std::string&& prefetch_meta = {});
@@ -130,11 +130,11 @@ class Redis {
   virtual Status SetsDel(const Slice& key, std::string&& prefetch_meta = {});
   virtual Status StreamsDel(const Slice& key, std::string&& prefetch_meta = {});
 
-  virtual Status StringsExpireat(const Slice& key, int64_t timestamp, std::string&& prefetch_meta = {});
-  virtual Status HashesExpireat(const Slice& key, int64_t timestamp, std::string&& prefetch_meta = {});
-  virtual Status ListsExpireat(const Slice& key, int64_t timestamp, std::string&& prefetch_meta = {});
-  virtual Status SetsExpireat(const Slice& key, int64_t timestamp, std::string&& prefetch_meta = {});
-  virtual Status ZsetsExpireat(const Slice& key, int64_t timestamp, std::string&& prefetch_meta = {});
+  virtual Status StringsExpireat(const Slice& key, int64_t timestamp_millsec, std::string&& prefetch_meta = {});
+  virtual Status HashesExpireat(const Slice& key, int64_t timestamp_millsec, std::string&& prefetch_meta = {});
+  virtual Status ListsExpireat(const Slice& key, int64_t timestamp_millsec, std::string&& prefetch_meta = {});
+  virtual Status SetsExpireat(const Slice& key, int64_t timestamp_millsec, std::string&& prefetch_meta = {});
+  virtual Status ZsetsExpireat(const Slice& key, int64_t timestamp_millsec, std::string&& prefetch_meta = {});
 
   virtual Status StringsPersist(const Slice& key, std::string&& prefetch_meta = {});
   virtual Status HashesPersist(const Slice& key, std::string&& prefetch_meta = {});
@@ -185,8 +185,8 @@ class Redis {
 
   Status Exists(const Slice& key);
   Status Del(const Slice& key);
-  Status Expire(const Slice& key, int64_t timestamp);
-  Status Expireat(const Slice& key, int64_t timestamp);
+  Status Expire(const Slice& key, int64_t ttl_millsec);
+  Status Expireat(const Slice& key, int64_t timestamp_millsec);
   Status Persist(const Slice& key);
   Status TTL(const Slice& key, int64_t* timestamp);
   Status PKPatternMatchDel(const std::string& pattern, int32_t* ret);

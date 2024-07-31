@@ -572,7 +572,7 @@ class ExpireCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t sec_ = 0;
+  int64_t ttl_sec_ = 0;
   void DoInitial() override;
   std::string ToRedisProtocol() override;
   rocksdb::Status s_;
@@ -596,7 +596,7 @@ class PexpireCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t msec_ = 0;
+  int64_t ttl_millsec = 0;
   void DoInitial() override;
   std::string ToRedisProtocol() override;
   rocksdb::Status s_;
@@ -620,7 +620,7 @@ class ExpireatCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t time_stamp_ = 0;
+  int64_t time_stamp_sec_ = 0;
   void DoInitial() override;
   rocksdb::Status s_;
 };
@@ -643,10 +643,9 @@ class PexpireatCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t time_stamp_ms_ = 0;
+  int64_t time_stamp_millsec_ = 0;
   void DoInitial() override;
   rocksdb::Status s_;
-  std::string ToRedisProtocol() override;
 };
 
 class TtlCmd : public Cmd {

@@ -121,9 +121,9 @@ public:
     SetCtimeToValue();
   }
 
-  void SetRelativeTimestamp(int64_t ttl) {
+  void SetRelativeTimestamp(int64_t ttl_millsec) {
     pstd::TimeType unix_time = pstd::NowMillis();
-    etime_ = unix_time + ttl * 1000;
+    etime_ = unix_time + ttl_millsec;
     SetEtimeToValue();
   }
 

@@ -1199,14 +1199,14 @@ void ExpireCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &sec_) == 0) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &ttl_sec_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
 }
 
 void ExpireCmd::Do() {
-  int32_t res = db_->storage()->Expire(key_, sec_);
+  int32_t res = db_->storage()->Expire(key_, ttl_sec_ * 1000);
   if (res != -1) {
     res_.AppendInteger(res);
     s_ = rocksdb::Status::OK();
@@ -1230,7 +1230,7 @@ std::string ExpireCmd::ToRedisProtocol() {
   RedisAppendContent(content, key_);
   // sec
   char buf[100];
-  int64_t expireat = time(nullptr) + sec_;
+  int64_t expireat = time(nullptr) + ttl_sec_;
   pstd::ll2string(buf, 100, expireat);
   std::string at(buf);
   RedisAppendLenUint64(content, at.size(), "$");
@@ -1244,7 +1244,7 @@ void ExpireCmd::DoThroughDB() {
 
 void ExpireCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db_->cache()->Expire(key_, sec_);
+    db_->cache()->Expire(key_, ttl_sec_);
   }
 }
 
@@ -1254,14 +1254,14 @@ void PexpireCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &msec_) == 0) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &ttl_millsec) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
 }
 
 void PexpireCmd::Do() {
-  int64_t res = db_->storage()->Expire(key_, msec_ / 1000);
+  int64_t res = db_->storage()->Expire(key_, ttl_millsec);
   if (res != -1) {
     res_.AppendInteger(res);
     s_ = rocksdb::Status::OK();
@@ -1276,8 +1276,8 @@ std::string PexpireCmd::ToRedisProtocol() {
   content.reserve(RAW_ARGS_LEN);
   RedisAppendLenUint64(content, argv_.size(), "*");
 
-  // to expireat cmd
-  std::string expireat_cmd("expireat");
+  // to pexpireat cmd
+  std::string expireat_cmd("pexpireat");
   RedisAppendLenUint64(content, expireat_cmd.size(), "$");
   RedisAppendContent(content, expireat_cmd);
   // key
@@ -1285,7 +1285,7 @@ std::string PexpireCmd::ToRedisProtocol() {
   RedisAppendContent(content, key_);
   // sec
   char buf[100];
-  int64_t expireat = time(nullptr) + msec_ / 1000;
+  int64_t expireat = pstd::NowMillis() + ttl_millsec;
   pstd::ll2string(buf, 100, expireat);
   std::string at(buf);
   RedisAppendLenUint64(content, at.size(), "$");
@@ -1299,7 +1299,7 @@ void PexpireCmd::DoThroughDB() {
 
 void PexpireCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db_->cache()->Expire(key_, msec_ / 1000);
+    db_->cache()->Expire(key_, ttl_millsec);
   }
 }
 
@@ -1309,14 +1309,14 @@ void ExpireatCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_) == 0) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_sec_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
 }
 
 void ExpireatCmd::Do() {
-  int32_t res = db_->storage()->Expireat(key_, time_stamp_);
+  int32_t res = db_->storage()->Expireat(key_, time_stamp_sec_ * 1000);
   if (res != -1) {
     res_.AppendInteger(res);
     s_ = rocksdb::Status::OK();
@@ -1332,7 +1332,7 @@ void ExpireatCmd::DoThroughDB() {
 
 void ExpireatCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db_->cache()->Expireat(key_, time_stamp_);
+    db_->cache()->Expireat(key_, time_stamp_sec_);
   }
 }
 
@@ -1342,36 +1342,14 @@ void PexpireatCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_ms_) == 0) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_millsec_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
 }
 
-std::string PexpireatCmd::ToRedisProtocol() {
-  std::string content;
-  content.reserve(RAW_ARGS_LEN);
-  RedisAppendLenUint64(content, argv_.size(), "*");
-
-  // to expireat cmd
-  std::string expireat_cmd("expireat");
-  RedisAppendLenUint64(content, expireat_cmd.size(), "$");
-  RedisAppendContent(content, expireat_cmd);
-  // key
-  RedisAppendLenUint64(content, key_.size(), "$");
-  RedisAppendContent(content, key_);
-  // sec
-  char buf[100];
-  int64_t expireat = time_stamp_ms_ / 1000;
-  pstd::ll2string(buf, 100, expireat);
-  std::string at(buf);
-  RedisAppendLenUint64(content, at.size(), "$");
-  RedisAppendContent(content, at);
-  return content;
-}
-
 void PexpireatCmd::Do() {
-  int32_t res = db_->storage()->Expireat(key_, static_cast<int32_t>(time_stamp_ms_ / 1000));
+  int32_t res = db_->storage()->Expireat(key_, static_cast<int32_t>(time_stamp_millsec_));
   if (res != -1) {
     res_.AppendInteger(res);
     s_ = rocksdb::Status::OK();
@@ -1387,7 +1365,7 @@ void PexpireatCmd::DoThroughDB() {
 
 void PexpireatCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db_->cache()->Expireat(key_, time_stamp_ms_ / 1000);
+    db_->cache()->Expireat(key_, time_stamp_millsec_ / 1000);
   }
 }
 

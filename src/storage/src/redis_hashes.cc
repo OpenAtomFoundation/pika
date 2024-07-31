@@ -1154,7 +1154,7 @@ Status Redis::PKHRScanRange(const Slice& key, const Slice& field_start, const st
   return Status::OK();
 }
 
-Status Redis::HashesExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta) {
+Status Redis::HashesExpire(const Slice& key, int64_t ttl_millsec, std::string&& prefetch_meta) {
   std::string meta_value(std::move(prefetch_meta));
   ScopeRecordLock l(lock_mgr_, key);
   BaseMetaKey base_meta_key(key);
@@ -1183,8 +1183,8 @@ Status Redis::HashesExpire(const Slice& key, int64_t ttl, std::string&& prefetch
       return Status::NotFound();
     }
 
-    if (ttl > 0) {
-      parsed_hashes_meta_value.SetRelativeTimestamp(ttl);
+    if (ttl_millsec > 0) {
+      parsed_hashes_meta_value.SetRelativeTimestamp(ttl_millsec);
       s = db_->Put(default_write_options_, handles_[kMetaCF], base_meta_key.Encode(), meta_value);
     } else {
       parsed_hashes_meta_value.InitialMetaValue();
@@ -1231,7 +1231,7 @@ Status Redis::HashesDel(const Slice& key, std::string&& prefetch_meta) {
   return s;
 }
 
-Status Redis::HashesExpireat(const Slice& key, int64_t timestamp, std::string&& prefetch_meta) {
+Status Redis::HashesExpireat(const Slice& key, int64_t timestamp_millsec, std::string&& prefetch_meta) {
   std::string meta_value(std::move(prefetch_meta));
   ScopeRecordLock l(lock_mgr_, key);
   BaseMetaKey base_meta_key(key);
@@ -1259,8 +1259,8 @@ Status Redis::HashesExpireat(const Slice& key, int64_t timestamp, std::string&& 
     } else if (parsed_hashes_meta_value.Count() == 0) {
       return Status::NotFound();
     } else {
-      if (timestamp > 0) {
-        parsed_hashes_meta_value.SetEtime(static_cast<uint64_t>(timestamp));
+      if (timestamp_millsec > 0) {
+        parsed_hashes_meta_value.SetEtime(static_cast<uint64_t>(timestamp_millsec));
       } else {
         parsed_hashes_meta_value.InitialMetaValue();
       }
