@@ -19,6 +19,7 @@ struct TimeStat {
   void Reset() {
     enqueue_ts_ = dequeue_ts_ = 0;
     process_done_ts_ = 0;
+    before_queue_ts_ = 0;
   }
 
   uint64_t start_ts() const {
@@ -37,8 +38,13 @@ struct TimeStat {
     return process_done_ts_ > dequeue_ts_ ? process_done_ts_ - dequeue_ts_ : 0;
   }
 
+  uint64_t before_queue_time() const {
+    return process_done_ts_ > dequeue_ts_ ? before_queue_ts_ - enqueue_ts_ : 0;
+  }
+
   uint64_t enqueue_ts_;
   uint64_t dequeue_ts_;
+  uint64_t before_queue_ts_;
   uint64_t process_done_ts_;
 };
 
@@ -67,8 +73,11 @@ class PikaClientConn : public net::RedisConn {
                  const net::HandleType& handle_type, int max_conn_rbuf_size);
   ~PikaClientConn() = default;
 
+  bool IsInterceptedByRTC(std::string& opt);
+
   void ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async, std::string* response) override;
 
+  bool ReadCmdInCache(const net::RedisCmdArgsType& argv, const std::string& opt);
   void BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs);
   int DealMessage(const net::RedisCmdArgsType& argv, std::string* response) override { return 0; }
   static void DoBackgroundTask(void* arg);
