@@ -44,12 +44,8 @@ struct ReplClientWriteBinlogTaskArg {
 
 struct ReplClientWriteDBTaskArg {
   const std::shared_ptr<Cmd> cmd_ptr;
-  LogOffset offset;
-  std::string db_name;
-  ReplClientWriteDBTaskArg(std::shared_ptr<Cmd> _cmd_ptr, const LogOffset& _offset, std::string _db_name)
-      : cmd_ptr(std::move(_cmd_ptr)),
-        offset(_offset),
-        db_name(std::move(_db_name)) {}
+  explicit ReplClientWriteDBTaskArg(std::shared_ptr<Cmd> _cmd_ptr)
+      : cmd_ptr(std::move(_cmd_ptr)) {}
   ~ReplClientWriteDBTaskArg() = default;
 };
 
@@ -68,7 +64,7 @@ class PikaReplClient {
   void ScheduleByDBName(net::TaskFunc func, void* arg, const std::string& db_name);
   void ScheduleWriteBinlogTask(const std::string& db_name, const std::shared_ptr<InnerMessage::InnerResponse>& res,
                                const std::shared_ptr<net::PbConn>& conn, void* res_private_data);
-  void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset, const std::string& db_name);
+  void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const std::string& db_name);
 
   pstd::Status SendMetaSync();
   pstd::Status SendDBSync(const std::string& ip, uint32_t port, const std::string& db_name,
@@ -80,6 +76,24 @@ class PikaReplClient {
                                  const std::string& local_ip, bool is_first_send);
   pstd::Status SendRemoveSlaveNode(const std::string& ip, uint32_t port, const std::string& db_name, const std::string& local_ip);
 
+  void IncrAsyncWriteDBTaskCount(const std::string& db_name, int32_t incr_step) {
+    int32_t db_index = db_name.back() - '0';
+    assert(db_index >= 0 && db_index <= 7);
+    async_write_db_task_counts_[db_index].fetch_add(incr_step, std::memory_order::memory_order_seq_cst);
+  }
+
+  void DecrAsyncWriteDBTaskCount(const std::string& db_name, int32_t incr_step) {
+    int32_t db_index = db_name.back() - '0';
+    assert(db_index >= 0 && db_index <= 7);
+    async_write_db_task_counts_[db_index].fetch_sub(incr_step, std::memory_order::memory_order_seq_cst);
+  }
+
+  int32_t GetUnfinishedAsyncWriteDBTaskCount(const std::string& db_name) {
+    int32_t db_index = db_name.back() - '0';
+    assert(db_index >= 0 && db_index <= 7);
+    return async_write_db_task_counts_[db_index].load(std::memory_order_seq_cst);
+  }
+
  private:
   size_t GetBinlogWorkerIndexByDBName(const std::string &db_name);
   size_t GetHashIndexByKey(const std::string& key);
@@ -88,6 +102,14 @@ class PikaReplClient {
   std::unique_ptr<PikaReplClientThread> client_thread_;
   int next_avail_ = 0;
   std::hash<std::string> str_hash;
+
+  // async_write_db_task_counts_ is used when consuming binlog, which indicates the nums of async write-DB tasks that are
+  // queued or being executing by WriteDBWorkers. If a flushdb-binlog need to apply DB, it must wait
+  // util this count drop to zero. you can also check pika discussion #2807 to know more
+  // it is only used in slaveNode when consuming binlog
+  std::atomic<int32_t> async_write_db_task_counts_[MAX_DB_NUM];
+  // [NOTICE] write_db_workers_ must be declared after async_write_db_task_counts_ to ensure write_db_workers_ will be destroyed before async_write_db_task_counts_
+  // when PikaReplClient is de-constructing, because some of the async task that exec by write_db_workers_ will manipulate async_write_db_task_counts_
   std::vector<std::unique_ptr<PikaReplBgWorker>> write_binlog_workers_;
   std::vector<std::unique_ptr<PikaReplBgWorker>> write_db_workers_;
 };
