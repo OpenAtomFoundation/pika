@@ -424,7 +424,7 @@ uint32_t ConsensusCoordinator::term() {
 }
 
 void ConsensusCoordinator::InternalApplyFollower(const std::shared_ptr<Cmd>& cmd_ptr) {
-  g_pika_rm->ScheduleWriteDBTask(std::move(cmd_ptr), db_name_);
+  g_pika_rm->ScheduleWriteDBTask(cmd_ptr, db_name_);
 }
 
 int ConsensusCoordinator::InitCmd(net::RedisParser* parser, const net::RedisCmdArgsType& argv) {
