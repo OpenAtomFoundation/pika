@@ -258,7 +258,7 @@ void PikaClientConn::ProcessMonitor(const PikaCmdArgsType& argv) {
 }
 
 bool PikaClientConn::IsInterceptedByRTC(std::string& opt) {
-  //currently we Intercept: Get, HGet
+  //currently we only Intercept: Get, HGet
   if (opt == kCmdNameGet && g_pika_conf->GetCacheString()) {
     return true;
   }
