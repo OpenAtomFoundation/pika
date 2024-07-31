@@ -18,6 +18,7 @@
 #include "include/pika_server.h"
 #include "net/src/dispatch_thread.h"
 #include "net/src/worker_thread.h"
+#include "src/pstd/include/scope_record_lock.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaServer* g_pika_server;
@@ -232,6 +233,7 @@ void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t do_dur
       LOG(ERROR) << "ip_port: " << ip_port() << ", db: " << current_db_ << ", command:" << slow_log
                  << ", command_size: " << cmd_size - 1 << ", arguments: " << argv.size()
                  << ", total_time(ms): " << time_stat_->total_time() / 1000
+                 << ", before_queue_time(ms): " << time_stat_->before_queue_time() / 1000
                  << ", queue_time(ms): " << time_stat_->queue_time() / 1000
                  << ", process_time(ms): " << time_stat_->process_time() / 1000
                  << ", cmd_time(ms): " << do_duration / 1000;
@@ -250,13 +252,24 @@ void PikaClientConn::ProcessMonitor(const PikaCmdArgsType& argv) {
   g_pika_server->AddMonitorMessage(monitor_message);
 }
 
+bool PikaClientConn::IsInterceptedByRTC(std::string& opt) {
+  //currently we only Intercept: Get, HGet
+  if (opt == kCmdNameGet && g_pika_conf->GetCacheString()) {
+    return true;
+  }
+  if (opt == kCmdNameHGet && g_pika_conf->GetCacheHash()) {
+    return true;
+  }
+  return false;
+}
+
 void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async,
                                       std::string* response) {
   time_stat_->Reset();
   if (async) {
     auto arg = new BgTaskArg();
     arg->redis_cmds = argvs;
-    time_stat_->enqueue_ts_ = pstd::NowMicros();
+    time_stat_->enqueue_ts_ = time_stat_->before_queue_ts_ = pstd::NowMicros();
     arg->conn_ptr = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
     /**
      * If using the pipeline method to transmit batch commands to Pika, it is unable to
@@ -268,6 +281,19 @@ void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& 
     pstd::StringToLower(opt);
     bool is_slow_cmd = g_pika_conf->is_slow_cmd(opt);
     bool is_admin_cmd = g_pika_conf->is_admin_cmd(opt);
+
+    //we don't intercept pipeline batch (argvs.size() > 1)
+    if (argvs.size() == 1 && IsInterceptedByRTC(opt) &&
+        PIKA_CACHE_NONE != g_pika_conf->cache_mode() &&
+        !IsInTxn()) {
+      // read in cache
+      if (ReadCmdInCache(argvs[0], opt)) {
+        delete arg;
+        return;
+      }
+      time_stat_->before_queue_ts_ = pstd::NowMicros();
+    }
+
     g_pika_server->ScheduleClientPool(&DoBackgroundTask, arg, is_slow_cmd, is_admin_cmd);
     return;
   }
@@ -301,6 +327,51 @@ void PikaClientConn::BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>&
   }
   time_stat_->process_done_ts_ = pstd::NowMicros();
   TryWriteResp();
+}
+
+bool PikaClientConn::ReadCmdInCache(const net::RedisCmdArgsType& argv, const std::string& opt) {
+  resp_num.store(1);
+  std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
+  if (!c_ptr) {
+    return false;
+  }
+  // Check authed
+  if (AuthRequired()) {  // the user is not authed, need to do auth
+    if (!(c_ptr->flag() & kCmdFlagsNoAuth)) {
+      return false;
+    }
+  }
+  // Initial
+  c_ptr->Initial(argv, current_db_);
+  //acl check
+  int8_t subCmdIndex = -1;
+  std::string errKey;
+  auto checkRes = user_->CheckUserPermission(c_ptr, argv, subCmdIndex, &errKey);
+  std::string object;
+  if (checkRes == AclDeniedCmd::CMD ||
+      checkRes == AclDeniedCmd::KEY ||
+      checkRes == AclDeniedCmd::CHANNEL ||
+      checkRes == AclDeniedCmd::NO_SUB_CMD ||
+      checkRes == AclDeniedCmd::NO_AUTH
+      ) {
+    //acl check failed
+    return false;
+  }
+  //only read command(Get, HGet) will reach here, no need of record lock
+  if (c_ptr->db_->cache()->CacheStatus() != PIKA_CACHE_STATUS_OK) {
+    return false;
+  }
+  bool read_status = c_ptr->DoReadCommandInCache();
+  auto cmdstat_map = g_pika_cmd_table_manager->GetCommandStatMap();
+  resp_num--;
+  if (read_status) {
+    time_stat_->process_done_ts_ = pstd::NowMicros();
+    (*cmdstat_map)[argv[0]].cmd_count.fetch_add(1);
+    (*cmdstat_map)[argv[0]].cmd_time_consuming.fetch_add(time_stat_->total_time());
+    resp_array.emplace_back(std::make_shared<std::string>(std::move(c_ptr->res().message())));
+    TryWriteResp();
+  }
+  return read_status;
 }
 
 void PikaClientConn::TryWriteResp() {
