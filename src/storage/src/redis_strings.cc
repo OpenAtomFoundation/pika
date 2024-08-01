@@ -147,6 +147,7 @@ Status RedisStrings::PKPatternMatchDel(const std::string& pattern, int32_t* ret)
         batch.Clear();
       } else {
         *ret = total_delete;
+        delete iter;
         return s;
       }
     }
@@ -159,7 +160,7 @@ Status RedisStrings::PKPatternMatchDel(const std::string& pattern, int32_t* ret)
       batch.Clear();
     }
   }
-
+  delete iter;
   *ret = total_delete;
   return s;
 }
