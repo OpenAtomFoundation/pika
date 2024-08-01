@@ -1210,8 +1210,8 @@ void PikaServer::AutoCompactRange() {
 
 void PikaServer::AutoBinlogPurge() { DoSameThingEveryDB(TaskType::kPurgeLog); }
 
-void PikaServer::AutoServerlogPurge(){
-std::string log_path = g_pika_conf->log_path();
+void PikaServer::AutoServerlogPurge() {
+  std::string log_path = g_pika_conf->log_path();
   int retention_time = g_pika_conf->log_retention_time();
   if (retention_time <= 0) {
     return;
@@ -1225,40 +1225,43 @@ std::string log_path = g_pika_conf->log_path();
   if (pstd::GetChildren(log_path, log_files) != 0) {
     return;
   }
-
+  //Get the current time of system
   time_t t = time(nullptr);
   struct tm* now = localtime(&t);
   int now_year = now->tm_year + 1900;
   int now_month = now->tm_mon + 1;
   int now_day = now->tm_mday;
 
-  //logformat: pika.[hostname].[user name].log.[severity level].[date].[time].[pid]
+  struct tm now_time;
+  now_time.tm_year = now_year - 1900;
+  now_time.tm_mon = now_month - 1;
+  now_time.tm_mday = now_day;
+  now_time.tm_hour = 0;
+  now_time.tm_min = 0;
+  now_time.tm_sec = 0;
+  int64_t now_timestamp = mktime(&now_time);
+
+  std::map<std::string, std::vector<std::pair<std::string, int64_t>>> log_files_by_level;
+
+  //Serverlogformat: pika.[hostname].[user name].log.[severity level].[date].[time].[pid]
   for (const auto& file : log_files) {
-    if (file.substr(0, 5) != "pika.") {
+    std::vector<std::string> file_parts;
+    pstd::StringSplit(file, '.', file_parts);
+    if (file_parts.size() < 7) {
       continue;
     }
 
-    size_t log_pos = file.find(".log.");
-    if (log_pos == std::string::npos) {
+    std::string severity_level = file_parts[4];
+    if (severity_level != "WARNING" && severity_level != "INFO" && severity_level != "ERROR") {
       continue;
     }
 
-    // Start at the end of ".log." to find the date and time
-    size_t date_pos = file.find('.', log_pos + 5);
-    if (date_pos == std::string::npos || date_pos + 16 > file.length()) {
+    int log_year, log_month, log_day;
+    if (sscanf(file_parts[5].c_str(), "%4d%2d%2d", &log_year, &log_month, &log_day) != 3) {
       continue;
     }
-
-    std::string date = file.substr(date_pos + 1, 8);
-    std::string time = file.substr(date_pos + 10, 6);
-
-    int log_year = std::atoi(date.substr(0, 4).c_str());
-    int log_month = std::atoi(date.substr(4, 2).c_str());
-    int log_day = std::atoi(date.substr(6, 2).c_str());
-
+    //Get the time when the server log file was originally created
     struct tm log_time;
-    struct tm now_time;
-
     log_time.tm_year = log_year - 1900;
     log_time.tm_mon = log_month - 1;
     log_time.tm_mday = log_day;
@@ -1266,22 +1269,26 @@ std::string log_path = g_pika_conf->log_path();
     log_time.tm_min = 0;
     log_time.tm_sec = 0;
 
-    now_time.tm_year = now_year - 1900;
-    now_time.tm_mon = now_month - 1;
-    now_time.tm_mday = now_day;
-    now_time.tm_hour = 0;
-    now_time.tm_min = 0;
-    now_time.tm_sec = 0;
-
     int64_t log_timestamp = mktime(&log_time);
-    int64_t now_timestamp = mktime(&now_time);
-    int64_t interval_days = (now_timestamp - log_timestamp) / 86400;
+    log_files_by_level[severity_level].push_back({file, log_timestamp});
+  }
 
-    if (interval_days > retention_time) {
-      std::string log_file = log_path + "/" + file;
-      LOG(INFO) << "Deleting out of date log file: " << log_file;
-      if (!pstd::DeleteFile(log_file)) {
-        LOG(ERROR) << "Failed to delete log file: " << log_file;
+  // Process files for each log level
+  for (auto& [level, files] : log_files_by_level) {
+    // Sort by time in descending order
+    std::sort(files.begin(), files.end(),
+              [](const auto& a, const auto& b) { return a.second > b.second; });
+
+    bool keep_newest = false;
+    for (const auto& [file, log_timestamp] : files) {
+      int64_t interval_days = (now_timestamp - log_timestamp) / 86400;
+
+      if (interval_days > retention_time && keep_newest) {
+        std::string log_file = log_path + "/" + file;
+        LOG(INFO) << "Deleting out of date log file: " << log_file;
+        if(!pstd::DeleteFile(log_file)) LOG(ERROR) << "Failed to delete log file: " << log_file;
+      } else {
+        keep_newest = true;
       }
     }
   }
