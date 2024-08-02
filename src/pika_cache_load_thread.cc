@@ -70,8 +70,6 @@ bool PikaCacheLoadThread::LoadHash(std::string& key, const std::shared_ptr<DB>& 
   int32_t len = 0;
   db->storage()->HLen(key, &len);
   if (0 >= len || CACHE_VALUE_ITEM_MAX_SIZE < len) {
-    LOG(WARNING) << "can not load key, because item size:" << len
-                 << " beyond max item size:" << CACHE_VALUE_ITEM_MAX_SIZE;
     return false;
   }
 
@@ -210,8 +208,6 @@ void *PikaCacheLoadThread::ThreadMain() {
     for (auto iter = load_keys.begin(); iter != load_keys.end(); ++iter) {
       if (LoadKey(std::get<0>(*iter), std::get<1>(*iter), std::get<2>(*iter))) {
         ++async_load_keys_num_;
-      } else {
-        LOG(WARNING) << "PikaCacheLoadThread::ThreadMain LoadKey: " << std::get<1>(*iter) << " failed !!!";
       }
 
       std::unique_lock lm(loadkeys_map_mutex_);
