@@ -44,7 +44,7 @@ class StringsTest : public ::testing::Test {
 
 static bool make_expired(storage::Storage* const db, const Slice& key) {
   std::map<storage::DataType, rocksdb::Status> type_status;
-  int ret = db->Expire(key, 1);
+  int ret = db->Expire(key, 1 * 100);
   if ((ret == 0) || !type_status[storage::DataType::kStrings].ok()) {
     return false;
   }
@@ -86,7 +86,7 @@ TEST_F(StringsTest, AppendTest) {
   // ***************** Group 2 Test *****************
   s = db.Set("GP2_APPEND_KEY", "VALUE");
   ASSERT_TRUE(s.ok());
-  ret = db.Expire("GP2_APPEND_KEY", 100);
+  ret = db.Expire("GP2_APPEND_KEY", 100 * 1000);
   ASSERT_EQ(ret, 1);
   type_status.clear();
   type_ttl = db.TTL("GP2_APPEND_KEY");
@@ -763,7 +763,7 @@ TEST_F(StringsTest, SetvxTest) {
   ASSERT_TRUE(s.ok());
 
   std::map<storage::DataType, Status> type_status;
-  ret = db.Expire("GP6_SETVX_KEY", 10);
+  ret = db.Expire("GP6_SETVX_KEY", 10 * 1000);
   ASSERT_EQ(ret, 1);
 
   sleep(1);
