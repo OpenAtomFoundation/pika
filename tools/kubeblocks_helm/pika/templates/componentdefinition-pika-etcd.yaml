@@ -2,16 +2,16 @@ apiVersion: apps.kubeblocks.io/v1alpha1
 kind: ComponentDefinition
 metadata:
   name: pika-etcd
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "pika.labels" . | nindent 4 }}
 spec:
   provider: pika
   description: A pika etcd component definition
   serviceKind: pika-etcd
-  serviceVersion: 3.5.3
+  serviceVersion: {{ .Chart.AppVersion }}
   services:
     - name: etcd
-      serviceName: etcd
       spec:
         ports:
           - name: client

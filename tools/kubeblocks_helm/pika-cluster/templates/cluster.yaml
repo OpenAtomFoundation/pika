@@ -50,7 +50,7 @@ spec:
     {{- if .Values.useLegacyCompDef }}
     {{- range $i := until (int .Values.groupCount) }}
     - name: pika-group-{{ add ($i) 1 }} # user-defined
-      componentDef: pika-group # ref clusterDefinition.componentDefs[x].name
+      componentDef: pika-group # Ref componentdefinition.name
       enabledLogs: {{ $.Values.enabledLogs | toJson | indent 4 }}
       replicas: {{ add (int $.Values.slaveCount) 1 | default 2 }}
       serviceAccountName: {{ include "pika-cluster.serviceAccountName" $ }}
@@ -66,7 +66,7 @@ spec:
       {{- if $.Values.persistence.enabled }}
       volumeClaimTemplates:
         {{- with  $.Values.persistence.pikaData }}
-        - name: data # ref clusterdefinition components.containers.volumeMounts.name
+        - name: data # ref componentDefinition.containers.volumeMounts.name
           spec:
             storageClassName: {{ .storageClassName }}
             accessModes:
@@ -80,7 +80,6 @@ spec:
       {{- end }}
     - name: etcd # user-defined
       componentDef: pika-etcd # ref componentDefinition name
-      #monitor: {{ .Values.monitor.enabled | default false }}
       replicas: {{ .Values.etcdReplicaCount| default 3 }}
       {{- with  .Values.resources.etcd }}
       resources:
@@ -98,7 +97,7 @@ spec:
       {{- if .Values.persistence.enabled }}
       volumeClaimTemplates:
         {{- with  $.Values.persistence.etcdData }}
-        - name: data # ref clusterdefinition components.containers.volumeMounts.name
+        - name: data # ref componentDefinition.containers.volumeMounts.name
           spec:
             storageClassName: {{ .storageClassName }}
             accessModes:
@@ -112,6 +111,19 @@ spec:
       componentDef: pika-codis-proxy # ref componentDefinition name
       replicas: {{ .Values.codisProxyReplicaCount | default 2 }}
       {{- with  .Values.resources.codisProxy }}
+      resources:
+        limits:
+          cpu: {{ .limits.cpu | quote }}
+          memory: {{ .limits.memory | quote }}
+        requests:
+          cpu: {{ .requests.cpu | quote }}
+          memory: {{ .requests.memory | quote }}
+      {{- end }}
+    - name: pika-exporter
+      componentDef: pika-exporter # ref componentDefinition name
+      monitor: {{ .Values.monitor.enabled | default false }}
+      replicas: 1
+      {{- with  .Values.resources.pikaExporter }}
       resources:
         limits:
           cpu: {{ .limits.cpu | quote }}
