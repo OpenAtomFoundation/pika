@@ -888,14 +888,15 @@ void Cmd::InternalProcessCommand(const HintKeys& hint_keys) {
 }
 
 void Cmd::DoCommand(const HintKeys& hint_keys) {
-  if (!cache_missed_in_rtc_
-      && IsNeedCacheDo()
+  if (IsNeedCacheDo()
       && PIKA_CACHE_NONE != g_pika_conf->cache_mode()
       && db_->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
-    if (IsNeedReadCache()) {
+    if (!cache_missed_in_rtc_
+        && IsNeedReadCache()) {
       ReadCache();
     }
-    if (is_read() && res().CacheMiss()) {
+    if (is_read()
+        && (res().CacheMiss() || cache_missed_in_rtc_)) {
       pstd::lock::MultiScopeRecordLock record_lock(db_->LockMgr(), current_key());
       DoThroughDB();
       if (IsNeedUpdateCache()) {
