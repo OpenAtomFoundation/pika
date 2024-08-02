@@ -9,7 +9,6 @@
 #include <algorithm>
 #include <string>
 #include <vector>
-
 #include "src/redis.h"
 
 namespace storage {
@@ -26,9 +25,8 @@ class RedisStrings : public Redis {
   Status GetProperty(const std::string& property, uint64_t* out) override;
   Status ScanKeyNum(KeyInfo* key_info) override;
   Status ScanKeys(const std::string& pattern, std::vector<std::string>* keys) override;
-  Status PKPatternMatchDel(const std::string& pattern, int32_t* ret) override;
-
-  // Strings Commands
+  Status PKPatternMatchDelWithRemoveKeys(const DataType& data_type, const std::string& pattern, int64_t* ret, std::vector<std::string>* remove_keys, const int64_t& max_count) override;
+  // Strings Command
   Status Append(const Slice& key, const Slice& value, int32_t* ret);
   Status BitCount(const Slice& key, int64_t start_offset, int64_t end_offset, int32_t* ret, bool have_range);
   Status BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys, std::string &value_to_dest, int64_t* ret);

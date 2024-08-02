@@ -484,7 +484,6 @@ class PKPatternMatchDelCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new PKPatternMatchDelCmd(*this); }
-  void DoBinlog() override;
 
  private:
   storage::DataType type_ = storage::kAll;

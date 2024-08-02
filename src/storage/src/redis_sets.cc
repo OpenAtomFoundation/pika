@@ -152,7 +152,7 @@ rocksdb::Status RedisSets::ScanKeys(const std::string& pattern, std::vector<std:
   return rocksdb::Status::OK();
 }
 
-rocksdb::Status RedisSets::PKPatternMatchDel(const std::string& pattern, int32_t* ret) {
+rocksdb::Status RedisSets::PKPatternMatchDelWithRemoveKeys(const DataType& data_type, const std::string& pattern, int64_t* ret, std::vector<std::string>* remove_keys, const int64_t& max_count) {
   rocksdb::ReadOptions iterator_options;
   const rocksdb::Snapshot* snapshot;
   ScopeSnapshot ss(db_, &snapshot);
@@ -161,7 +161,7 @@ rocksdb::Status RedisSets::PKPatternMatchDel(const std::string& pattern, int32_t
 
   std::string key;
   std::string meta_value;
-  int32_t total_delete = 0;
+  int64_t total_delete = 0;
   rocksdb::Status s;
   rocksdb::WriteBatch batch;
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[0]);
@@ -169,7 +169,7 @@ rocksdb::Status RedisSets::PKPatternMatchDel(const std::string& pattern, int32_t
     delete iter;
   };
   iter->SeekToFirst();
-  while (iter->Valid()) {
+  while (iter->Valid() && static_cast<int64_t>(batch.Count()) < max_count) {
     key = iter->key().ToString();
     meta_value = iter->value().ToString();
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -177,11 +177,12 @@ rocksdb::Status RedisSets::PKPatternMatchDel(const std::string& pattern, int32_t
         (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0)) {
       parsed_sets_meta_value.InitialMetaValue();
       batch.Put(handles_[0], key, meta_value);
+      remove_keys->push_back(key.data());
     }
     if (static_cast<size_t>(batch.Count()) >= BATCH_DELETE_LIMIT) {
       s = db_->Write(default_write_options_, &batch);
       if (s.ok()) {
-        total_delete += static_cast<int32_t>(batch.Count());
+        total_delete += static_cast<int64_t>(batch.Count());
         batch.Clear();
       } else {
         *ret = total_delete;
@@ -193,7 +194,7 @@ rocksdb::Status RedisSets::PKPatternMatchDel(const std::string& pattern, int32_t
   if (batch.Count() != 0U) {
     s = db_->Write(default_write_options_, &batch);
     if (s.ok()) {
-      total_delete += static_cast<int32_t>(batch.Count());
+      total_delete += static_cast<int64_t>(batch.Count());
       batch.Clear();
     }
   }
