@@ -57,14 +57,14 @@ void ExecCmd::Do() {
     if (cmd->name() == kCmdNameFlushall) {
       auto flushall = std::dynamic_pointer_cast<FlushallCmd>(cmd);
       flushall->FlushAllWithoutLock();
-      client_conn->SetAllTxnFailed();
+      client_conn->SetTxnFailedIfKeyExists();
     } else if (cmd->name() == kCmdNameFlushdb) {
       auto flushdb = std::dynamic_pointer_cast<FlushdbCmd>(cmd);
-      flushdb->FlushAllDBsWithoutLock();
+      flushdb->DoWithoutLock();
       if (cmd->res().ok()) {
         cmd->res().SetRes(CmdRes::kOk);
       }
-      client_conn->SetTxnFailedFromDBs(each_cmd_info.db_->GetDBName());
+      client_conn->SetTxnFailedIfKeyExists(each_cmd_info.db_->GetDBName());
     } else {
       cmd->DoCommand();
       if (cmd->res().ok() && cmd->is_write()) {
@@ -258,7 +258,7 @@ void WatchCmd::DoInitial() {
   size_t pos = 1;
   while (pos < argv_.size()) {
     keys_.emplace_back(argv_[pos]);
-    db_keys_.push_back(db_name() + argv_[pos++]);
+    db_keys_.push_back(db_name() + "_" + argv_[pos++]);
   }
 }
 
