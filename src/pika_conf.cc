@@ -502,6 +502,11 @@ int PikaConf::Load() {
   GetConfStr("daemonize", &dmz);
   daemonize_ = dmz == "yes";
 
+  // read redis cache in Net worker threads
+  std::string rtc_enabled;
+  GetConfStr("rtc-cache-read", &rtc_enabled);
+  rtc_cache_read_enabled_ = rtc_enabled != "no";
+
   // binlog
   std::string wb;
   GetConfStr("write-binlog", &wb);

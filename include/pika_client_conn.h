@@ -59,6 +59,7 @@ class PikaClientConn : public net::RedisConn {
     std::shared_ptr<std::string> resp_ptr;
     LogOffset offset;
     std::string db_name;
+    bool cache_miss_in_rtc_;
   };
 
   struct TxnStateBitMask {
@@ -78,7 +79,7 @@ class PikaClientConn : public net::RedisConn {
   void ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async, std::string* response) override;
 
   bool ReadCmdInCache(const net::RedisCmdArgsType& argv, const std::string& opt);
-  void BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs);
+  void BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs, bool cache_miss_in_rtc);
   int DealMessage(const net::RedisCmdArgsType& argv, std::string* response) override { return 0; }
   static void DoBackgroundTask(void* arg);
 
@@ -137,12 +138,12 @@ class PikaClientConn : public net::RedisConn {
   std::shared_ptr<User> user_;
 
   std::shared_ptr<Cmd> DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
-                             const std::shared_ptr<std::string>& resp_ptr);
+                             const std::shared_ptr<std::string>& resp_ptr, bool cache_miss_in_rtc);
 
   void ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t do_duration);
   void ProcessMonitor(const PikaCmdArgsType& argv);
 
-  void ExecRedisCmd(const PikaCmdArgsType& argv, std::shared_ptr<std::string>& resp_ptr);
+  void ExecRedisCmd(const PikaCmdArgsType& argv, std::shared_ptr<std::string>& resp_ptr, bool cache_miss_in_rtc);
   void TryWriteResp();
 };
 
