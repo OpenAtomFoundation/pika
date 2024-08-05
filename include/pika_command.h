@@ -583,7 +583,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   // Cmd(const Cmd&);
   void ProcessCommand(const HintKeys& hint_key = HintKeys());
   void InternalProcessCommand(const HintKeys& hint_key);
-  void DoCommand(const HintKeys& hint_key = HintKeys());
+  void DoCommand(const HintKeys& hint_key);
   bool DoReadCommandInCache();
   void LogCommand() const;
 
