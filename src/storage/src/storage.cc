@@ -834,6 +834,11 @@ int64_t Storage::Exists(const std::vector<std::string>& keys, std::map<DataType,
   }
 }
 
+int64_t Storage::Exists(const std::vector<std::string>& keys) {
+    std::map<storage::DataType, rocksdb::Status> type_status;
+    return Exists(keys, &type_status);
+}
+
 int64_t Storage::Scan(const DataType& dtype, int64_t cursor, const std::string& pattern, int64_t count,
                       std::vector<std::string>* keys) {
   keys->clear();
