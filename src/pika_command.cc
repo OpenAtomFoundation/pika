@@ -828,7 +828,7 @@ Cmd* GetCmdFromDB(const std::string& opt, const CmdTable& cmd_table) {
 bool Cmd::CheckArg(uint64_t num) const { return !((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)); }
 
 Cmd::Cmd(std::string name, int arity, uint32_t flag, uint32_t aclCategory)
-    : name_(std::move(name)), arity_(arity), flag_(flag), aclCategory_(aclCategory) {
+    : name_(std::move(name)), arity_(arity), flag_(flag), aclCategory_(aclCategory), cache_missed_in_rtc_(false) {
 }
 
 void Cmd::Initial(const PikaCmdArgsType& argv, const std::string& db_name) {
@@ -891,10 +891,12 @@ void Cmd::DoCommand(const HintKeys& hint_keys) {
   if (IsNeedCacheDo()
       && PIKA_CACHE_NONE != g_pika_conf->cache_mode()
       && db_->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
-    if (IsNeedReadCache()) {
+    if (!cache_missed_in_rtc_
+        && IsNeedReadCache()) {
       ReadCache();
     }
-    if (is_read() && res().CacheMiss()) {
+    if (is_read()
+        && (res().CacheMiss() || cache_missed_in_rtc_)) {
       pstd::lock::MultiScopeRecordLock record_lock(db_->LockMgr(), current_key());
       DoThroughDB();
       if (IsNeedUpdateCache()) {
@@ -1064,3 +1066,5 @@ void Cmd::SetResp(const std::shared_ptr<std::string>& resp) { resp_ = resp; }
 std::shared_ptr<std::string> Cmd::GetResp() { return resp_.lock(); }
 
 void Cmd::SetStage(CmdStage stage) { stage_ = stage; }
+bool Cmd::IsCacheMissedInRtc() const { return cache_missed_in_rtc_; }
+void Cmd::SetCacheMissedInRtc(bool value) { cache_missed_in_rtc_ = value; }

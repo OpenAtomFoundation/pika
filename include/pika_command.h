@@ -575,6 +575,9 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   uint32_t GetCmdId() const { return cmdId_; };
   bool CheckArg(uint64_t num) const;
 
+  bool IsCacheMissedInRtc() const;
+  void SetCacheMissedInRtc(bool value);
+
   void DoCommand(const HintKeys& hint_key = HintKeys());
 
  protected:
@@ -604,6 +607,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   uint64_t do_duration_ = 0;
   uint32_t cmdId_ = 0;
   uint32_t aclCategory_ = 0;
+  bool cache_missed_in_rtc_{false};
 
  private:
   virtual void DoInitial() = 0;
