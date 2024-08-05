@@ -48,7 +48,7 @@ void ExecCmd::Do() {
     resp_strs.emplace_back(std::make_shared<std::string>());
   }
   auto resp_strs_iter = resp_strs.begin();
-  std::for_each(cmds_.begin(), cmds_.end(), [&client_conn, &res_vec, &resp_strs_iter, this](CmdInfo& each_cmd_info) {
+  std::for_each(cmds_.begin(), cmds_.end(), [&client_conn, &res_vec, &resp_strs_iter](CmdInfo& each_cmd_info) {
     each_cmd_info.cmd_->SetResp(*resp_strs_iter++);
     auto& cmd = each_cmd_info.cmd_;
     auto& db = each_cmd_info.db_;
@@ -73,8 +73,8 @@ void ExecCmd::Do() {
         for (auto& item : db_keys) {
           item = cmd->db_name().append(item);
         }
-        if (IsNeedUpdateCache()) {
-          DoUpdateCache();
+        if (cmd->IsNeedUpdateCache()) {
+          cmd->DoUpdateCache();
         }
         client_conn->SetTxnFailedFromKeys(db_keys);
       }
