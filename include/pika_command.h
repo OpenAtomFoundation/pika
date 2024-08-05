@@ -578,13 +578,12 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool IsCacheMissedInRtc() const;
   void SetCacheMissedInRtc(bool value);
 
-  void DoCommand(const HintKeys& hint_key = HintKeys());
-
  protected:
   // enable copy, used default copy
   // Cmd(const Cmd&);
   void ProcessCommand(const HintKeys& hint_key = HintKeys());
   void InternalProcessCommand(const HintKeys& hint_key);
+  void DoCommand(const HintKeys& hint_key = HintKeys());
   bool DoReadCommandInCache();
   void LogCommand() const;
 
