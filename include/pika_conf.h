@@ -472,6 +472,7 @@ class PikaConf : public pstd::BaseConf {
 
   // Immutable config items, we don't use lock.
   bool daemonize() { return daemonize_; }
+  bool rtc_cache_read_enabled() { return rtc_cache_read_enabled_; }
   std::string pidfile() { return pidfile_; }
   int binlog_file_size() { return binlog_file_size_; }
   std::vector<rocksdb::CompressionType> compression_per_level();
@@ -895,7 +896,7 @@ class PikaConf : public pstd::BaseConf {
  private:
   // TODO: replace mutex with atomic value
   int port_ = 0;
-  int slave_priority_ = 0;
+  int slave_priority_ = 100;
   int thread_num_ = 0;
   int thread_pool_size_ = 0;
   int slow_cmd_thread_pool_size_ = 0;
@@ -935,6 +936,7 @@ class PikaConf : public pstd::BaseConf {
   int level0_file_num_compaction_trigger_ = 4;
   int64_t max_client_response_size_ = 0;
   bool daemonize_ = false;
+  bool rtc_cache_read_enabled_ = false;
   int timeout_ = 0;
   std::string server_id_;
   std::string run_id_;
