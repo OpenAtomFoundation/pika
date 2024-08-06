@@ -742,7 +742,7 @@ rocksdb::Status Redis::SMembers(const Slice& key, std::vector<std::string>* memb
 
 Status Redis::SMembersWithTTL(const Slice& key,
                               std::vector<std::string>* members,
-                              int64_t* ttl) {
+                              int64_t* ttl_millsec) {
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot;
 
@@ -770,12 +770,12 @@ Status Redis::SMembersWithTTL(const Slice& key,
       return Status::NotFound("Stale");
     } else {
       // ttl
-      *ttl = parsed_sets_meta_value.Etime();
-      if (*ttl == 0) {
-        *ttl = -1;
+      *ttl_millsec = parsed_sets_meta_value.Etime();
+      if (*ttl_millsec == 0) {
+        *ttl_millsec = -1;
       } else {
         pstd::TimeType curtime = pstd::NowMillis();
-        *ttl = *ttl - curtime >= 0 ? *ttl - curtime : -2;
+        *ttl_millsec = *ttl_millsec - curtime >= 0 ? *ttl_millsec - curtime : -2;
       }
 
       version = parsed_sets_meta_value.Version();
@@ -1559,7 +1559,7 @@ rocksdb::Status Redis::SetsPersist(const Slice& key, std::string&& prefetch_meta
   return s;
 }
 
-rocksdb::Status Redis::SetsTTL(const Slice& key, int64_t* timestamp, std::string&& prefetch_meta) {
+rocksdb::Status Redis::SetsTTL(const Slice& key, int64_t* ttl_millsec, std::string&& prefetch_meta) {
   std::string meta_value(std::move(prefetch_meta));
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s;
@@ -1582,22 +1582,22 @@ rocksdb::Status Redis::SetsTTL(const Slice& key, int64_t* timestamp, std::string
   if (s.ok()) {
     ParsedSetsMetaValue parsed_setes_meta_value(&meta_value);
     if (parsed_setes_meta_value.IsStale()) {
-      *timestamp = -2;
+      *ttl_millsec = -2;
       return rocksdb::Status::NotFound("Stale");
     } else if (parsed_setes_meta_value.Count() == 0) {
-      *timestamp = -2;
+      *ttl_millsec = -2;
       return rocksdb::Status::NotFound();
     } else {
-      *timestamp = parsed_setes_meta_value.Etime();
-      if (*timestamp == 0) {
-        *timestamp = -1;
+      *ttl_millsec = parsed_setes_meta_value.Etime();
+      if (*ttl_millsec == 0) {
+        *ttl_millsec = -1;
       } else {
         pstd::TimeType curtime = pstd::NowMillis();
-        *timestamp = *timestamp - curtime >= 0 ? *timestamp - curtime : -2;
+        *ttl_millsec = *ttl_millsec - curtime >= 0 ? *ttl_millsec - curtime : -2;
       }
     }
   } else if (s.IsNotFound()) {
-    *timestamp = -2;
+    *ttl_millsec = -2;
   }
   return s;
 }

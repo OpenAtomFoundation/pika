@@ -220,7 +220,7 @@ Status Redis::HGetall(const Slice& key, std::vector<FieldValue>* fvs) {
   return s;
 }
 
-Status Redis::HGetallWithTTL(const Slice& key, std::vector<FieldValue>* fvs, int64_t* ttl) {
+Status Redis::HGetallWithTTL(const Slice& key, std::vector<FieldValue>* fvs, int64_t* ttl_millsec) {
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot;
 
@@ -248,12 +248,12 @@ Status Redis::HGetallWithTTL(const Slice& key, std::vector<FieldValue>* fvs, int
       return Status::NotFound("Stale");
     } else {
       // ttl
-      *ttl = parsed_hashes_meta_value.Etime();
-      if (*ttl == 0) {
-        *ttl = -1;
+      *ttl_millsec = parsed_hashes_meta_value.Etime();
+      if (*ttl_millsec == 0) {
+        *ttl_millsec = -1;
       } else {
         pstd::TimeType curtime = pstd::NowMillis();
-        *ttl = *ttl - curtime >= 0 ? *ttl - curtime : -2;
+        *ttl_millsec = *ttl_millsec - curtime >= 0 ? *ttl_millsec - curtime : -2;
       }
 
       version = parsed_hashes_meta_value.Version();
@@ -1310,7 +1310,7 @@ Status Redis::HashesPersist(const Slice& key, std::string&& prefetch_meta) {
   return s;
 }
 
-Status Redis::HashesTTL(const Slice& key, int64_t* timestamp, std::string&& prefetch_meta) {
+Status Redis::HashesTTL(const Slice& key, int64_t* ttl_millsec, std::string&& prefetch_meta) {
   std::string meta_value(std::move(prefetch_meta));
   Status s;
   BaseMetaKey base_meta_key(key);
@@ -1333,22 +1333,22 @@ Status Redis::HashesTTL(const Slice& key, int64_t* timestamp, std::string&& pref
   if (s.ok()) {
     ParsedHashesMetaValue parsed_hashes_meta_value(&meta_value);
     if (parsed_hashes_meta_value.IsStale()) {
-      *timestamp = -2;
+      *ttl_millsec = -2;
       return Status::NotFound("Stale");
     } else if (parsed_hashes_meta_value.Count() == 0) {
-      *timestamp = -2;
+      *ttl_millsec = -2;
       return Status::NotFound();
     } else {
-      *timestamp = parsed_hashes_meta_value.Etime();
-      if (*timestamp == 0) {
-        *timestamp = -1;
+      *ttl_millsec = parsed_hashes_meta_value.Etime();
+      if (*ttl_millsec == 0) {
+        *ttl_millsec = -1;
       } else {
         pstd::TimeType curtime = pstd::NowMillis();
-        *timestamp = *timestamp - curtime >= 0 ? *timestamp - curtime : -2;
+        *ttl_millsec = *ttl_millsec - curtime >= 0 ? *ttl_millsec - curtime : -2;
       }
     }
   } else if (s.IsNotFound()) {
-    *timestamp = -2;
+    *ttl_millsec = -2;
   }
   return s;
 }

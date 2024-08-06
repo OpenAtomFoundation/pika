@@ -36,12 +36,12 @@ class SetCmd : public Cmd {
   std::string value_;
   std::string target_;
   int32_t success_ = 0;
-  int64_t sec_ = 0;
+  int64_t ttl_millsec = 0;
   bool has_ttl_ = false;
   SetCmd::SetCondition condition_{kNONE};
   void DoInitial() override;
   void Clear() override {
-    sec_ = 0;
+    ttl_millsec = 0;
     success_ = 0;
     condition_ = kNONE;
   }
@@ -69,7 +69,7 @@ class GetCmd : public Cmd {
  private:
   std::string key_;
   std::string value_;
-  int64_t sec_ = 0;
+  int64_t ttl_millsec_ = 0;
   void DoInitial() override;
   rocksdb::Status s_;
 };
@@ -342,7 +342,7 @@ class SetexCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t sec_ = 0;
+  int64_t ttl_sec_ = 0;
   std::string value_;
   void DoInitial() override;
   rocksdb::Status s_;
@@ -367,7 +367,7 @@ class PsetexCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t usec_ = 0;
+  int64_t ttl_millsec = 0;
   std::string value_;
   void DoInitial() override;
   rocksdb::Status s_;
@@ -531,7 +531,7 @@ class StrlenCmd : public Cmd {
  private:
   std::string key_;
   std::string value_;
-  int64_t sec_ = 0;
+  int64_t ttl_millsec = 0;
   void DoInitial() override;
   rocksdb::Status s_;
 };
@@ -800,9 +800,9 @@ class PKSetexAtCmd : public Cmd {
  private:
   std::string key_;
   std::string value_;
-  int64_t time_stamp_ = 0;
+  int64_t time_stamp_sec_ = 0;
   void DoInitial() override;
-  void Clear() override { time_stamp_ = 0; }
+  void Clear() override { time_stamp_sec_ = 0; }
   rocksdb::Status s_;
 };
 

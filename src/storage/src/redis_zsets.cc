@@ -534,7 +534,7 @@ Status Redis::ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<
 }
 
 Status Redis::ZRangeWithTTL(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members,
-                                 int64_t* ttl) {
+                                 int64_t* ttl_millsec) {
   score_members->clear();
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot = nullptr;
@@ -563,12 +563,12 @@ Status Redis::ZRangeWithTTL(const Slice& key, int32_t start, int32_t stop, std::
       return Status::NotFound("Stale");
     } else {
       // ttl
-      *ttl = parsed_zsets_meta_value.Etime();
-      if (*ttl == 0) {
-        *ttl = -1;
+      *ttl_millsec = parsed_zsets_meta_value.Etime();
+      if (*ttl_millsec == 0) {
+        *ttl_millsec = -1;
       } else {
         pstd::TimeType curtime = pstd::NowMillis();
-        *ttl = *ttl - curtime >= 0 ? *ttl - curtime : -2;
+        *ttl_millsec = *ttl_millsec - curtime >= 0 ? *ttl_millsec - curtime : -2;
       }
 
       int32_t count = parsed_zsets_meta_value.Count();
@@ -1910,7 +1910,7 @@ Status Redis::ZsetsPersist(const Slice& key, std::string&& prefetch_meta) {
   return s;
 }
 
-Status Redis::ZsetsTTL(const Slice& key, int64_t* timestamp, std::string&& prefetch_meta) {
+Status Redis::ZsetsTTL(const Slice& key, int64_t* ttl_millsec, std::string&& prefetch_meta) {
   std::string meta_value(std::move(prefetch_meta));
   BaseMetaKey base_meta_key(key);
   Status s;
@@ -1933,22 +1933,22 @@ Status Redis::ZsetsTTL(const Slice& key, int64_t* timestamp, std::string&& prefe
   if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
-      *timestamp = -2;
+      *ttl_millsec = -2;
       return Status::NotFound("Stale");
     } else if (parsed_zsets_meta_value.Count() == 0) {
-      *timestamp = -2;
+      *ttl_millsec = -2;
       return Status::NotFound();
     } else {
-      *timestamp = parsed_zsets_meta_value.Etime();
-      if (*timestamp == 0) {
-        *timestamp = -1;
+      *ttl_millsec = parsed_zsets_meta_value.Etime();
+      if (*ttl_millsec == 0) {
+        *ttl_millsec = -1;
       } else {
         pstd::TimeType curtime = pstd::NowMillis();
-        *timestamp = *timestamp - curtime >= 0 ? *timestamp - curtime : -2;
+        *ttl_millsec = *ttl_millsec - curtime >= 0 ? *ttl_millsec - curtime : -2;
       }
     }
   } else if (s.IsNotFound()) {
-    *timestamp = -2;
+    *ttl_millsec = -2;
   }
   return s;
 }

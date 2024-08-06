@@ -105,8 +105,8 @@ struct KeyInfo {
 struct ValueStatus {
   std::string value;
   Status status;
-  int64_t  ttl;
-  bool operator==(const ValueStatus& vs) const { return (vs.value == value && vs.status == status && vs.ttl == ttl); }
+  int64_t ttl_millsec;
+  bool operator==(const ValueStatus& vs) const { return (vs.value == value && vs.status == status && vs.ttl_millsec == ttl_millsec); }
 };
 
 struct FieldValue {
@@ -190,7 +190,7 @@ class Storage {
   Status Set(const Slice& key, const Slice& value);
 
   // Set key to hold the string value. if key exist
-  Status Setxx(const Slice& key, const Slice& value, int32_t* ret, int64_t ttl = 0);
+  Status Setxx(const Slice& key, const Slice& value, int32_t* ret, int64_t ttl_millsec = 0);
 
   // Get the value of key. If the key does not exist
   // the special value nil is returned
@@ -198,7 +198,7 @@ class Storage {
 
   // Get the value and ttl of key. If the key does not exist
   // the special value nil is returned. If the key has no ttl, ttl is -1
-  Status GetWithTTL(const Slice& key, std::string* value, int64_t* ttl);
+  Status GetWithTTL(const Slice& key, std::string* value, int64_t* ttl_millsec);
 
   // Atomically sets key to value and returns the old value stored at key
   // Returns an error when key exists but does not hold a string value.
@@ -227,7 +227,7 @@ class Storage {
   // Set key to hold string value if key does not exist
   // return 1 if the key was set
   // return 0 if the key was not set
-  Status Setnx(const Slice& key, const Slice& value, int32_t* ret, int64_t ttl = 0);
+  Status Setnx(const Slice& key, const Slice& value, int32_t* ret, int64_t ttl_millsec = 0);
 
   // Sets the given keys to their respective values.
   // MSETNX will not perform any operation at all even
@@ -238,7 +238,7 @@ class Storage {
   // return 1 if the key currently hold the give value And override success
   // return 0 if the key doesn't exist And override fail
   // return -1 if the key currently does not hold the given value And override fail
-  Status Setvx(const Slice& key, const Slice& value, const Slice& new_value, int32_t* ret, int64_t ttl = 0);
+  Status Setvx(const Slice& key, const Slice& value, const Slice& new_value, int32_t* ret, int64_t ttl_millsec = 0);
 
   // delete the key that holds a given value
   // return 1 if the key currently hold the give value And delete success
@@ -255,7 +255,7 @@ class Storage {
   Status Getrange(const Slice& key, int64_t start_offset, int64_t end_offset, std::string* ret);
 
   Status GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t end_offset,
-                           std::string* ret, std::string* value, int64_t* ttl);
+                           std::string* ret, std::string* value, int64_t* ttl_millsec);
 
   // If key already exists and is a string, this command appends the value at
   // the end of the string
@@ -293,7 +293,7 @@ class Storage {
 
   // Set key to hold the string value and set key to timeout after a given
   // number of seconds
-  Status Setex(const Slice& key, const Slice& value, int64_t ttl);
+  Status Setex(const Slice& key, const Slice& value, int64_t ttl_millsec);
 
   // Returns the length of the string value stored at key. An error
   // is returned when key holds a non-string value.
@@ -303,7 +303,7 @@ class Storage {
   // specifying the number of seconds representing the TTL (time to live), it
   // takes an absolute Unix timestamp (seconds since January 1, 1970). A
   // timestamp in the past will delete the key immediately.
-  Status PKSetexAt(const Slice& key, const Slice& value, int64_t timestamp);
+  Status PKSetexAt(const Slice& key, const Slice& value, int64_t time_stamp_millsec_);
 
   // Hashes Commands
 
@@ -334,7 +334,7 @@ class Storage {
   // reply is twice the size of the hash.
   Status HGetall(const Slice& key, std::vector<FieldValue>* fvs);
 
-  Status HGetallWithTTL(const Slice& key, std::vector<FieldValue>* fvs, int64_t* ttl);
+  Status HGetallWithTTL(const Slice& key, std::vector<FieldValue>* fvs, int64_t* ttl_millsec);
 
   // Returns all field names in the hash stored at key.
   Status HKeys(const Slice& key, std::vector<std::string>* fields);
@@ -467,7 +467,7 @@ class Storage {
   // This has the same effect as running SINTER with one argument key.
   Status SMembers(const Slice& key, std::vector<std::string>* members);
 
-  Status SMembersWithTTL(const Slice& key, std::vector<std::string>* members, int64_t *ttl);
+  Status SMembersWithTTL(const Slice& key, std::vector<std::string>* members, int64_t * ttl_millsec);
 
   // Remove the specified members from the set stored at key. Specified members
   // that are not a member of this set are ignored. If key does not exist, it is
@@ -540,7 +540,7 @@ class Storage {
   // (the head of the list), 1 being the next element and so on.
   Status LRange(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret);
 
-  Status LRangeWithTTL(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret, int64_t *ttl);
+  Status LRangeWithTTL(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret, int64_t * ttl_millsec);
 
   // Removes the first count occurrences of elements equal to value from the
   // list stored at key. The count argument influences the operation in the
@@ -703,7 +703,7 @@ class Storage {
   Status ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members);
 
   Status ZRangeWithTTL(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members,
-                                int64_t *ttl);
+                                int64_t * ttl_millsec);
 
   // Returns all the elements in the sorted set at key with a score between min
   // and max (including elements with score equal to min or max). The elements
@@ -1122,7 +1122,7 @@ class Storage {
 
   // For scan keys in data base
   std::atomic<bool> scan_keynum_exit_ = {false};
-  Status MGetWithTTL(const Slice& key, std::string* value, int64_t* ttl);
+  Status MGetWithTTL(const Slice& key, std::string* value, int64_t* ttl_millsec);
 };
 
 }  //  namespace storage

@@ -115,13 +115,13 @@ bool PikaCacheLoadThread::LoadSet(std::string& key, const std::shared_ptr<DB>& d
   }
 
   std::vector<std::string> values;
-  int64_t ttl = -1;
-  rocksdb::Status s = db->storage()->SMembersWithTTL(key, &values, &ttl);
+  int64_t ttl_millsec = -1;
+  rocksdb::Status s = db->storage()->SMembersWithTTL(key, &values, &ttl_millsec);
   if (!s.ok()) {
     LOG(WARNING) << "load set failed, key=" << key;
     return false;
   }
-  db->cache()->WriteSetToCache(key, values, ttl);
+  db->cache()->WriteSetToCache(key, values, ttl_millsec > 0 ? ttl_millsec / 1000 : ttl_millsec);
   return true;
 }
 

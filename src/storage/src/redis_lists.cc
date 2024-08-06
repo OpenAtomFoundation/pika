@@ -470,7 +470,7 @@ Status Redis::LRange(const Slice& key, int64_t start, int64_t stop, std::vector<
   }
 }
 
-Status Redis::LRangeWithTTL(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret, int64_t* ttl) {
+Status Redis::LRangeWithTTL(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret, int64_t* ttl_millsec) {
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot;
 
@@ -498,12 +498,12 @@ Status Redis::LRangeWithTTL(const Slice& key, int64_t start, int64_t stop, std::
       return Status::NotFound("Stale");
     } else {
       // ttl
-      *ttl = parsed_lists_meta_value.Etime();
-      if (*ttl == 0) {
-        *ttl = -1;
+      *ttl_millsec = parsed_lists_meta_value.Etime();
+      if (*ttl_millsec == 0) {
+        *ttl_millsec = -1;
       } else {
         pstd::TimeType curtime = pstd::NowMillis();
-        *ttl = *ttl - curtime >= 0 ? *ttl - curtime : -2;
+        *ttl_millsec = *ttl_millsec - curtime >= 0 ? *ttl_millsec - curtime : -2;
       }
 
       uint64_t version = parsed_lists_meta_value.Version();
@@ -1251,7 +1251,7 @@ Status Redis::ListsPersist(const Slice& key, std::string&& prefetch_meta) {
   return s;
 }
 
-Status Redis::ListsTTL(const Slice& key, int64_t* timestamp, std::string&& prefetch_meta) {
+Status Redis::ListsTTL(const Slice& key, int64_t* ttl_millsec, std::string&& prefetch_meta) {
   std::string meta_value(std::move(prefetch_meta));
   BaseMetaKey base_meta_key(key);
   Status s;
@@ -1274,23 +1274,23 @@ Status Redis::ListsTTL(const Slice& key, int64_t* timestamp, std::string&& prefe
   if (s.ok()) {
     ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
     if (parsed_lists_meta_value.IsStale()) {
-      *timestamp = -2;
+      *ttl_millsec = -2;
       return Status::NotFound("Stale");
     } else if (parsed_lists_meta_value.Count() == 0) {
-      *timestamp = -2;
+      *ttl_millsec = -2;
       return Status::NotFound();
     } else {
       // Return -1 for lists with no set expiration, and calculate remaining time for others
-      *timestamp = parsed_lists_meta_value.Etime();
-      if (*timestamp == 0) {
-        *timestamp = -1;
+      *ttl_millsec = parsed_lists_meta_value.Etime();
+      if (*ttl_millsec == 0) {
+        *ttl_millsec = -1;
       } else {
         pstd::TimeType curtime = pstd::NowMillis();
-        *timestamp = *timestamp - curtime >= 0 ? *timestamp - curtime : -2;
+        *ttl_millsec = *ttl_millsec - curtime >= 0 ? *ttl_millsec - curtime : -2;
       }
     }
   } else if (s.IsNotFound()) {
-    *timestamp = -2;
+    *ttl_millsec = -2;
   }
   return s;
 }

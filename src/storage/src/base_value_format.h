@@ -51,9 +51,9 @@ public:
   }
   void SetEtime(uint64_t etime = 0) { etime_ = etime; }
   void setCtime(uint64_t ctime) { ctime_ = ctime; }
-  rocksdb::Status SetRelativeTimestamp(int64_t ttl) {
+  rocksdb::Status SetRelativeTimeByMillsec(int64_t ttl_millsec) {
     pstd::TimeType unix_time = pstd::NowMillis();
-    etime_ = unix_time + ttl * 1000;
+    etime_ = unix_time + ttl_millsec;
     return rocksdb::Status::OK();
   }
   void SetVersion(uint64_t version = 0) { version_ = version; }
