@@ -204,15 +204,23 @@ bool DB::FlushDBWithoutLock() {
   if (dbpath[dbpath.length() - 1] == '/') {
     dbpath.erase(dbpath.length() - 1);
   }
-  dbpath.append("_deleting/");
-  pstd::RenameFile(db_path_, dbpath);
-
+  std::string delete_suffix("_deleting_");
+  delete_suffix.append(std::to_string(NowMicros()));
+  delete_suffix.append("/");
+  dbpath.append(delete_suffix);
+  auto rename_success = pstd::RenameFile(db_path_, dbpath);
   storage_ = std::make_shared<storage::Storage>(g_pika_conf->db_instance_num(),
       g_pika_conf->default_slot_num(), g_pika_conf->classic_mode());
   rocksdb::Status s = storage_->Open(g_pika_server->storage_options(), db_path_);
   assert(storage_);
   assert(s.ok());
+  if (rename_success == -1) {
+    //the storage_->Open actually opened old RocksDB instance, so flushdb failed
+    LOG(WARNING)  << db_name_ << " FlushDB failed due to rename old db_path_ failed";
+    return false;
+  }
   LOG(INFO) << db_name_ << " Open new db success";
+
   g_pika_server->PurgeDir(dbpath);
   return true;
 }

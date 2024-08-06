@@ -8,7 +8,7 @@
 
 #include <memory>
 #include <string>
-
+#include <functional>
 #include "net/include/bg_thread.h"
 #include "net/include/pb_conn.h"
 #include "net/include/thread_pool.h"
@@ -25,13 +25,13 @@ class PikaReplBgWorker {
   int StartThread();
   int StopThread();
   void Schedule(net::TaskFunc func, void* arg);
-  void QueueClear();
+  void Schedule(net::TaskFunc func, void* arg, std::function<void()>& call_back);
   static void HandleBGWorkerWriteBinlog(void* arg);
   static void HandleBGWorkerWriteDB(void* arg);
+  static void WriteDBInSyncWay(const std::shared_ptr<Cmd>& c_ptr);
   void SetThreadName(const std::string& thread_name) {
     bg_thread_.set_thread_name(thread_name);
   }
-
   BinlogItem binlog_item_;
   net::RedisParser redis_parser_;
   std::string ip_port_;

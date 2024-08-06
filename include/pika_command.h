@@ -247,6 +247,7 @@ const std::string kCmdNameXInfo = "xinfo";
 
 const std::string kClusterPrefix = "pkcluster";
 
+
 /*
  * If a type holds a key, a new data structure
  * that uses the key will use this error
@@ -289,7 +290,7 @@ enum CmdFlags {
   kCmdFlagsOperateKey = (1 << 19),  // redis keySpace
   kCmdFlagsStream = (1 << 20),
   kCmdFlagsFast = (1 << 21),
-  kCmdFlagsSlow = (1 << 22),
+  kCmdFlagsSlow = (1 << 22)
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
@@ -536,6 +537,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool hasFlag(uint32_t flag) const;
   bool is_read() const;
   bool is_write() const;
+  bool isCacheRead() const;
 
   bool IsLocal() const;
   bool IsSuspend() const;
@@ -573,12 +575,16 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   uint32_t GetCmdId() const { return cmdId_; };
   bool CheckArg(uint64_t num) const;
 
+  bool IsCacheMissedInRtc() const;
+  void SetCacheMissedInRtc(bool value);
+
  protected:
   // enable copy, used default copy
   // Cmd(const Cmd&);
   void ProcessCommand(const HintKeys& hint_key = HintKeys());
   void InternalProcessCommand(const HintKeys& hint_key);
   void DoCommand(const HintKeys& hint_key);
+  bool DoReadCommandInCache();
   void LogCommand() const;
 
   std::string name_;
@@ -600,6 +606,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   uint64_t do_duration_ = 0;
   uint32_t cmdId_ = 0;
   uint32_t aclCategory_ = 0;
+  bool cache_missed_in_rtc_{false};
 
  private:
   virtual void DoInitial() = 0;

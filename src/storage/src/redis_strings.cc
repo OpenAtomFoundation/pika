@@ -1687,7 +1687,7 @@ rocksdb::Status Redis::IsExist(const storage::Slice& key) {
 /*
  * Example Delete the specified prefix key
  */
-rocksdb::Status Redis::PKPatternMatchDel(const std::string& pattern, int32_t* ret) {
+rocksdb::Status Redis::PKPatternMatchDelWithRemoveKeys(const std::string& pattern, int64_t* ret, std::vector<std::string>* remove_keys, const int64_t& max_count) {
   rocksdb::ReadOptions iterator_options;
   const rocksdb::Snapshot* snapshot;
   ScopeSnapshot ss(db_, &snapshot);
@@ -1696,12 +1696,12 @@ rocksdb::Status Redis::PKPatternMatchDel(const std::string& pattern, int32_t* re
 
   std::string key;
   std::string meta_value;
-  int32_t total_delete = 0;
+  int64_t total_delete = 0;
   rocksdb::Status s;
   rocksdb::WriteBatch batch;
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kMetaCF]);
   iter->SeekToFirst();
-  while (iter->Valid()) {
+  while (iter->Valid() && static_cast<int64_t>(batch.Count()) < max_count) {
     auto meta_type = static_cast<enum DataType>(static_cast<uint8_t>(iter->value()[0]));
     ParsedBaseMetaKey parsed_meta_key(iter->key().ToString());
     key = iter->key().ToString();
@@ -1712,6 +1712,7 @@ rocksdb::Status Redis::PKPatternMatchDel(const std::string& pattern, int32_t* re
       if (!parsed_strings_value.IsStale() &&
           (StringMatch(pattern.data(), pattern.size(), parsed_meta_key.Key().data(), parsed_meta_key.Key().size(), 0) != 0)) {
         batch.Delete(key);
+        remove_keys->push_back(parsed_meta_key.Key().data());
       }
     } else if (meta_type == DataType::kLists) {
       ParsedListsMetaValue parsed_lists_meta_value(&meta_value);
@@ -1720,6 +1721,7 @@ rocksdb::Status Redis::PKPatternMatchDel(const std::string& pattern, int32_t* re
            0)) {
         parsed_lists_meta_value.InitialMetaValue();
         batch.Put(handles_[kMetaCF], iter->key(), meta_value);
+        remove_keys->push_back(parsed_meta_key.Key().data());
       }
     } else if (meta_type == DataType::kStreams) {
       StreamMetaValue stream_meta_value;
@@ -1728,6 +1730,7 @@ rocksdb::Status Redis::PKPatternMatchDel(const std::string& pattern, int32_t* re
           (StringMatch(pattern.data(), pattern.size(), parsed_meta_key.Key().data(), parsed_meta_key.Key().size(), 0) != 0)) {
         stream_meta_value.InitMetaValue();
         batch.Put(handles_[kMetaCF], key, stream_meta_value.value());
+        remove_keys->push_back(parsed_meta_key.Key().data());
       }
     } else {
       ParsedBaseMetaValue parsed_meta_value(&meta_value);
@@ -1736,18 +1739,7 @@ rocksdb::Status Redis::PKPatternMatchDel(const std::string& pattern, int32_t* re
            0)) {
         parsed_meta_value.InitialMetaValue();
         batch.Put(handles_[kMetaCF], iter->key(), meta_value);
-      }
-    }
-
-    if (static_cast<size_t>(batch.Count()) >= BATCH_DELETE_LIMIT) {
-      s = db_->Write(default_write_options_, &batch);
-      if (s.ok()) {
-        total_delete += static_cast<int32_t>(batch.Count());
-        batch.Clear();
-      } else {
-        *ret = total_delete;
-        delete iter;
-        return s;
+        remove_keys->push_back(parsed_meta_key.Key().data());
       }
     }
     iter->Next();
@@ -1755,13 +1747,16 @@ rocksdb::Status Redis::PKPatternMatchDel(const std::string& pattern, int32_t* re
   if (batch.Count() != 0U) {
     s = db_->Write(default_write_options_, &batch);
     if (s.ok()) {
-      total_delete += static_cast<int32_t>(batch.Count());
+      total_delete += static_cast<int64_t>(batch.Count());
       batch.Clear();
+    } else {
+      remove_keys->erase(remove_keys->end() - batch.Count(), remove_keys->end());
     }
   }
 
-  delete iter;
   *ret = total_delete;
+  delete iter;
   return s;
 }
+
 }  //  namespace storage

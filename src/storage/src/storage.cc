@@ -1400,16 +1400,20 @@ Status Storage::PKRScanRange(const DataType& data_type, const Slice& key_start, 
   return Status::OK();
 }
 
-Status Storage::PKPatternMatchDel(const DataType& data_type, const std::string& pattern, int32_t* ret) {
+Status Storage::PKPatternMatchDelWithRemoveKeys(const std::string& pattern, int64_t* ret, 
+                                                std::vector<std::string>* remove_keys, const int64_t& max_count) {
   Status s;
   *ret = 0;
   for (const auto& inst : insts_) {
-    int32_t tmp_ret = 0;
-    s = inst->PKPatternMatchDel(pattern, &tmp_ret);
+    int64_t tmp_ret = 0;
+    s = inst->PKPatternMatchDelWithRemoveKeys(pattern, &tmp_ret, remove_keys, max_count - *ret);
     if (!s.ok()) {
       return s;
-    }
+    } 
     *ret += tmp_ret;
+    if (*ret == max_count) {
+      return s;
+    }
   }
   return s;
 }
