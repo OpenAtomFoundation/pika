@@ -115,7 +115,7 @@ class IncrCmd : public Cmd {
   int64_t new_value_ = 0;
   void DoInitial() override;
   rocksdb::Status s_;
-  int64_t ttl_ms_ = 0;
+  int64_t expired_timestamp_sec_ = 0;
   std::string ToRedisProtocol() override;
 };
 
@@ -140,7 +140,7 @@ class IncrbyCmd : public Cmd {
   int64_t by_ = 0, new_value_ = 0;
   void DoInitial() override;
   rocksdb::Status s_;
-  int64_t ttl_ms_ = 0;
+  int64_t expired_timestamp_sec_ = 0;
   std::string ToRedisProtocol() override;
 };
 
@@ -165,7 +165,7 @@ class IncrbyfloatCmd : public Cmd {
   double by_ = 0;
   void DoInitial() override;
   rocksdb::Status s_;
-  int64_t ttl_ms_ = 0;
+  int64_t expired_timestamp_sec_ = 0;
   std::string ToRedisProtocol() override;
 };
 
@@ -257,9 +257,10 @@ class AppendCmd : public Cmd {
  private:
   std::string key_;
   std::string value_;
+  std::string new_value_;
   void DoInitial() override;
   rocksdb::Status s_;
-  int64_t ttl_ms_ = 0;
+  int64_t expired_timestamp_sec_ = 0;
   std::string ToRedisProtocol() override;
 };
 

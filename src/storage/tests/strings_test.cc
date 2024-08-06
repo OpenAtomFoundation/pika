@@ -69,14 +69,15 @@ static bool string_ttl(storage::Storage* const db, const Slice& key, int32_t* tt
 TEST_F(StringsTest, AppendTest) {
   int32_t ret;
   std::string value;
+  std::string new_value;
   std::map<DataType, Status> type_status;
   int64_t type_ttl;
   // ***************** Group 1 Test *****************
-  s = db.Append("GP1_APPEND_KEY", "HELLO", &ret, &type_ttl);
+  s = db.Append("GP1_APPEND_KEY", "HELLO", &ret, &type_ttl, new_value);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 5);
 
-  s = db.Append("GP1_APPEND_KEY", " WORLD", &ret, &type_ttl);
+  s = db.Append("GP1_APPEND_KEY", " WORLD", &ret, &type_ttl, new_value);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 11);
 
@@ -93,7 +94,7 @@ TEST_F(StringsTest, AppendTest) {
   ASSERT_LE(type_ttl, 100);
   ASSERT_GE(type_ttl, 0);
 
-  s = db.Append("GP2_APPEND_KEY", "VALUE", &ret, &type_ttl);
+  s = db.Append("GP2_APPEND_KEY", "VALUE", &ret, &type_ttl, new_value);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 10);
   s = db.Get("GP2_APPEND_KEY", &value);
@@ -109,7 +110,7 @@ TEST_F(StringsTest, AppendTest) {
   ASSERT_TRUE(s.ok());
   make_expired(&db, "GP3_APPEND_KEY");
 
-  s = db.Append("GP3_APPEND_KEY", "VALUE", &ret, &type_ttl);
+  s = db.Append("GP3_APPEND_KEY", "VALUE", &ret, &type_ttl, new_value);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 5);
   s = db.Get("GP3_APPEND_KEY", &value);

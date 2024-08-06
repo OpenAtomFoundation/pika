@@ -63,10 +63,10 @@ Status Redis::ScanStringsKeyNum(KeyInfo* key_info) {
   return Status::OK();
 }
 
-Status Redis::Append(const Slice& key, const Slice& value, int32_t* ret, int64_t* ttl) {
+Status Redis::Append(const Slice& key, const Slice& value, int32_t* ret, int64_t* expired_timestamp_sec, std::string& out_new_value) {
   std::string old_value;
   *ret = 0;
-  *ttl = 0;
+  *expired_timestamp_sec = 0;
   ScopeRecordLock l(lock_mgr_, key);
 
   BaseKey base_key(key);
@@ -74,7 +74,6 @@ Status Redis::Append(const Slice& key, const Slice& value, int32_t* ret, int64_t
   if (s.ok() && !ExpectedMetaValue(DataType::kStrings, old_value)) {
     if (ExpectedStale(old_value)) {
       s = Status::NotFound();
-      *ttl = 0;
     } else {
      return Status::InvalidArgument(
         "WRONGTYPE, key: " + key.ToString() + ", expect type: " +
@@ -92,18 +91,17 @@ Status Redis::Append(const Slice& key, const Slice& value, int32_t* ret, int64_t
       uint64_t timestamp = parsed_strings_value.Etime();
       std::string old_user_value = parsed_strings_value.UserValue().ToString();
       std::string new_value = old_user_value + value.ToString();
+      out_new_value = new_value;
       StringsValue strings_value(new_value);
       strings_value.SetEtime(timestamp);
       *ret = static_cast<int32_t>(new_value.size());
-      int64_t current_time;
-      rocksdb::Env::Default()->GetCurrentTime(&current_time);
-      *ttl = timestamp;
+      *expired_timestamp_sec = timestamp;
       return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
     }
   } else if (s.IsNotFound()) {
     *ret = static_cast<int32_t>(value.size());
     StringsValue strings_value(value);
-    *ttl = 0;
+    *expired_timestamp_sec = 0;
     return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
   }
   return s;
@@ -624,7 +622,7 @@ Status Redis::GetSet(const Slice& key, const Slice& value, std::string* old_valu
   return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
 }
 
-Status Redis::Incrby(const Slice& key, int64_t value, int64_t* ret, int64_t* ttl) {
+Status Redis::Incrby(const Slice& key, int64_t value, int64_t* ret, int64_t* expired_timestamp_sec) {
   std::string old_value;
   std::string new_value;
   ScopeRecordLock l(lock_mgr_, key);
@@ -662,9 +660,7 @@ Status Redis::Incrby(const Slice& key, int64_t value, int64_t* ret, int64_t* ttl
       new_value = std::to_string(*ret);
       StringsValue strings_value(new_value);
       strings_value.SetEtime(timestamp);
-      int64_t current_time;
-      rocksdb::Env::Default()->GetCurrentTime(&current_time);
-      *ttl = timestamp;
+      *expired_timestamp_sec = timestamp;
       return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
     }
   } else if (s.IsNotFound()) {
@@ -677,10 +673,10 @@ Status Redis::Incrby(const Slice& key, int64_t value, int64_t* ret, int64_t* ttl
   }
 }
 
-Status Redis::Incrbyfloat(const Slice& key, const Slice& value, std::string* ret, int64_t* ttl) {
+Status Redis::Incrbyfloat(const Slice& key, const Slice& value, std::string* ret, int64_t* expired_timestamp_sec) {
   std::string old_value;
   std::string new_value;
-  *ttl = -1;
+  *expired_timestamp_sec = 0;
   long double long_double_by;
   if (StrToLongDouble(value.data(), value.size(), &long_double_by) == -1) {
     return Status::Corruption("Value is not a vaild float");
@@ -721,9 +717,7 @@ Status Redis::Incrbyfloat(const Slice& key, const Slice& value, std::string* ret
       *ret = new_value;
       StringsValue strings_value(new_value);
       strings_value.SetEtime(timestamp);
-      int64_t current_time;
-      rocksdb::Env::Default()->GetCurrentTime(&current_time);
-      *ttl = timestamp;
+      *expired_timestamp_sec = timestamp;
       return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
     }
   } else if (s.IsNotFound()) {
