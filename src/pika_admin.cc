@@ -3099,8 +3099,8 @@ void PKPatternMatchDelCmd::DoInitial() {
     return;
   }
   max_count_ = storage::BATCH_DELETE_LIMIT;
-  if (argv_.size() > 2) {
-    if (pstd::string2int(argv_[2].data(), argv_[2].size(), &max_count_) == 0 ||  max_count_ < 1 || max_count_ > storage::BATCH_DELETE_LIMIT) {
+  if (argv_.size() > 3) {
+    if (pstd::string2int(argv_[3].data(), argv_[3].size(), &max_count_) == 0 ||  max_count_ < 1 || max_count_ > storage::BATCH_DELETE_LIMIT) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
@@ -3133,30 +3133,28 @@ void PKPatternMatchDelCmd::DoThroughDB() {
 }
 
 void PKPatternMatchDelCmd::DoUpdateCache() {
-  if(s_.ok()) {
+  if (s_.ok()) {
     std::vector<std::string> v;
     for (auto key : remove_keys_) {
-      if (argv_.size() > 2) {
-        //only delete the corresponding prefix
-        switch (type_) {
-          case storage::kSets:
-            v.emplace_back(PCacheKeyPrefixS + key);
-            break;
-          case storage::kLists:
-            v.emplace_back(PCacheKeyPrefixL + key);
-            break;
-          case storage::kStrings:
-            v.emplace_back(PCacheKeyPrefixK + key);
-            break;
-          case storage::kZSets:
-            v.emplace_back(PCacheKeyPrefixZ + key);
-            break;
-          case storage::kHashes:
-            v.emplace_back(PCacheKeyPrefixH + key);
-            break;
-          default:
-            break;
-        }
+      // only delete the corresponding prefix
+      switch (type_) {
+        case storage::kSets:
+          v.emplace_back(PCacheKeyPrefixS + key);
+          break;
+        case storage::kLists:
+          v.emplace_back(PCacheKeyPrefixL + key);
+          break;
+        case storage::kStrings:
+          v.emplace_back(PCacheKeyPrefixK + key);
+          break;
+        case storage::kZSets:
+          v.emplace_back(PCacheKeyPrefixZ + key);
+          break;
+        case storage::kHashes:
+          v.emplace_back(PCacheKeyPrefixH + key);
+          break;
+        default:
+          break;
       }
     }
     db_->cache()->Del(v);

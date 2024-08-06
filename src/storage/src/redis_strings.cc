@@ -138,30 +138,20 @@ Status RedisStrings::PKPatternMatchDelWithRemoveKeys(const DataType& data_type, 
     ParsedStringsValue parsed_strings_value(&value);
     if (!parsed_strings_value.IsStale() && (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0)) {
       batch.Delete(key);
-      remove_keys->push_back(key.data());
-    }
-    // In order to be more efficient, we use batch deletion here
-    if (static_cast<size_t>(batch.Count()) >= BATCH_DELETE_LIMIT) {
-      s = db_->Write(default_write_options_, &batch);
-      if (s.ok()) {
-        total_delete += static_cast<int64_t>(batch.Count());
-        batch.Clear();
-      } else {
-        *ret = total_delete;
-        delete iter;
-        return s;
-      }
+      remove_keys->push_back(key);
     }
     iter->Next();
   }
-  if (batch.Count() != 0U) {
+  auto batchNum = batch.Count();
+  if (batchNum != 0U) {
     s = db_->Write(default_write_options_, &batch);
     if (s.ok()) {
-      total_delete += static_cast<int64_t>( batch.Count());
+      total_delete += static_cast<int64_t>(batchNum);
       batch.Clear();
+    } else {
+      remove_keys->erase(remove_keys->end() - batchNum, remove_keys->end());
     }
   }
-  delete iter;
   *ret = total_delete;
   return s;
 }

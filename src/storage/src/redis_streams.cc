@@ -469,25 +469,18 @@ Status RedisStreams::PKPatternMatchDelWithRemoveKeys(const DataType& data_type, 
         (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0)) {
       stream_meta_value.InitMetaValue();
       batch.Put(handles_[0], key, stream_meta_value.value());
-      remove_keys->push_back(key.data());
-    }
-    if (static_cast<size_t>(batch.Count()) >= BATCH_DELETE_LIMIT) {
-      s = db_->Write(default_write_options_, &batch);
-      if (s.ok()) {
-        total_delete += static_cast<int64_t>(batch.Count());
-        batch.Clear();
-      } else {
-        *ret = total_delete;
-        return s;
-      }
+      remove_keys->push_back(key);
     }
     iter->Next();
   }
-  if (batch.Count() != 0U) {
+  auto batchNum = batch.Count();
+  if (batchNum != 0U) {
     s = db_->Write(default_write_options_, &batch);
     if (s.ok()) {
-      total_delete += static_cast<int64_t>(batch.Count());
+      total_delete += static_cast<int64_t>(batchNum);
       batch.Clear();
+    } else {
+      remove_keys->erase(remove_keys->end() - batchNum, remove_keys->end());
     }
   }
 

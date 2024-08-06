@@ -2459,8 +2459,6 @@ for (const auto& kv : kvs) {
 //   ASSERT_EQ(keys.size(), 0);
 
 //   //=============================== List ===============================
-
-
 //   // ***************** Group 1 Test *****************
 //   db.LPush("GP1_PKPATTERNMATCHDEL_LIST_KEY1", {"VALUE"}, &ret64);
 //   db.LPush("GP1_PKPATTERNMATCHDEL_LIST_KEY2", {"VALUE"}, &ret64);
