@@ -167,7 +167,7 @@ Status RedisZSets::ScanKeys(const std::string& pattern, std::vector<std::string>
   return Status::OK();
 }
 
-Status RedisZSets::PKPatternMatchDel(const std::string& pattern, int32_t* ret) {
+Status RedisZSets::PKPatternMatchDelWithRemoveKeys(const DataType& data_type, const std::string& pattern, int64_t* ret, std::vector<std::string>* remove_keys, const int64_t& max_count) {
   rocksdb::ReadOptions iterator_options;
   const rocksdb::Snapshot* snapshot;
   ScopeSnapshot ss(db_, &snapshot);
@@ -176,7 +176,7 @@ Status RedisZSets::PKPatternMatchDel(const std::string& pattern, int32_t* ret) {
 
   std::string key;
   std::string meta_value;
-  int32_t total_delete = 0;
+  int64_t total_delete = 0;
   Status s;
   rocksdb::WriteBatch batch;
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[0]);
@@ -184,7 +184,7 @@ Status RedisZSets::PKPatternMatchDel(const std::string& pattern, int32_t* ret) {
   DEFER {
     delete iter;
   };
-  while (iter->Valid()) {
+  while (iter->Valid() && static_cast<int64_t>(batch.Count()) < max_count) {
     key = iter->key().ToString();
     meta_value = iter->value().ToString();
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
@@ -192,24 +192,18 @@ Status RedisZSets::PKPatternMatchDel(const std::string& pattern, int32_t* ret) {
         (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0)) {
       parsed_zsets_meta_value.InitialMetaValue();
       batch.Put(handles_[0], key, meta_value);
-    }
-    if (static_cast<size_t>(batch.Count()) >= BATCH_DELETE_LIMIT) {
-      s = db_->Write(default_write_options_, &batch);
-      if (s.ok()) {
-        total_delete += static_cast<int32_t>(batch.Count());
-        batch.Clear();
-      } else {
-        *ret = total_delete;
-        return s;
-      }
+      remove_keys->push_back(key);
     }
     iter->Next();
   }
-  if (batch.Count() != 0U) {
+  auto batchNum = batch.Count();
+  if (batchNum != 0U) {
     s = db_->Write(default_write_options_, &batch);
     if (s.ok()) {
-      total_delete += static_cast<int32_t>(batch.Count());
+      total_delete += static_cast<int64_t>(batchNum);
       batch.Clear();
+    } else {
+      remove_keys->erase(remove_keys->end() - batchNum, remove_keys->end());
     }
   }
 

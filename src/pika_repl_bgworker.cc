@@ -34,7 +34,9 @@ int PikaReplBgWorker::StopThread() { return bg_thread_.StopThread(); }
 
 void PikaReplBgWorker::Schedule(net::TaskFunc func, void* arg) { bg_thread_.Schedule(func, arg); }
 
-void PikaReplBgWorker::QueueClear() { bg_thread_.QueueClear(); }
+void PikaReplBgWorker::Schedule(net::TaskFunc func, void* arg, std::function<void()>& call_back) {
+  bg_thread_.Schedule(func, arg, call_back);
+}
 
 void PikaReplBgWorker::ParseBinlogOffset(const InnerMessage::BinlogOffset& pb_offset, LogOffset* offset) {
   offset->b_offset.filenum = pb_offset.filenum();
@@ -209,9 +211,11 @@ int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::Red
 void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   std::unique_ptr<ReplClientWriteDBTaskArg> task_arg(static_cast<ReplClientWriteDBTaskArg*>(arg));
   const std::shared_ptr<Cmd> c_ptr = task_arg->cmd_ptr;
+  WriteDBInSyncWay(c_ptr);
+}
+
+void PikaReplBgWorker::WriteDBInSyncWay(const std::shared_ptr<Cmd>& c_ptr) {
   const PikaCmdArgsType& argv = c_ptr->argv();
-  LogOffset offset = task_arg->offset;
-  std::string db_name = task_arg->db_name;
 
   uint64_t start_us = 0;
   if (g_pika_conf->slowlog_slower_than() >= 0) {

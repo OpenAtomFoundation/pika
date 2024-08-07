@@ -200,8 +200,8 @@ Status Storage::GetrangeWithValue(const Slice& key, int64_t start_offset, int64_
   return strings_db_->GetrangeWithValue(key, start_offset, end_offset, ret, value, ttl);
 }
 
-Status Storage::Append(const Slice& key, const Slice& value, int32_t* ret) {
-  return strings_db_->Append(key, value, ret);
+Status Storage::Append(const Slice& key, const Slice& value, int32_t* ret, int32_t* expired_timestamp_sec, std::string& out_new_value) {
+  return strings_db_->Append(key, value, ret, expired_timestamp_sec, out_new_value);
 }
 
 Status Storage::BitCount(const Slice& key, int64_t start_offset, int64_t end_offset, int32_t* ret, bool have_range) {
@@ -225,10 +225,13 @@ Status Storage::BitPos(const Slice& key, int32_t bit, int64_t start_offset, int6
 
 Status Storage::Decrby(const Slice& key, int64_t value, int64_t* ret) { return strings_db_->Decrby(key, value, ret); }
 
-Status Storage::Incrby(const Slice& key, int64_t value, int64_t* ret) { return strings_db_->Incrby(key, value, ret); }
 
-Status Storage::Incrbyfloat(const Slice& key, const Slice& value, std::string* ret) {
-  return strings_db_->Incrbyfloat(key, value, ret);
+Status Storage::Incrby(const Slice& key, int64_t value, int64_t* ret, int32_t* expired_timestamp_sec) {
+  return strings_db_->Incrby(key, value, ret, expired_timestamp_sec);
+}
+
+Status Storage::Incrbyfloat(const Slice& key, const Slice& value, std::string* ret, int32_t* expired_timestamp_sec) {
+  return strings_db_->Incrbyfloat(key, value, ret, expired_timestamp_sec);
 }
 
 Status Storage::Setex(const Slice& key, const Slice& value, int32_t ttl) { return strings_db_->Setex(key, value, ttl); }
@@ -1142,26 +1145,27 @@ Status Storage::PKRScanRange(const DataType& data_type, const Slice& key_start, 
   return s;
 }
 
-Status Storage::PKPatternMatchDel(const DataType& data_type, const std::string& pattern, int32_t* ret) {
+Status Storage::PKPatternMatchDelWithRemoveKeys(const DataType& data_type, const std::string& pattern, int64_t* ret,
+                                                std::vector<std::string>* remove_keys, const int64_t& max_count) {
   Status s;
   switch (data_type) {
     case DataType::kStrings:
-      s = strings_db_->PKPatternMatchDel(pattern, ret);
+      s = strings_db_->PKPatternMatchDelWithRemoveKeys(DataType::kStrings, pattern, ret, remove_keys, max_count - *ret);
       break;
     case DataType::kHashes:
-      s = hashes_db_->PKPatternMatchDel(pattern, ret);
+      s = hashes_db_->PKPatternMatchDelWithRemoveKeys(DataType::kHashes, pattern, ret, remove_keys, max_count - *ret);
       break;
     case DataType::kLists:
-      s = lists_db_->PKPatternMatchDel(pattern, ret);
+      s = lists_db_->PKPatternMatchDelWithRemoveKeys(DataType::kLists, pattern, ret, remove_keys, max_count - *ret);
       break;
     case DataType::kZSets:
-      s = zsets_db_->PKPatternMatchDel(pattern, ret);
+      s = zsets_db_->PKPatternMatchDelWithRemoveKeys(DataType::kZSets, pattern, ret, remove_keys, max_count - *ret);
       break;
     case DataType::kSets:
-      s = sets_db_->PKPatternMatchDel(pattern, ret);
+      s = sets_db_->PKPatternMatchDelWithRemoveKeys(DataType::kSets, pattern, ret, remove_keys, max_count - *ret);
       break;
     case DataType::kStreams:
-      s = streams_db_->PKPatternMatchDel(pattern, ret);
+      s = streams_db_->PKPatternMatchDelWithRemoveKeys(DataType::kStreams, pattern, ret, remove_keys, max_count - *ret);
       break;
     default:
       s = Status::Corruption("Unsupported data type");
@@ -1490,6 +1494,9 @@ void Storage::ScanDatabase(const DataType& type) {
       break;
     case kLists:
       lists_db_->ScanDatabase();
+      break;
+    case DataType::kStreams:
+      // do noting
       break;
     case kAll:
       strings_db_->ScanDatabase();

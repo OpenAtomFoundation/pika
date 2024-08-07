@@ -266,7 +266,7 @@ void IncrCmd::DoInitial() {
 }
 
 void IncrCmd::Do() {
-  s_ = db_->storage()->Incrby(key_, 1, &new_value_);
+  s_ = db_->storage()->Incrby(key_, 1, &new_value_, &expired_timestamp_sec_);
   if (s_.ok()) {
     res_.AppendContent(":" + std::to_string(new_value_));
     AddSlotKey("k", key_, db_);
@@ -290,6 +290,32 @@ void IncrCmd::DoUpdateCache() {
   }
 }
 
+std::string IncrCmd::ToRedisProtocol() {
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 4, "*");
+
+  // to pksetexat cmd
+  std::string pksetexat_cmd("pksetexat");
+  RedisAppendLenUint64(content, pksetexat_cmd.size(), "$");
+  RedisAppendContent(content, pksetexat_cmd);
+  // key
+  RedisAppendLenUint64(content, key_.size(), "$");
+  RedisAppendContent(content, key_);
+  // time_stamp
+  char buf[100];
+  auto time_stamp = expired_timestamp_sec_;
+  pstd::ll2string(buf, sizeof(buf), time_stamp);
+  std::string at(buf);
+  RedisAppendLenUint64(content, at.size(), "$");
+  RedisAppendContent(content, at);
+  // value
+  std::string new_value_str = std::to_string(new_value_);
+  RedisAppendLenUint64(content, new_value_str.size(), "$");
+  RedisAppendContent(content, new_value_str);
+  return content;
+}
+
 void IncrbyCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameIncrby);
@@ -303,7 +329,7 @@ void IncrbyCmd::DoInitial() {
 }
 
 void IncrbyCmd::Do() {
-  s_ = db_->storage()->Incrby(key_, by_, &new_value_);
+  s_ = db_->storage()->Incrby(key_, by_, &new_value_, &expired_timestamp_sec_);
   if (s_.ok()) {
     res_.AppendContent(":" + std::to_string(new_value_));
     AddSlotKey("k", key_, db_);
@@ -327,6 +353,32 @@ void IncrbyCmd::DoUpdateCache() {
   }
 }
 
+std::string IncrbyCmd::ToRedisProtocol() {
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 4, "*");
+
+  // to pksetexat cmd
+  std::string pksetexat_cmd("pksetexat");
+  RedisAppendLenUint64(content, pksetexat_cmd.size(), "$");
+  RedisAppendContent(content, pksetexat_cmd);
+  // key
+  RedisAppendLenUint64(content, key_.size(), "$");
+  RedisAppendContent(content, key_);
+  // time_stamp
+  char buf[100];
+  auto time_stamp = expired_timestamp_sec_;
+  pstd::ll2string(buf, sizeof(buf), time_stamp);
+  std::string at(buf);
+  RedisAppendLenUint64(content, at.size(), "$");
+  RedisAppendContent(content, at);
+  // value
+  std::string new_value_str = std::to_string(new_value_);
+  RedisAppendLenUint64(content, new_value_str.size(), "$");
+  RedisAppendContent(content, new_value_str);
+  return content;
+}
+
 void IncrbyfloatCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameIncrbyfloat);
@@ -341,7 +393,7 @@ void IncrbyfloatCmd::DoInitial() {
 }
 
 void IncrbyfloatCmd::Do() {
-  s_ = db_->storage()->Incrbyfloat(key_, value_, &new_value_);
+  s_ = db_->storage()->Incrbyfloat(key_, value_, &new_value_, &expired_timestamp_sec_);
   if (s_.ok()) {
     res_.AppendStringLenUint64(new_value_.size());
     res_.AppendContent(new_value_);
@@ -368,6 +420,32 @@ void IncrbyfloatCmd::DoUpdateCache() {
     }
   }
 }
+
+std::string IncrbyfloatCmd::ToRedisProtocol() {
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 4, "*");
+
+  // to pksetexat cmd
+  std::string pksetexat_cmd("pksetexat");
+  RedisAppendLenUint64(content, pksetexat_cmd.size(), "$");
+  RedisAppendContent(content, pksetexat_cmd);
+  // key
+  RedisAppendLenUint64(content, key_.size(), "$");
+  RedisAppendContent(content, key_);
+  // time_stamp
+  char buf[100];
+  auto time_stamp = expired_timestamp_sec_;
+  pstd::ll2string(buf, sizeof(buf), time_stamp);
+  std::string at(buf);
+  RedisAppendLenUint64(content, at.size(), "$");
+  RedisAppendContent(content, at);
+  // value
+  RedisAppendLenUint64(content, new_value_.size(), "$");
+  RedisAppendContent(content, new_value_);
+  return content;
+}
+
 
 void DecrCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -485,7 +563,7 @@ void AppendCmd::DoInitial() {
 
 void AppendCmd::Do() {
   int32_t new_len = 0;
-  s_ = db_->storage()->Append(key_, value_, &new_len);
+  s_ = db_->storage()->Append(key_, value_, &new_len, &expired_timestamp_sec_, new_value_);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(new_len);
     AddSlotKey("k", key_, db_);
@@ -503,6 +581,31 @@ void AppendCmd::DoUpdateCache() {
     std::string CachePrefixKeyK = PCacheKeyPrefixK + key_;
     db_->cache()->Appendxx(CachePrefixKeyK, value_);
   }
+}
+
+std::string AppendCmd::ToRedisProtocol() {
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 4, "*");
+
+  // to pksetexat cmd
+  std::string pksetexat_cmd("pksetexat");
+  RedisAppendLenUint64(content, pksetexat_cmd.size(), "$");
+  RedisAppendContent(content, pksetexat_cmd);
+  // key
+  RedisAppendLenUint64(content, key_.size(), "$");
+  RedisAppendContent(content, key_);
+  // time_stamp
+  char buf[100];
+  auto time_stamp = expired_timestamp_sec_;
+  pstd::ll2string(buf, sizeof(buf), time_stamp);
+  std::string at(buf);
+  RedisAppendLenUint64(content, at.size(), "$");
+  RedisAppendContent(content, at);
+  // value
+  RedisAppendLenUint64(content, new_value_.size(), "$");
+  RedisAppendContent(content, new_value_);
+  return content;
 }
 
 void MgetCmd::DoInitial() {

@@ -244,7 +244,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSet, std::move(setptr)));
   ////GetCmd
   std::unique_ptr<Cmd> getptr =
-      std::make_unique<GetCmd>(kCmdNameGet, 2, kCmdFlagsRead |  kCmdFlagsKv  | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsReadCache | kCmdFlagsSlow);
+      std::make_unique<GetCmd>(kCmdNameGet, 2, kCmdFlagsRead | kCmdFlagsKv  | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsReadCache | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameGet, std::move(getptr)));
   ////DelCmd
   std::unique_ptr<Cmd> delptr =
@@ -397,7 +397,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHSet, std::move(hsetptr)));
   ////HGetCmd
   std::unique_ptr<Cmd> hgetptr =
-      std::make_unique<HGetCmd>(kCmdNameHGet, 3, kCmdFlagsRead |  kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
+      std::make_unique<HGetCmd>(kCmdNameHGet, 3, kCmdFlagsRead |  kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsReadCache |kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHGet, std::move(hgetptr)));
   ////HGetallCmd
   std::unique_ptr<Cmd> hgetallptr =
@@ -405,7 +405,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHGetall, std::move(hgetallptr)));
   ////HExistsCmd
   std::unique_ptr<Cmd> hexistsptr =
-      std::make_unique<HExistsCmd>(kCmdNameHExists, 3, kCmdFlagsRead |  kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
+      std::make_unique<HExistsCmd>(kCmdNameHExists, 3, kCmdFlagsRead |  kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast );
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHExists, std::move(hexistsptr)));
   ////HIncrbyCmd
   std::unique_ptr<Cmd> hincrbyptr =
@@ -425,7 +425,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHLen, std::move(hlenptr)));
   ////HMgetCmd
   std::unique_ptr<Cmd> hmgetptr =
-      std::make_unique<HMgetCmd>(kCmdNameHMget, -3, kCmdFlagsRead |  kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsFast);
+      std::make_unique<HMgetCmd>(kCmdNameHMget, -3, kCmdFlagsRead |  kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsReadCache |kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHMget, std::move(hmgetptr)));
   ////HMsetCmd
   std::unique_ptr<Cmd> hmsetptr =
@@ -741,50 +741,50 @@ void InitCmdTable(CmdTable* cmd_table) {
   // PubSub
   ////Publish
   std::unique_ptr<Cmd> publishptr =
-      std::make_unique<PublishCmd>(kCmdNamePublish, 3, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsFast);
+      std::make_unique<PublishCmd>(kCmdNamePublish, 3, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsFast );
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePublish, std::move(publishptr)));
   ////Subscribe
   std::unique_ptr<Cmd> subscribeptr =
-      std::make_unique<SubscribeCmd>(kCmdNameSubscribe, -2, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsSlow);
+      std::make_unique<SubscribeCmd>(kCmdNameSubscribe, -2, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsSlow );
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSubscribe, std::move(subscribeptr)));
   ////UnSubscribe
   std::unique_ptr<Cmd> unsubscribeptr =
-      std::make_unique<UnSubscribeCmd>(kCmdNameUnSubscribe, -1, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsSlow);
+      std::make_unique<UnSubscribeCmd>(kCmdNameUnSubscribe, -1, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsSlow );
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameUnSubscribe, std::move(unsubscribeptr)));
   ////PSubscribe
   std::unique_ptr<Cmd> psubscribeptr =
-      std::make_unique<PSubscribeCmd>(kCmdNamePSubscribe, -2, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsSlow);
+      std::make_unique<PSubscribeCmd>(kCmdNamePSubscribe, -2, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsSlow );
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePSubscribe, std::move(psubscribeptr)));
   ////PUnSubscribe
   std::unique_ptr<Cmd> punsubscribeptr =
-      std::make_unique<PUnSubscribeCmd>(kCmdNamePUnSubscribe, -1, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsSlow);
+      std::make_unique<PUnSubscribeCmd>(kCmdNamePUnSubscribe, -1, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsSlow );
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePUnSubscribe, std::move(punsubscribeptr)));
   ////PubSub
   std::unique_ptr<Cmd> pubsubptr =
-      std::make_unique<PubSubCmd>(kCmdNamePubSub, -2, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsSlow);
+      std::make_unique<PubSubCmd>(kCmdNamePubSub, -2, kCmdFlagsRead | kCmdFlagsPubSub | kCmdFlagsSlow );
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePubSub, std::move(pubsubptr)));
 
   ////ACL
-  std::unique_ptr<Cmd> aclptr = std::make_unique<PikaAclCmd>(KCmdNameAcl, -2, kCmdFlagsAdmin | kCmdFlagsSlow);
+  std::unique_ptr<Cmd> aclptr = std::make_unique<PikaAclCmd>(KCmdNameAcl, -2, kCmdFlagsAdmin | kCmdFlagsSlow );
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(KCmdNameAcl, std::move(aclptr)));
 
   // Transaction
   ////Multi
   std::unique_ptr<Cmd> multiptr =
-      std::make_unique<MultiCmd>(kCmdNameMulti, 1, kCmdFlagsRead | kCmdFlagsFast);
+      std::make_unique<MultiCmd>(kCmdNameMulti, 1, kCmdFlagsRead | kCmdFlagsFast );
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameMulti, std::move(multiptr)));
   ////Exec
   std::unique_ptr<Cmd> execptr = std::make_unique<ExecCmd>(
-      kCmdNameExec, 1, kCmdFlagsRead | kCmdFlagsWrite | kCmdFlagsSuspend | kCmdFlagsSlow);
+      kCmdNameExec, 1, kCmdFlagsRead | kCmdFlagsWrite | kCmdFlagsSuspend | kCmdFlagsSlow );
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameExec, std::move(execptr)));
   ////Discard
-  std::unique_ptr<Cmd> discardptr = std::make_unique<DiscardCmd>(kCmdNameDiscard, 1, kCmdFlagsRead | kCmdFlagsFast);
+  std::unique_ptr<Cmd> discardptr = std::make_unique<DiscardCmd>(kCmdNameDiscard, 1, kCmdFlagsRead | kCmdFlagsFast );
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameDiscard, std::move(discardptr)));
   ////Watch
-  std::unique_ptr<Cmd> watchptr = std::make_unique<WatchCmd>(kCmdNameWatch, -2, kCmdFlagsRead | kCmdFlagsFast);
+  std::unique_ptr<Cmd> watchptr = std::make_unique<WatchCmd>(kCmdNameWatch, -2, kCmdFlagsRead | kCmdFlagsFast );
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameWatch, std::move(watchptr)));
   ////Unwatch
-  std::unique_ptr<Cmd> unwatchptr = std::make_unique<UnwatchCmd>(kCmdNameUnWatch, 1, kCmdFlagsRead | kCmdFlagsFast);
+  std::unique_ptr<Cmd> unwatchptr = std::make_unique<UnwatchCmd>(kCmdNameUnWatch, 1, kCmdFlagsRead | kCmdFlagsFast );
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameUnWatch, std::move(unwatchptr)));
 
   // Stream
@@ -833,7 +833,7 @@ Cmd* GetCmdFromDB(const std::string& opt, const CmdTable& cmd_table) {
 bool Cmd::CheckArg(uint64_t num) const { return !((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)); }
 
 Cmd::Cmd(std::string name, int arity, uint32_t flag, uint32_t aclCategory)
-    : name_(std::move(name)), arity_(arity), flag_(flag), aclCategory_(aclCategory) {
+    : name_(std::move(name)), arity_(arity), flag_(flag), aclCategory_(aclCategory), cache_missed_in_rtc_(false) {
   // assign cmd id
   cmdId_ = g_pika_cmd_table_manager->GetCmdId();
 }
@@ -898,10 +898,12 @@ void Cmd::DoCommand(const HintKeys& hint_keys) {
   if (IsNeedCacheDo()
       && PIKA_CACHE_NONE != g_pika_conf->cache_mode()
       && db_->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
-    if (IsNeedReadCache()) {
+    if (!cache_missed_in_rtc_
+        && IsNeedReadCache()) {
       ReadCache();
     }
-    if (is_read() && res().CacheMiss()) {
+    if (is_read()
+        && (res().CacheMiss() || cache_missed_in_rtc_)) {
       pstd::lock::MultiScopeRecordLock record_lock(db_->LockMgr(), current_key());
       DoThroughDB();
       if (IsNeedUpdateCache()) {
@@ -917,6 +919,29 @@ void Cmd::DoCommand(const HintKeys& hint_keys) {
     Do();
   }
 }
+
+bool Cmd::DoReadCommandInCache() {
+  if (!IsSuspend()) {
+    db_->DBLockShared();
+  }
+  DEFER {
+    if (!IsSuspend()) {
+      db_->DBUnlockShared();
+    }
+  };
+
+  if (db_->cache()->CacheStatus() == PIKA_CACHE_STATUS_OK) {
+      if (IsNeedReadCache()) {
+        ReadCache();
+      }
+      // return true only the read command hit
+      if (is_read() && !res().CacheMiss()) {
+        return true;
+      }
+  }
+  return false;
+}
+
 
 void Cmd::DoBinlog() {
   if (res().ok() && is_write() && g_pika_conf->write_binlog()) {
@@ -1048,3 +1073,5 @@ void Cmd::SetResp(const std::shared_ptr<std::string>& resp) { resp_ = resp; }
 std::shared_ptr<std::string> Cmd::GetResp() { return resp_.lock(); }
 
 void Cmd::SetStage(CmdStage stage) { stage_ = stage; }
+bool Cmd::IsCacheMissedInRtc() const { return cache_missed_in_rtc_; }
+void Cmd::SetCacheMissedInRtc(bool value) { cache_missed_in_rtc_ = value; }

@@ -115,7 +115,7 @@ Status RedisStrings::ScanKeys(const std::string& pattern, std::vector<std::strin
   return Status::OK();
 }
 
-Status RedisStrings::PKPatternMatchDel(const std::string& pattern, int32_t* ret) {
+Status RedisStrings::PKPatternMatchDelWithRemoveKeys(const DataType& data_type, const std::string& pattern, int64_t* ret, std::vector<std::string>* remove_keys, const int64_t& max_count) {
   rocksdb::ReadOptions iterator_options;
   const rocksdb::Snapshot* snapshot;
   ScopeSnapshot ss(db_, &snapshot);
@@ -124,7 +124,7 @@ Status RedisStrings::PKPatternMatchDel(const std::string& pattern, int32_t* ret)
 
   std::string key;
   std::string value;
-  int32_t total_delete = 0;
+  int64_t total_delete = 0;
   Status s;
   rocksdb::WriteBatch batch;
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options);
@@ -132,42 +132,34 @@ Status RedisStrings::PKPatternMatchDel(const std::string& pattern, int32_t* ret)
     delete iter;
   };
   iter->SeekToFirst();
-  while (iter->Valid()) {
+  while (iter->Valid() && static_cast<int64_t>(batch.Count()) < max_count) {
     key = iter->key().ToString();
     value = iter->value().ToString();
     ParsedStringsValue parsed_strings_value(&value);
     if (!parsed_strings_value.IsStale() && (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0)) {
       batch.Delete(key);
-    }
-    // In order to be more efficient, we use batch deletion here
-    if (static_cast<size_t>(batch.Count()) >= BATCH_DELETE_LIMIT) {
-      s = db_->Write(default_write_options_, &batch);
-      if (s.ok()) {
-        total_delete += static_cast<int32_t>(batch.Count());
-        batch.Clear();
-      } else {
-        *ret = total_delete;
-        delete iter;
-        return s;
-      }
+      remove_keys->push_back(key);
     }
     iter->Next();
   }
-  if (batch.Count() != 0U) {
+  auto batchNum = batch.Count();
+  if (batchNum != 0U) {
     s = db_->Write(default_write_options_, &batch);
     if (s.ok()) {
-      total_delete += static_cast<int32_t>( batch.Count());
+      total_delete += static_cast<int64_t>(batchNum);
       batch.Clear();
+    } else {
+      remove_keys->erase(remove_keys->end() - batchNum, remove_keys->end());
     }
   }
-  delete iter;
   *ret = total_delete;
   return s;
 }
 
-Status RedisStrings::Append(const Slice& key, const Slice& value, int32_t* ret) {
+Status RedisStrings::Append(const Slice& key, const Slice& value, int32_t* ret, int32_t* expired_timestamp_sec, std::string& out_new_value) {
   std::string old_value;
   *ret = 0;
+  *expired_timestamp_sec = 0;
   ScopeRecordLock l(lock_mgr_, key);
   Status s = db_->Get(default_read_options_, key, &old_value);
   if (s.ok()) {
@@ -180,15 +172,18 @@ Status RedisStrings::Append(const Slice& key, const Slice& value, int32_t* ret) 
       int32_t timestamp = parsed_strings_value.timestamp();
       std::string old_user_value = parsed_strings_value.value().ToString();
       std::string new_value = old_user_value + value.ToString();
+      out_new_value = new_value;
       StringsValue strings_value(new_value);
       strings_value.set_timestamp(timestamp);
       *ret = static_cast<int32_t>(new_value.size());
       return db_->Put(default_write_options_, key, strings_value.Encode());
+      *expired_timestamp_sec = timestamp;
     }
   } else if (s.IsNotFound()) {
     *ret = static_cast<int32_t>(value.size());
     StringsValue strings_value(value);
     return db_->Put(default_write_options_, key, strings_value.Encode());
+    *expired_timestamp_sec = 0;
   }
   return s;
 }
@@ -548,9 +543,10 @@ Status RedisStrings::GetSet(const Slice& key, const Slice& value, std::string* o
   return db_->Put(default_write_options_, key, strings_value.Encode());
 }
 
-Status RedisStrings::Incrby(const Slice& key, int64_t value, int64_t* ret) {
+Status RedisStrings::Incrby(const Slice& key, int64_t value, int64_t* ret, int32_t* expired_timestamp_sec) {
   std::string old_value;
   std::string new_value;
+  *expired_timestamp_sec = 0;
   ScopeRecordLock l(lock_mgr_, key);
   Status s = db_->Get(default_read_options_, key, &old_value);
   char buf[32] = {0};
@@ -577,20 +573,23 @@ Status RedisStrings::Incrby(const Slice& key, int64_t value, int64_t* ret) {
       StringsValue strings_value(new_value);
       strings_value.set_timestamp(timestamp);
       return db_->Put(default_write_options_, key, strings_value.Encode());
+      *expired_timestamp_sec = timestamp;
     }
   } else if (s.IsNotFound()) {
     *ret = value;
     Int64ToStr(buf, 32, value);
     StringsValue strings_value(buf);
+    *expired_timestamp_sec = 0;
     return db_->Put(default_write_options_, key, strings_value.Encode());
   } else {
     return s;
   }
 }
 
-Status RedisStrings::Incrbyfloat(const Slice& key, const Slice& value, std::string* ret) {
+Status RedisStrings::Incrbyfloat(const Slice& key, const Slice& value, std::string* ret, int32_t* expired_timestamp_sec) {
   std::string old_value;
   std::string new_value;
+  *expired_timestamp_sec = 0;
   long double long_double_by;
   if (StrToLongDouble(value.data(), value.size(), &long_double_by) == -1) {
     return Status::Corruption("Value is not a vaild float");
@@ -620,11 +619,13 @@ Status RedisStrings::Incrbyfloat(const Slice& key, const Slice& value, std::stri
       StringsValue strings_value(new_value);
       strings_value.set_timestamp(timestamp);
       return db_->Put(default_write_options_, key, strings_value.Encode());
+      *expired_timestamp_sec = timestamp;
     }
   } else if (s.IsNotFound()) {
     LongDoubleToStr(long_double_by, &new_value);
     *ret = new_value;
     StringsValue strings_value(new_value);
+    *expired_timestamp_sec = 0;
     return db_->Put(default_write_options_, key, strings_value.Encode());
   } else {
     return s;
@@ -1477,5 +1478,4 @@ void RedisStrings::ScanDatabase() {
   }
   delete iter;
 }
-
 }  //  namespace storage

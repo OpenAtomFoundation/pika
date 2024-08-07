@@ -251,7 +251,7 @@ class Storage {
   // If key already exists and is a string, this command appends the value at
   // the end of the string
   // return the length of the string after the append operation
-  Status Append(const Slice& key, const Slice& value, int32_t* ret);
+  Status Append(const Slice& key, const Slice& value, int32_t* ret, int32_t* expired_timestamp_sec, std::string& out_new_value);
 
   // Count the number of set bits (population counting) in a string.
   // return the number of bits set to 1
@@ -276,11 +276,11 @@ class Storage {
 
   // Increments the number stored at key by increment.
   // If the key does not exist, it is set to 0 before performing the operation
-  Status Incrby(const Slice& key, int64_t value, int64_t* ret);
+  Status Incrby(const Slice& key, int64_t value, int64_t* ret, int32_t* expired_timestamp_sec);
 
   // Increment the string representing a floating point number
   // stored at key by the specified increment.
-  Status Incrbyfloat(const Slice& key, const Slice& value, std::string* ret);
+  Status Incrbyfloat(const Slice& key, const Slice& value, std::string* ret, int32_t* expired_timestamp_sec);
 
   // Set key to hold the string value and set key to timeout after a given
   // number of seconds
@@ -988,7 +988,7 @@ class Storage {
 
   // Traverses the database of the specified type, removing the Key that matches
   // the pattern
-  Status PKPatternMatchDel(const DataType& data_type, const std::string& pattern, int32_t* ret);
+  Status PKPatternMatchDelWithRemoveKeys(const DataType& data_type, const std::string& pattern, int64_t* ret, std::vector<std::string>* remove_keys, const int64_t& max_count);
 
   // Iterate over a collection of elements
   // return next_key that the user need to use as the start_key argument

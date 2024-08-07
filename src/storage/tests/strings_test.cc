@@ -71,14 +71,16 @@ static bool string_ttl(storage::Storage* const db, const Slice& key, int32_t* tt
 TEST_F(StringsTest, AppendTest) {
   int32_t ret;
   std::string value;
+  std::string new_value;
   std::map<DataType, Status> type_status;
   std::map<DataType, int64_t> type_ttl;
+  int32_t expired_timestamp_sec;
   // ***************** Group 1 Test *****************
-  s = db.Append("GP1_APPEND_KEY", "HELLO", &ret);
+  s = db.Append("GP1_APPEND_KEY", "HELLO", &ret, &expired_timestamp_sec, new_value);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 5);
 
-  s = db.Append("GP1_APPEND_KEY", " WORLD", &ret);
+  s = db.Append("GP1_APPEND_KEY", " WORLD", &ret, &expired_timestamp_sec, new_value);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 11);
 
@@ -95,7 +97,7 @@ TEST_F(StringsTest, AppendTest) {
   ASSERT_LE(type_ttl[kStrings], 100);
   ASSERT_GE(type_ttl[kStrings], 0);
 
-  s = db.Append("GP2_APPEND_KEY", "VALUE", &ret);
+  s = db.Append("GP2_APPEND_KEY", "VALUE", &ret, &expired_timestamp_sec, new_value);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 10);
   s = db.Get("GP2_APPEND_KEY", &value);
@@ -111,7 +113,7 @@ TEST_F(StringsTest, AppendTest) {
   ASSERT_TRUE(s.ok());
   make_expired(&db, "GP3_APPEND_KEY");
 
-  s = db.Append("GP3_APPEND_KEY", "VALUE", &ret);
+  s = db.Append("GP3_APPEND_KEY", "VALUE", &ret, &expired_timestamp_sec, new_value);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 5);
   s = db.Get("GP3_APPEND_KEY", &value);
@@ -351,23 +353,24 @@ TEST_F(StringsTest, IncrbyTest) {
   std::string value;
   std::map<DataType, Status> type_status;
   std::map<DataType, int64_t> type_ttl;
+  int32_t expired_timestamp_sec;
 
   // ***************** Group 1 Test *****************
   // If the key is not exist
-  s = db.Incrby("GP1_INCRBY_KEY", 5, &ret);
+  s = db.Incrby("GP1_INCRBY_KEY", 5, &ret, &expired_timestamp_sec);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 5);
 
   // If the key contains a string that can not be represented as integer
   s = db.Set("GP1_INCRBY_KEY", "INCRBY_VALUE");
   ASSERT_TRUE(s.ok());
-  s = db.Incrby("GP1_INCRBY_KEY", 5, &ret);
+  s = db.Incrby("GP1_INCRBY_KEY", 5, &ret, &expired_timestamp_sec);
   ASSERT_TRUE(s.IsCorruption());
 
   s = db.Set("GP1_INCRBY_KEY", "1");
   ASSERT_TRUE(s.ok());
   // Less than the maximum number 9223372036854775807
-  s = db.Incrby("GP1_INCRBY_KEY", 9223372036854775807, &ret);
+  s = db.Incrby("GP1_INCRBY_KEY", 9223372036854775807, &ret, &expired_timestamp_sec);
   ASSERT_TRUE(s.IsInvalidArgument());
 
   // ***************** Group 2 Test *****************
@@ -380,7 +383,7 @@ TEST_F(StringsTest, IncrbyTest) {
   ASSERT_LE(type_ttl[kStrings], 100);
   ASSERT_GE(type_ttl[kStrings], 0);
 
-  s = db.Incrby("GP2_INCRBY_KEY", 5, &ret);
+  s = db.Incrby("GP2_INCRBY_KEY", 5, &ret, &expired_timestamp_sec);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 15);
   s = db.Get("GP2_INCRBY_KEY", &value);
@@ -395,7 +398,7 @@ TEST_F(StringsTest, IncrbyTest) {
   ASSERT_TRUE(s.ok());
   make_expired(&db, "GP3_INCRBY_KEY");
 
-  s = db.Incrby("GP3_INCRBY_KEY", 5, &ret);
+  s = db.Incrby("GP3_INCRBY_KEY", 5, &ret, &expired_timestamp_sec);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 5);
   s = db.Get("GP3_INCRBY_KEY", &value);
@@ -409,7 +412,7 @@ TEST_F(StringsTest, IncrbyTest) {
   s = db.Set("GP4_INCRBY_KEY", "50000");
   ASSERT_TRUE(s.ok());
 
-  s = db.Incrby("GP4_INCRBY_KEY", 50000, &ret);
+  s = db.Incrby("GP4_INCRBY_KEY", 50000, &ret, &expired_timestamp_sec);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 100000);
   s = db.Get("GP4_INCRBY_KEY", &value);
@@ -422,22 +425,23 @@ TEST_F(StringsTest, IncrbyfloatTest) {
   std::string value;
   std::map<DataType, Status> type_status;
   std::map<DataType, int64_t> type_ttl;
+  int32_t expired_timestamp_sec;
   double eps = 0.1;
 
   // ***************** Group 1 Test *****************
   s = db.Set("GP1_INCRBYFLOAT_KEY", "10.50");
   ASSERT_TRUE(s.ok());
-  s = db.Incrbyfloat("GP1_INCRBYFLOAT_KEY", "0.1", &value);
+  s = db.Incrbyfloat("GP1_INCRBYFLOAT_KEY", "0.1", &value, &expired_timestamp_sec);
   ASSERT_TRUE(s.ok());
   ASSERT_NEAR(std::stod(value), 10.6, eps);
-  s = db.Incrbyfloat("GP1_INCRBYFLOAT_KEY", "-5", &value);
+  s = db.Incrbyfloat("GP1_INCRBYFLOAT_KEY", "-5", &value, &expired_timestamp_sec);
   ASSERT_TRUE(s.ok());
   ASSERT_NEAR(std::stod(value), 5.6, eps);
 
   // If the key contains a string that can not be represented as integer
   s = db.Set("GP1_INCRBYFLOAT_KEY", "INCRBY_VALUE");
   ASSERT_TRUE(s.ok());
-  s = db.Incrbyfloat("GP1_INCRBYFLOAT_KEY", "5", &value);
+  s = db.Incrbyfloat("GP1_INCRBYFLOAT_KEY", "5", &value, &expired_timestamp_sec);
   ASSERT_TRUE(s.IsCorruption());
 
   // ***************** Group 2 Test *****************
@@ -450,7 +454,7 @@ TEST_F(StringsTest, IncrbyfloatTest) {
   ASSERT_LE(type_ttl[kStrings], 100);
   ASSERT_GE(type_ttl[kStrings], 0);
 
-  s = db.Incrbyfloat("GP2_INCRBYFLOAT_KEY", "10.22222", &value);
+  s = db.Incrbyfloat("GP2_INCRBYFLOAT_KEY", "10.22222", &value, &expired_timestamp_sec);
   ASSERT_TRUE(s.ok());
   ASSERT_NEAR(std::stod(value), 20.33333, eps);
   s = db.Get("GP2_INCRBYFLOAT_KEY", &value);
@@ -465,7 +469,7 @@ TEST_F(StringsTest, IncrbyfloatTest) {
   ASSERT_TRUE(s.ok());
   make_expired(&db, "GP3_INCRBYFLOAT_KEY");
 
-  s = db.Incrbyfloat("GP3_INCRBYFLOAT_KEY", "0.123456", &value);
+  s = db.Incrbyfloat("GP3_INCRBYFLOAT_KEY", "0.123456", &value, &expired_timestamp_sec);
   ASSERT_TRUE(s.ok());
   ASSERT_NEAR(std::stod(value), 0.123456, eps);
   s = db.Get("GP3_INCRBYFLOAT_KEY", &value);
@@ -479,7 +483,7 @@ TEST_F(StringsTest, IncrbyfloatTest) {
   s = db.Set("GP4_INCRBYFLOAT_KEY", "100.001");
   ASSERT_TRUE(s.ok());
 
-  s = db.Incrbyfloat("GP4_INCRBYFLOAT_KEY", "11.11", &value);
+  s = db.Incrbyfloat("GP4_INCRBYFLOAT_KEY", "11.11", &value, &expired_timestamp_sec);
   ASSERT_TRUE(s.ok());
   ASSERT_NEAR(std::stod(value), 111.111, eps);
   s = db.Get("GP4_INCRBYFLOAT_KEY", &value);

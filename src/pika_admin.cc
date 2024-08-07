@@ -3098,15 +3098,66 @@ void PKPatternMatchDelCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidDbType, kCmdNamePKPatternMatchDel);
     return;
   }
+  max_count_ = storage::BATCH_DELETE_LIMIT;
+  if (argv_.size() > 3) {
+    if (pstd::string2int(argv_[3].data(), argv_[3].size(), &max_count_) == 0 ||  max_count_ < 1 || max_count_ > storage::BATCH_DELETE_LIMIT) {
+      res_.SetRes(CmdRes::kInvalidInt);
+      return;
+    }
+  }
 }
 
 void PKPatternMatchDelCmd::Do() {
-  int ret = 0;
-  rocksdb::Status s = db_->storage()->PKPatternMatchDel(type_, pattern_, &ret);
-  if (s.ok()) {
-    res_.AppendInteger(ret);
+  int64_t count = 0;
+  rocksdb::Status s = db_->storage()->PKPatternMatchDelWithRemoveKeys(type_, pattern_, &count, &remove_keys_, max_count_);
+
+  if(s.ok()) {
+    res_.AppendInteger(count);
+    s_ = rocksdb::Status::OK();
+    for (const auto& key : remove_keys_) {
+      RemSlotKey(key, db_);
+    }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
+    if (count >= 0) {
+      s_ = rocksdb::Status::OK();
+      for (const auto& key : remove_keys_) {
+        RemSlotKey(key, db_);
+      }
+    }
+  }
+}
+
+void PKPatternMatchDelCmd::DoThroughDB() {
+  Do();
+}
+
+void PKPatternMatchDelCmd::DoUpdateCache() {
+  if (s_.ok()) {
+    std::vector<std::string> v;
+    for (auto key : remove_keys_) {
+      // only delete the corresponding prefix
+      switch (type_) {
+        case storage::kSets:
+          v.emplace_back(PCacheKeyPrefixS + key);
+          break;
+        case storage::kLists:
+          v.emplace_back(PCacheKeyPrefixL + key);
+          break;
+        case storage::kStrings:
+          v.emplace_back(PCacheKeyPrefixK + key);
+          break;
+        case storage::kZSets:
+          v.emplace_back(PCacheKeyPrefixZ + key);
+          break;
+        case storage::kHashes:
+          v.emplace_back(PCacheKeyPrefixH + key);
+          break;
+        default:
+          break;
+      }
+    }
+    db_->cache()->Del(v);
   }
 }
 
