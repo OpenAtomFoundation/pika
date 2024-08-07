@@ -854,7 +854,18 @@ void PikaServer::KeyScanTaskSchedule(net::TaskFunc func, void* arg) {
   key_scan_thread_.Schedule(func, arg);
 }
 
-void PikaServer::ClientKillAll() { pika_dispatch_thread_->ClientKillAll(); }
+void PikaServer::ClientKillAll() {
+  pika_dispatch_thread_->ClientKillAll();
+  pika_pubsub_thread_->NotifyToCloseAllConns();
+}
+
+void PikaServer::ClientKillPubSub() {
+  pika_pubsub_thread_->NotifyToCloseAllConns();
+}
+
+void PikaServer::ClientKillAllNormal() {
+  pika_dispatch_thread_->ClientKillAll();
+}
 
 int PikaServer::ClientKill(const std::string& ip_port) {
   if (pika_dispatch_thread_->ClientKill(ip_port)) {

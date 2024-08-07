@@ -159,6 +159,20 @@ void PubSubThread::CloseConn(const std::shared_ptr<NetConn>& conn) {
   }
 }
 
+void PubSubThread::CloseAllConns() {
+  std::lock_guard l(rwlock_);
+
+  pubsub_channel_.clear();
+  pubsub_pattern_.clear();
+
+  for (auto& pair : conns_) {
+    net_multiplexer_->NetDelEvent(pair.second->conn->fd(), 0);
+    CloseFd(pair.second->conn);
+  }
+  std::map<int, std::shared_ptr<ConnHandle>> empty_conns;
+  conns_.swap(empty_conns);
+}
+
 int PubSubThread::Publish(const std::string& channel, const std::string& msg) {
   // TODO(LIBA-S): change the Publish Mode to Asynchronous
   std::lock_guard lk(pub_mutex_);
@@ -414,6 +428,12 @@ void* PubSubThread::ThreadMain() {
   char triger[1];
 
   while (!should_stop()) {
+
+    if (close_all_conn_sig_.load()) {
+      close_all_conn_sig_.store(false);
+      CloseAllConns();
+    }
+
     nfds = net_multiplexer_->NetPoll(NET_CRON_INTERVAL);
     for (int i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
@@ -584,5 +604,8 @@ void PubSubThread::Cleanup() {
     CloseFd(iter.second->conn);
   }
   conns_.clear();
+}
+void PubSubThread::NotifyToCloseAllConns() {
+  close_all_conn_sig_.store(true);
 }
 };  // namespace net

@@ -37,6 +37,11 @@ PikaClientConn::PikaClientConn(int fd, const std::string& ip_port, net::Thread* 
 
 std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
                                            const std::shared_ptr<std::string>& resp_ptr, bool cache_miss_in_rtc) {
+  std::stringstream s;
+  for (auto& s1 : argv) {
+    s << s1.c_str() << " ";
+  }
+  LOG(INFO) << "DoCmd:" << s.str();
   // Get command info
   std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
   if (!c_ptr) {

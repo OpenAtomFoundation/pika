@@ -684,6 +684,13 @@ void ClientCmd::DoInitial() {
     }
   } else if ((strcasecmp(argv_[1].data(), "kill") == 0) && argv_.size() == 3) {
     info_ = argv_[2];
+  } else if ((strcasecmp(argv_[1].data(), "kill") == 0) &&
+             argv_.size() == 4 &&
+             (strcasecmp(argv_[2].data(), "type") == 0) &&
+             ((strcasecmp(argv_[3].data(), KILLTYPE_NORMAL.data()) == 0) || (strcasecmp(argv_[3].data(), KILLTYPE_PUBSUB.data()) == 0))) {
+    //kill all if user wanna kill a type
+    info_ = "type";
+    kill_type_ = argv_[3];
   } else {
     res_.SetRes(CmdRes::kErrOther, "Syntax error, try CLIENT (LIST [order by [addr|idle]| KILL ip:port)");
     return;
@@ -733,6 +740,16 @@ void ClientCmd::Do() {
   } else if ((strcasecmp(operation_.data(), "kill") == 0) && (strcasecmp(info_.data(), "all") == 0)) {
     g_pika_server->ClientKillAll();
     res_.SetRes(CmdRes::kOk);
+  } else if ((strcasecmp(operation_.data(), "kill") == 0) && (strcasecmp(info_.data(), "type") == 0)) {
+    if (kill_type_ == KILLTYPE_NORMAL) {
+      g_pika_server->ClientKillAllNormal();
+      res_.SetRes(CmdRes::kOk);
+    } else if (kill_type_ == KILLTYPE_PUBSUB) {
+      g_pika_server->ClientKillPubSub();
+      res_.SetRes(CmdRes::kOk);
+    } else {
+      res_.SetRes(CmdRes::kErrOther, "kill type is unknown");
+    }
   } else if (g_pika_server->ClientKill(info_) == 1) {
     res_.SetRes(CmdRes::kOk);
   } else {
@@ -786,6 +803,10 @@ const std::string InfoCmd::kRocksDBSection = "rocksdb";
 const std::string InfoCmd::kDebugSection = "debug";
 const std::string InfoCmd::kCommandStatsSection = "commandstats";
 const std::string InfoCmd::kCacheSection = "cache";
+
+
+const std::string ClientCmd::KILLTYPE_NORMAL = "normal";
+const std::string ClientCmd::KILLTYPE_PUBSUB = "pubsub";
 
 void InfoCmd::Execute() {
   std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
@@ -1198,8 +1219,10 @@ void InfoCmd::InfoReplication(std::string& info) {
   Status s;
   uint32_t filenum = 0;
   uint64_t offset = 0;
+  uint64_t slave_repl_offset = 0;
   std::string safety_purge;
   std::shared_ptr<SyncMasterDB> master_db = nullptr;
+  bool first_db = true;
   for (const auto& t_item : g_pika_server->dbs_) {
     std::shared_lock db_rwl(t_item.second->dbs_rw_);
     std::string db_name = t_item.first;
@@ -1209,11 +1232,15 @@ void InfoCmd::InfoReplication(std::string& info) {
       continue;
     }
     master_db->Logger()->GetProducerStatus(&filenum, &offset);
+    if (first_db) {
+      first_db = false;
+      slave_repl_offset = (static_cast<uint64_t>(filenum) << 32) | static_cast<uint64_t>(offset);
+    }
     tmp_stream << db_name << ":binlog_offset=" << filenum << " " << offset;
     s = master_db->GetSafetyPurgeBinlog(&safety_purge);
     tmp_stream << ",safety_purge=" << (s.ok() ? safety_purge : "error") << "\r\n";
   }
-
+  tmp_stream << "slave_repl_offset:" << slave_repl_offset << "\r\n";
   info.append(tmp_stream.str());
 }
 
