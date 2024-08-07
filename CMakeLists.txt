@@ -848,3 +848,17 @@ add_custom_target(clang-tidy-fix
     -fix
     -extra-arg=-std=c++17
 )
+
+# Custom command to delete the deps directory after build
+add_custom_command(
+        TARGET ${PROJECT_NAME}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E remove_directory ${STAGED_INSTALL_PREFIX}
+        COMMENT "Cleaning up dependencies directory after build"
+)
+
+# Optional: create a custom target to run this command independently
+add_custom_target(clean-deps
+        COMMAND ${CMAKE_COMMAND} -E remove_directory ${STAGED_INSTALL_PREFIX}
+        COMMENT "Cleaning up dependencies directory"
+)
