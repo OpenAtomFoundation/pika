@@ -771,7 +771,7 @@ TEST_F(StringsTest, SetvxTest) {
   ASSERT_LT(0, ttl);
   ASSERT_GT(10, ttl);
 
-  s = db.Setvx("GP6_SETVX_KEY", "GP6_SETVX_VALUE", "GP6_SETVX_NEW_VALUE", &ret, 20);
+  s = db.Setvx("GP6_SETVX_KEY", "GP6_SETVX_VALUE", "GP6_SETVX_NEW_VALUE", &ret, 20 * 1000);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 1);
 
