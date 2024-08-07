@@ -4,12 +4,8 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "net/include/bg_thread.h"
-#include <sys/time.h>
 #include <cstdlib>
 #include <mutex>
-
-#include "pstd/include/pstd_mutex.h"
-#include "pstd/include/xdebug.h"
 
 namespace net {
 
@@ -19,10 +15,21 @@ void BGThread::Schedule(void (*function)(void*), void* arg) {
   wsignal_.wait(lock, [this]() { return queue_.size() < full_ || should_stop(); });
 
   if (!should_stop()) {
-    queue_.emplace(function, arg);
+    queue_.emplace(std::make_unique<BGItem>(function, arg));
     rsignal_.notify_one();
   }
 }
+
+void BGThread::Schedule(void (*function)(void*), void* arg, std::function<void()>& call_back) {
+  std::unique_lock lock(mu_);
+
+  wsignal_.wait(lock, [this]() { return queue_.size() < full_ || should_stop(); });
+
+  if (!should_stop()) {
+    queue_.emplace(std::make_unique<BGItem>(function, arg, call_back));
+    rsignal_.notify_one();
+  }
+};
 
 void BGThread::QueueSize(int* pri_size, int* qu_size) {
   std::lock_guard lock(mu_);
@@ -32,7 +39,7 @@ void BGThread::QueueSize(int* pri_size, int* qu_size) {
 
 void BGThread::QueueClear() {
   std::lock_guard lock(mu_);
-  std::queue<BGItem>().swap(queue_);
+  std::queue<std::unique_ptr<BGItem>>().swap(queue_);
   std::priority_queue<TimerItem>().swap(timer_queue_);
   wsignal_.notify_one();
 }
@@ -42,10 +49,10 @@ void BGThread::SwallowReadyTasks() {
   // while the schedule function would stop to add any tasks.
   mu_.lock();
   while (!queue_.empty()) {
-    auto [function, arg] = queue_.front();
+    std::unique_ptr<BGItem> task_item = std::move(queue_.front());
     queue_.pop();
     mu_.unlock();
-    (*function)(arg);
+    task_item->function(task_item->arg);
     mu_.lock();
   }
   mu_.unlock();
@@ -96,11 +103,11 @@ void* BGThread::ThreadMain() {
     }
 
     if (!queue_.empty()) {
-      auto [function, arg] = queue_.front();
+      std::unique_ptr<BGItem> task_item = std::move(queue_.front());
       queue_.pop();
       wsignal_.notify_one();
       lock.unlock();
-      (*function)(arg);
+      task_item->function(task_item->arg);
     }
   }
   // swalloc all the remain tasks in ready and timer queue

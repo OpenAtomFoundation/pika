@@ -34,6 +34,7 @@ inline constexpr double ZSET_SCORE_MIN = std::numeric_limits<double>::lowest();
 inline const std::string PROPERTY_TYPE_ROCKSDB_CUR_SIZE_ALL_MEM_TABLES = "rocksdb.cur-size-all-mem-tables";
 inline const std::string PROPERTY_TYPE_ROCKSDB_ESTIMATE_TABLE_READER_MEM = "rocksdb.estimate-table-readers-mem";
 inline const std::string PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS = "rocksdb.background-errors";
+inline const std::string PROPERTY_TYPE_ROCKSDB_BlOCK_CACHE_USAGE = "rocksdb.block-cache-usage";
 
 inline const std::string ALL_DB = "all";
 inline const std::string STRINGS_DB = "strings";
@@ -985,7 +986,7 @@ class Storage {
 
   // Traverses the database of the specified type, removing the Key that matches
   // the pattern
-  Status PKPatternMatchDel(const DataType& data_type, const std::string& pattern, int32_t* ret);
+  Status PKPatternMatchDelWithRemoveKeys(const std::string& pattern, int64_t* ret, std::vector<std::string>* remove_keys, const int64_t& max_count);
 
   // Iterate over a collection of elements
   // return next_key that the user need to use as the start_key argument
