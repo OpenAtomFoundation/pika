@@ -27,7 +27,7 @@ class RedisStrings : public Redis {
   Status ScanKeys(const std::string& pattern, std::vector<std::string>* keys) override;
   Status PKPatternMatchDelWithRemoveKeys(const DataType& data_type, const std::string& pattern, int64_t* ret, std::vector<std::string>* remove_keys, const int64_t& max_count) override;
   // Strings Command
-  Status Append(const Slice& key, const Slice& value, int32_t* ret);
+  Status Append(const Slice& key, const Slice& value, int32_t* ret, int32_t* expired_timestamp_sec, std::string& out_new_value);
   Status BitCount(const Slice& key, int64_t start_offset, int64_t end_offset, int32_t* ret, bool have_range);
   Status BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys, std::string &value_to_dest, int64_t* ret);
   Status Decrby(const Slice& key, int64_t value, int64_t* ret);
@@ -37,8 +37,8 @@ class RedisStrings : public Redis {
   Status Getrange(const Slice& key, int64_t start_offset, int64_t end_offset, std::string* ret);
   Status GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t end_offset, std::string* ret, std::string* value, int64_t* ttl);
   Status GetSet(const Slice& key, const Slice& value, std::string* old_value);
-  Status Incrby(const Slice& key, int64_t value, int64_t* ret);
-  Status Incrbyfloat(const Slice& key, const Slice& value, std::string* ret);
+  Status Incrby(const Slice& key, int64_t value, int64_t* ret, int32_t* expired_timestamp_sec);
+  Status Incrbyfloat(const Slice& key, const Slice& value, std::string* ret, int32_t* expired_timestamp_sec);
   Status MGet(const std::vector<std::string>& keys, std::vector<ValueStatus>* vss);
   Status MGetWithTTL(const std::vector<std::string>& keys, std::vector<ValueStatus>* vss);
   Status MSet(const std::vector<KeyValue>& kvs);

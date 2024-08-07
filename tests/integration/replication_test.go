@@ -694,6 +694,20 @@ var _ = Describe("should replication ", func() {
 			}
 			log.Println("master-slave replication test success")
 		})
+		It("should simulate the master node setex and incr operation", func() {
+			setex := clientMaster.SetEx(ctx, "incrkey1", "100", 10*time.Second)
+			Expect(setex.Err()).NotTo(HaveOccurred())
+			Expect(setex.Val()).To(Equal("OK"))
+
+			incr := clientMaster.Incr(ctx, "incrkey1")
+			Expect(incr.Err()).NotTo(HaveOccurred())
+			Expect(incr.Val()).To(Equal(int64(101)))
+
+			time.Sleep(20 * time.Second)
+
+			get := clientSlave.Get(ctx, "incrkey1")
+			Expect(get.Val()).To(Equal(""))
+		})
 
 	})
 

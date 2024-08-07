@@ -200,8 +200,8 @@ Status Storage::GetrangeWithValue(const Slice& key, int64_t start_offset, int64_
   return strings_db_->GetrangeWithValue(key, start_offset, end_offset, ret, value, ttl);
 }
 
-Status Storage::Append(const Slice& key, const Slice& value, int32_t* ret) {
-  return strings_db_->Append(key, value, ret);
+Status Storage::Append(const Slice& key, const Slice& value, int32_t* ret, int32_t* expired_timestamp_sec, std::string& out_new_value) {
+  return strings_db_->Append(key, value, ret, expired_timestamp_sec, out_new_value);
 }
 
 Status Storage::BitCount(const Slice& key, int64_t start_offset, int64_t end_offset, int32_t* ret, bool have_range) {
@@ -225,10 +225,13 @@ Status Storage::BitPos(const Slice& key, int32_t bit, int64_t start_offset, int6
 
 Status Storage::Decrby(const Slice& key, int64_t value, int64_t* ret) { return strings_db_->Decrby(key, value, ret); }
 
-Status Storage::Incrby(const Slice& key, int64_t value, int64_t* ret) { return strings_db_->Incrby(key, value, ret); }
 
-Status Storage::Incrbyfloat(const Slice& key, const Slice& value, std::string* ret) {
-  return strings_db_->Incrbyfloat(key, value, ret);
+Status Storage::Incrby(const Slice& key, int64_t value, int64_t* ret, int32_t* expired_timestamp_sec) {
+  return strings_db_->Incrby(key, value, ret, expired_timestamp_sec);
+}
+
+Status Storage::Incrbyfloat(const Slice& key, const Slice& value, std::string* ret, int32_t* expired_timestamp_sec) {
+  return strings_db_->Incrbyfloat(key, value, ret, expired_timestamp_sec);
 }
 
 Status Storage::Setex(const Slice& key, const Slice& value, int32_t ttl) { return strings_db_->Setex(key, value, ttl); }
