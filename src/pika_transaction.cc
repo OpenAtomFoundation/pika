@@ -73,6 +73,9 @@ void ExecCmd::Do() {
         for (auto& item : db_keys) {
           item = cmd->db_name().append(item);
         }
+        if (cmd->IsNeedUpdateCache()) {
+          cmd->DoUpdateCache();
+        }
         client_conn->SetTxnFailedFromKeys(db_keys);
       }
     }
