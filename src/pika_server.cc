@@ -1213,7 +1213,7 @@ void PikaServer::AutoBinlogPurge() { DoSameThingEveryDB(TaskType::kPurgeLog); }
 void PikaServer::AutoServerlogPurge() {
   std::string log_path = g_pika_conf->log_path();
   int retention_time = g_pika_conf->log_retention_time();
-  if (retention_time <= 0) {
+  if (retention_time < 0) {
     return;
   }
   std::vector<std::string> log_files;
@@ -1227,19 +1227,11 @@ void PikaServer::AutoServerlogPurge() {
   }
   //Get the current time of system
   time_t t = time(nullptr);
-  struct tm* now = localtime(&t);
-  int now_year = now->tm_year + 1900;
-  int now_month = now->tm_mon + 1;
-  int now_day = now->tm_mday;
-
-  struct tm now_time;
-  now_time.tm_year = now_year - 1900;
-  now_time.tm_mon = now_month - 1;
-  now_time.tm_mday = now_day;
-  now_time.tm_hour = 0;
-  now_time.tm_min = 0;
-  now_time.tm_sec = 0;
-  int64_t now_timestamp = mktime(&now_time);
+  struct tm* now_time = localtime(&t);
+  now_time->tm_hour = 0;
+  now_time->tm_min = 0;
+  now_time->tm_sec = 0;
+  time_t now_timestamp = mktime(now_time);
 
   std::map<std::string, std::vector<std::pair<std::string, int64_t>>> log_files_by_level;
 
@@ -1260,6 +1252,7 @@ void PikaServer::AutoServerlogPurge() {
     if (sscanf(file_parts[5].c_str(), "%4d%2d%2d", &log_year, &log_month, &log_day) != 3) {
       continue;
     }
+
     //Get the time when the server log file was originally created
     struct tm log_time;
     log_time.tm_year = log_year - 1900;
@@ -1268,10 +1261,10 @@ void PikaServer::AutoServerlogPurge() {
     log_time.tm_hour = 0;
     log_time.tm_min = 0;
     log_time.tm_sec = 0;
-
-    int64_t log_timestamp = mktime(&log_time);
+    log_time.tm_isdst = -1;
+    time_t log_timestamp = mktime(&log_time);
     log_files_by_level[severity_level].push_back({file, log_timestamp});
-  }
+}
 
   // Process files for each log level
   for (auto& [level, files] : log_files_by_level) {
@@ -1279,17 +1272,21 @@ void PikaServer::AutoServerlogPurge() {
     std::sort(files.begin(), files.end(),
               [](const auto& a, const auto& b) { return a.second > b.second; });
 
-    bool keep_newest = false;
+    bool has_recent_file = false;
     for (const auto& [file, log_timestamp] : files) {
-      int64_t interval_days = (now_timestamp - log_timestamp) / 86400;
-
-      if (interval_days > retention_time && keep_newest) {
-        std::string log_file = log_path + "/" + file;
-        LOG(INFO) << "Deleting out of date log file: " << log_file;
-        if(!pstd::DeleteFile(log_file)) LOG(ERROR) << "Failed to delete log file: " << log_file;
-      } else {
-        keep_newest = true;
+      double diff_seconds = difftime(now_timestamp, log_timestamp);
+      int64_t interval_days = static_cast<int64_t>(diff_seconds / 86400);
+      if (interval_days <= retention_time) {
+        has_recent_file = true;
+        continue;
       }
+      if (!has_recent_file) {
+        has_recent_file = true;
+        continue;
+      }
+      std::string log_file = log_path + "/" + file;
+      LOG(INFO) << "Deleting out of date log file: " << log_file;
+      if(!pstd::DeleteFile(log_file)) LOG(ERROR) << "Failed to delete log file: " << log_file;
     }
   }
 }

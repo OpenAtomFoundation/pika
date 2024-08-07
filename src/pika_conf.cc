@@ -128,6 +128,10 @@ int PikaConf::Load() {
   if (log_path_[log_path_.length() - 1] != '/') {
     log_path_ += "/";
   }
+  GetConfInt("log-retention-time",&log_retention_time_);
+  if(log_retention_time_ < 0){
+    LOG(FATAL) << "log-retention-time invalid";
+  }
   GetConfStr("loglevel", &log_level_);
   GetConfStr("db-path", &db_path_);
   GetConfInt("db-instance-num", &db_instance_num_);
