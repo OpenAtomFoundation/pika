@@ -412,6 +412,7 @@ class PikaConf : public pstd::BaseConf {
   void SetCacheMode(const int value) { cache_mode_ = value; }
   void SetCacheStartDirection(const int value) { zset_cache_start_direction_ = value; }
   void SetCacheItemsPerKey(const int value) { zset_cache_field_num_per_key_ = value; }
+  void SetCacheMaxKeySize(const int value) { max_key_size_in_cache_ = value; }
   void SetCacheMaxmemory(const int64_t value) { cache_maxmemory_ = value; }
   void SetCacheMaxmemoryPolicy(const int value) { cache_maxmemory_policy_ = value; }
   void SetCacheMaxmemorySamples(const int value) { cache_maxmemory_samples_ = value; }
@@ -882,6 +883,7 @@ class PikaConf : public pstd::BaseConf {
   void SetCacheDisableFlag() { tmp_cache_disable_flag_ = true; }
   int zset_cache_start_direction() { return zset_cache_start_direction_; }
   int zset_cache_field_num_per_key() { return zset_cache_field_num_per_key_; }
+  int max_key_size_in_cache() { return max_key_size_in_cache_; }
   int cache_maxmemory_policy() { return cache_maxmemory_policy_; }
   int cache_maxmemory_samples() { return cache_maxmemory_samples_; }
   int cache_lfu_decay_time() { return cache_lfu_decay_time_; }
@@ -1031,6 +1033,7 @@ class PikaConf : public pstd::BaseConf {
   std::atomic_int cache_bit_ = 1;
   std::atomic_int zset_cache_start_direction_ = 0;
   std::atomic_int zset_cache_field_num_per_key_ = 512;
+  std::atomic_int max_key_size_in_cache_ = 512;
   std::atomic_int cache_maxmemory_policy_ = 1;
   std::atomic_int cache_maxmemory_samples_ = 5;
   std::atomic_int cache_lfu_decay_time_ = 1;
