@@ -189,7 +189,7 @@ class Redis {
   Status Expireat(const Slice& key, int64_t timestamp_millsec);
   Status Persist(const Slice& key);
   Status TTL(const Slice& key, int64_t* ttl_millsec);
-  Status PKPatternMatchDelWithRemoveKeys(const std::string& pattern, int32_t* ret);
+  Status PKPatternMatchDelWithRemoveKeys(const std::string& pattern, int64_t* ret, std::vector<std::string>* remove_keys, const int64_t& max_count);
 
   Status GetType(const Slice& key, enum DataType& type);
   Status IsExist(const Slice& key);
