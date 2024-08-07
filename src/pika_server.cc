@@ -1254,6 +1254,7 @@ void PikaServer::AutoServerlogPurge() {
     if (sscanf(file_parts[5].c_str(), "%4d%2d%2d", &log_year, &log_month, &log_day) != 3) {
       continue;
     }
+
     //Get the time when the server log file was originally created
     struct tm log_time;
     log_time.tm_year = log_year - 1900;
@@ -1262,10 +1263,10 @@ void PikaServer::AutoServerlogPurge() {
     log_time.tm_hour = 0;
     log_time.tm_min = 0;
     log_time.tm_sec = 0;
-
+    log_time.tm_isdst = -1;
     time_t log_timestamp = mktime(&log_time);
     log_files_by_level[severity_level].push_back({file, log_timestamp});
-  }
+}
 
   // Process files for each log level
   for (auto& [level, files] : log_files_by_level) {
@@ -1273,17 +1274,21 @@ void PikaServer::AutoServerlogPurge() {
     std::sort(files.begin(), files.end(),
               [](const auto& a, const auto& b) { return a.second > b.second; });
 
-    bool keep_newest = false;
+    bool has_recent_file = false;
     for (const auto& [file, log_timestamp] : files) {
       double diff_seconds = difftime(now_timestamp, log_timestamp);
       int64_t interval_days = static_cast<int64_t>(diff_seconds / 86400);
-      if (interval_days > retention_time && keep_newest) {
-        std::string log_file = log_path + "/" + file;
-        LOG(INFO) << "Deleting out of date log file: " << log_file;
-        if(!pstd::DeleteFile(log_file)) LOG(ERROR) << "Failed to delete log file: " << log_file;
-      } else {
-        keep_newest = true;
+      if (interval_days <= retention_time) {
+        has_recent_file = true;
+        continue;
       }
+      if (!has_recent_file) {
+        has_recent_file = true;
+        continue;
+      }
+      std::string log_file = log_path + "/" + file;
+      LOG(INFO) << "Deleting out of date log file: " << log_file;
+      if(!pstd::DeleteFile(log_file)) LOG(ERROR) << "Failed to delete log file: " << log_file;
     }
   }
 }
