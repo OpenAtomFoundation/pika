@@ -1137,26 +1137,27 @@ Status Storage::PKRScanRange(const DataType& data_type, const Slice& key_start, 
   return s;
 }
 
-Status Storage::PKPatternMatchDel(const DataType& data_type, const std::string& pattern, int32_t* ret) {
+Status Storage::PKPatternMatchDelWithRemoveKeys(const DataType& data_type, const std::string& pattern, int64_t* ret,
+                                                std::vector<std::string>* remove_keys, const int64_t& max_count) {
   Status s;
   switch (data_type) {
     case DataType::kStrings:
-      s = strings_db_->PKPatternMatchDel(pattern, ret);
+      s = strings_db_->PKPatternMatchDelWithRemoveKeys(DataType::kStrings, pattern, ret, remove_keys, max_count - *ret);
       break;
     case DataType::kHashes:
-      s = hashes_db_->PKPatternMatchDel(pattern, ret);
+      s = hashes_db_->PKPatternMatchDelWithRemoveKeys(DataType::kHashes, pattern, ret, remove_keys, max_count - *ret);
       break;
     case DataType::kLists:
-      s = lists_db_->PKPatternMatchDel(pattern, ret);
+      s = lists_db_->PKPatternMatchDelWithRemoveKeys(DataType::kLists, pattern, ret, remove_keys, max_count - *ret);
       break;
     case DataType::kZSets:
-      s = zsets_db_->PKPatternMatchDel(pattern, ret);
+      s = zsets_db_->PKPatternMatchDelWithRemoveKeys(DataType::kZSets, pattern, ret, remove_keys, max_count - *ret);
       break;
     case DataType::kSets:
-      s = sets_db_->PKPatternMatchDel(pattern, ret);
+      s = sets_db_->PKPatternMatchDelWithRemoveKeys(DataType::kSets, pattern, ret, remove_keys, max_count - *ret);
       break;
     case DataType::kStreams:
-      s = streams_db_->PKPatternMatchDel(pattern, ret);
+      s = streams_db_->PKPatternMatchDelWithRemoveKeys(DataType::kStreams, pattern, ret, remove_keys, max_count - *ret);
       break;
     default:
       s = Status::Corruption("Unsupported data type");
@@ -1485,6 +1486,9 @@ void Storage::ScanDatabase(const DataType& type) {
       break;
     case kLists:
       lists_db_->ScanDatabase();
+      break;
+    case DataType::kStreams:
+      // do noting
       break;
     case kAll:
       strings_db_->ScanDatabase();
