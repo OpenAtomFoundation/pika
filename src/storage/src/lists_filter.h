@@ -88,7 +88,8 @@ class ListsDataFilter : public rocksdb::CompactionFilter {
       return true;
     }
 
-    pstd::TimeType unix_time = pstd::NowMillis();
+    int64_t unix_time;
+    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
     if (cur_meta_etime_ != 0 && cur_meta_etime_ < static_cast<uint64_t>(unix_time)) {
       TRACE("Drop[Timeout]");
       return true;

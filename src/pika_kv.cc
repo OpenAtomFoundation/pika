@@ -22,7 +22,7 @@ void SetCmd::DoInitial() {
   key_ = argv_[1];
   value_ = argv_[2];
   condition_ = SetCmd::kNONE;
-  ttl_millsec = 0;
+  sec_ = 0;
   size_t index = 3;
   while (index != argv_.size()) {
     std::string opt = argv_[index];
@@ -46,13 +46,13 @@ void SetCmd::DoInitial() {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
-      if (pstd::string2int(argv_[index].data(), argv_[index].size(), &ttl_millsec) == 0) {
+      if (pstd::string2int(argv_[index].data(), argv_[index].size(), &sec_) == 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
 
-      if (strcasecmp(opt.data(), "ex") == 0) {
-        ttl_millsec *= 1000;
+      if (strcasecmp(opt.data(), "px") == 0) {
+        sec_ /= 1000;
       }
       has_ttl_ = true;
     } else {
@@ -67,16 +67,16 @@ void SetCmd::Do() {
   int32_t res = 1;
   switch (condition_) {
     case SetCmd::kXX:
-      s_ = db_->storage()->Setxx(key_, value_, &res, ttl_millsec);
+      s_ = db_->storage()->Setxx(key_, value_, &res, sec_);
       break;
     case SetCmd::kNX:
-      s_ = db_->storage()->Setnx(key_, value_, &res, ttl_millsec);
+      s_ = db_->storage()->Setnx(key_, value_, &res, sec_);
       break;
     case SetCmd::kVX:
-      s_ = db_->storage()->Setvx(key_, target_, value_, &success_, ttl_millsec);
+      s_ = db_->storage()->Setvx(key_, target_, value_, &success_, sec_);
       break;
     case SetCmd::kEXORPX:
-      s_ = db_->storage()->Setex(key_, value_, ttl_millsec);
+      s_ = db_->storage()->Setex(key_, value_, sec_);
       break;
     default:
       s_ = db_->storage()->Set(key_, value_);
@@ -111,7 +111,7 @@ void SetCmd::DoUpdateCache() {
   }
   if (s_.ok()) {
     if (has_ttl_) {
-      db_->cache()->Setxx(key_, value_, ttl_millsec / 1000);
+      db_->cache()->Setxx(key_, value_, sec_);
     } else {
       db_->cache()->SetxxWithoutTTL(key_, value_);
     }
@@ -133,9 +133,7 @@ std::string SetCmd::ToRedisProtocol() {
     RedisAppendContent(content, key_);
     // time_stamp
     char buf[100];
-
-    // TODO 精度损失
-    auto time_stamp = time(nullptr) + ttl_millsec / 1000;
+    auto time_stamp = time(nullptr) + sec_;
     pstd::ll2string(buf, 100, time_stamp);
     std::string at(buf);
     RedisAppendLenUint64(content, at.size(), "$");
@@ -158,7 +156,7 @@ void GetCmd::DoInitial() {
 }
 
 void GetCmd::Do() {
-  s_ = db_->storage()->GetWithTTL(key_, &value_, &ttl_millsec_);
+  s_ = db_->storage()->GetWithTTL(key_, &value_, &sec_);
   if (s_.ok()) {
     res_.AppendStringLenUint64(value_.size());
     res_.AppendContent(value_);
@@ -188,7 +186,7 @@ void GetCmd::DoThroughDB() {
 
 void GetCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db_->cache()->WriteKVToCache(key_, value_, ttl_millsec_ / 1000);
+    db_->cache()->WriteKVToCache(key_, value_, sec_);
   }
 }
 
@@ -571,7 +569,7 @@ void AppendCmd::Do() {
   }
 }
 
-void AppendCmd::DoThroughDB() {
+void AppendCmd::DoThroughDB(){
   Do();
 }
 
@@ -634,7 +632,7 @@ void MgetCmd::AssembleResponseFromCache() {
 void MgetCmd::Do() {
   // Without using the cache and querying only the DB, we need to use keys_.
   // This line will only be assigned when querying the DB directly.
-  if (cache_miss_keys_.size() == 0) {
+  if(cache_miss_keys_.size() == 0) {
     cache_miss_keys_ = keys_;
   }
   db_value_status_array_.clear();
@@ -706,8 +704,7 @@ void MgetCmd::DoUpdateCache() {
   size_t db_index = 0;
   for (const auto key : cache_miss_keys_) {
     if (db_index < db_value_status_array_.size() && db_value_status_array_[db_index].status.ok()) {
-      int64_t ttl_millsec = db_value_status_array_[db_index].ttl_millsec;
-      db_->cache()->WriteKVToCache(const_cast<std::string&>(key), db_value_status_array_[db_index].value, ttl_millsec > 0 ? ttl_millsec / 1000 : ttl_millsec);
+      db_->cache()->WriteKVToCache(const_cast<std::string&>(key), db_value_status_array_[db_index].value, db_value_status_array_[db_index].ttl);
     }
     db_index++;
   }
@@ -841,7 +838,7 @@ void SetexCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &ttl_sec_) == 0) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &sec_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -849,7 +846,7 @@ void SetexCmd::DoInitial() {
 }
 
 void SetexCmd::Do() {
-  s_ = db_->storage()->Setex(key_, value_, ttl_sec_ * 1000);
+  s_ = db_->storage()->Setex(key_, value_, sec_);
   if (s_.ok()) {
     res_.SetRes(CmdRes::kOk);
     AddSlotKey("k", key_, db_);
@@ -866,7 +863,7 @@ void SetexCmd::DoThroughDB() {
 
 void SetexCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db_->cache()->Setxx(key_, value_, ttl_sec_);
+    db_->cache()->Setxx(key_, value_, sec_);
   }
 }
 
@@ -884,7 +881,7 @@ std::string SetexCmd::ToRedisProtocol() {
   RedisAppendContent(content, key_);
   // time_stamp
   char buf[100];
-  auto time_stamp = time(nullptr) + ttl_sec_;
+  auto time_stamp = time(nullptr) + sec_;
   pstd::ll2string(buf, 100, time_stamp);
   std::string at(buf);
   RedisAppendLenUint64(content, at.size(), "$");
@@ -901,7 +898,7 @@ void PsetexCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &ttl_millsec) == 0) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &usec_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -909,7 +906,7 @@ void PsetexCmd::DoInitial() {
 }
 
 void PsetexCmd::Do() {
-  s_ = db_->storage()->Setex(key_, value_, ttl_millsec);
+  s_ = db_->storage()->Setex(key_, value_, usec_ / 1000);
   if (s_.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else if (s_.IsInvalidArgument()) {
@@ -925,7 +922,7 @@ void PsetexCmd::DoThroughDB() {
 
 void PsetexCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db_->cache()->Setxx(key_, value_,  ttl_millsec / 1000);
+    db_->cache()->Setxx(key_, value_,  usec_ / 1000);
   }
 }
 
@@ -943,7 +940,7 @@ std::string PsetexCmd::ToRedisProtocol() {
   RedisAppendContent(content, key_);
   // time_stamp
   char buf[100];
-  auto time_stamp = pstd::NowMillis() + ttl_millsec;
+  auto time_stamp = time(nullptr) + usec_ / 1000;
   pstd::ll2string(buf, 100, time_stamp);
   std::string at(buf);
   RedisAppendLenUint64(content, at.size(), "$");
@@ -1050,7 +1047,7 @@ void MsetCmd::DoBinlog() {
   set_argv[0] = "set";
   set_cmd_->SetConn(GetConn());
   set_cmd_->SetResp(resp_.lock());
-  for(auto& kv: kvs_) {
+  for(auto& kv: kvs_){
     set_argv[1] = kv.key;
     set_argv[2] = kv.value;
     set_cmd_->Initial(set_argv, db_name_);
@@ -1238,7 +1235,7 @@ void StrlenCmd::ReadCache() {
 
 void StrlenCmd::DoThroughDB() {
   res_.clear();
-  s_ = db_->storage()->GetWithTTL(key_, &value_, &ttl_millsec);
+  s_ = db_->storage()->GetWithTTL(key_, &value_, &sec_);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(value_.size());
   } else {
@@ -1248,7 +1245,7 @@ void StrlenCmd::DoThroughDB() {
 
 void StrlenCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db_->cache()->WriteKVToCache(key_, value_, ttl_millsec > 0 ? ttl_millsec : ttl_millsec / 1000);
+    db_->cache()->WriteKVToCache(key_, value_, sec_);
   }
 }
 
@@ -1305,14 +1302,14 @@ void ExpireCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &ttl_sec_) == 0) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &sec_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
 }
 
 void ExpireCmd::Do() {
-  int32_t res = db_->storage()->Expire(key_, ttl_sec_ * 1000);
+  int32_t res = db_->storage()->Expire(key_, sec_);
   if (res != -1) {
     res_.AppendInteger(res);
     s_ = rocksdb::Status::OK();
@@ -1336,7 +1333,7 @@ std::string ExpireCmd::ToRedisProtocol() {
   RedisAppendContent(content, key_);
   // sec
   char buf[100];
-  int64_t expireat = time(nullptr) + ttl_sec_;
+  int64_t expireat = time(nullptr) + sec_;
   pstd::ll2string(buf, 100, expireat);
   std::string at(buf);
   RedisAppendLenUint64(content, at.size(), "$");
@@ -1350,7 +1347,7 @@ void ExpireCmd::DoThroughDB() {
 
 void ExpireCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db_->cache()->Expire(key_, ttl_sec_);
+    db_->cache()->Expire(key_, sec_);
   }
 }
 
@@ -1360,14 +1357,14 @@ void PexpireCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &ttl_millsec) == 0) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &msec_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
 }
 
 void PexpireCmd::Do() {
-  int64_t res = db_->storage()->Expire(key_, ttl_millsec);
+  int64_t res = db_->storage()->Expire(key_, msec_ / 1000);
   if (res != -1) {
     res_.AppendInteger(res);
     s_ = rocksdb::Status::OK();
@@ -1382,8 +1379,8 @@ std::string PexpireCmd::ToRedisProtocol() {
   content.reserve(RAW_ARGS_LEN);
   RedisAppendLenUint64(content, argv_.size(), "*");
 
-  // to pexpireat cmd
-  std::string expireat_cmd("pexpireat");
+  // to expireat cmd
+  std::string expireat_cmd("expireat");
   RedisAppendLenUint64(content, expireat_cmd.size(), "$");
   RedisAppendContent(content, expireat_cmd);
   // key
@@ -1391,7 +1388,7 @@ std::string PexpireCmd::ToRedisProtocol() {
   RedisAppendContent(content, key_);
   // sec
   char buf[100];
-  int64_t expireat = pstd::NowMillis() + ttl_millsec;
+  int64_t expireat = time(nullptr) + msec_ / 1000;
   pstd::ll2string(buf, 100, expireat);
   std::string at(buf);
   RedisAppendLenUint64(content, at.size(), "$");
@@ -1399,13 +1396,13 @@ std::string PexpireCmd::ToRedisProtocol() {
   return content;
 }
 
-void PexpireCmd::DoThroughDB() {
+void PexpireCmd::DoThroughDB(){
   Do();
 }
 
 void PexpireCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db_->cache()->Expire(key_, ttl_millsec);
+    db_->cache()->Expire(key_, msec_ / 1000);
   }
 }
 
@@ -1415,14 +1412,14 @@ void ExpireatCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_sec_) == 0) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
 }
 
 void ExpireatCmd::Do() {
-  int32_t res = db_->storage()->Expireat(key_, time_stamp_sec_ * 1000);
+  int32_t res = db_->storage()->Expireat(key_, time_stamp_);
   if (res != -1) {
     res_.AppendInteger(res);
     s_ = rocksdb::Status::OK();
@@ -1438,7 +1435,7 @@ void ExpireatCmd::DoThroughDB() {
 
 void ExpireatCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db_->cache()->Expireat(key_, time_stamp_sec_);
+    db_->cache()->Expireat(key_, time_stamp_);
   }
 }
 
@@ -1448,14 +1445,36 @@ void PexpireatCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_millsec_) == 0) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_ms_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
 }
 
+std::string PexpireatCmd::ToRedisProtocol() {
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLenUint64(content, argv_.size(), "*");
+
+  // to expireat cmd
+  std::string expireat_cmd("expireat");
+  RedisAppendLenUint64(content, expireat_cmd.size(), "$");
+  RedisAppendContent(content, expireat_cmd);
+  // key
+  RedisAppendLenUint64(content, key_.size(), "$");
+  RedisAppendContent(content, key_);
+  // sec
+  char buf[100];
+  int64_t expireat = time_stamp_ms_ / 1000;
+  pstd::ll2string(buf, 100, expireat);
+  std::string at(buf);
+  RedisAppendLenUint64(content, at.size(), "$");
+  RedisAppendContent(content, at);
+  return content;
+}
+
 void PexpireatCmd::Do() {
-  int32_t res = db_->storage()->Expireat(key_, static_cast<int32_t>(time_stamp_millsec_));
+  int32_t res = db_->storage()->Expireat(key_, static_cast<int32_t>(time_stamp_ms_ / 1000));
   if (res != -1) {
     res_.AppendInteger(res);
     s_ = rocksdb::Status::OK();
@@ -1471,7 +1490,7 @@ void PexpireatCmd::DoThroughDB() {
 
 void PexpireatCmd::DoUpdateCache() {
   if (s_.ok()) {
-    db_->cache()->Expireat(key_, time_stamp_millsec_ / 1000);
+    db_->cache()->Expireat(key_, time_stamp_ms_ / 1000);
   }
 }
 
@@ -1484,11 +1503,11 @@ void TtlCmd::DoInitial() {
 }
 
 void TtlCmd::Do() {
-  int64_t ttl_sec_ = db_->storage()->TTL(key_);
-  if (ttl_sec_ == -3) {
+  int64_t timestamp = db_->storage()->TTL(key_);
+  if (timestamp == -3) {
     res_.SetRes(CmdRes::kErrOther, "ttl internal error");
   } else {
-    res_.AppendInteger(ttl_sec_);
+    res_.AppendInteger(timestamp);
   }
 }
 
@@ -1517,17 +1536,28 @@ void PttlCmd::DoInitial() {
 }
 
 void PttlCmd::Do() {
-  int64_t ttl_millsec = db_->storage()->PTTL(key_);
-  if (ttl_millsec == -3) {
+  int64_t timestamp = db_->storage()->TTL(key_);
+  if (timestamp == -3) {
     res_.SetRes(CmdRes::kErrOther, "ttl internal error");
   } else {
-    res_.AppendInteger(ttl_millsec);
+    res_.AppendInteger(timestamp);
   }
 }
 
 void PttlCmd::ReadCache() {
-  // redis cache don't support pttl cache, so read directly from db
-  DoThroughDB();
+  int64_t timestamp = db_->cache()->TTL(key_);
+  if (timestamp == -3) {
+    res_.SetRes(CmdRes::kErrOther, "ttl internal error");
+  } else if (timestamp != -2) {
+    if (timestamp == -1) {
+      res_.AppendInteger(-1);
+    } else {
+      res_.AppendInteger(timestamp * 1000);
+    }
+  } else {
+    // mean this key not exist
+    res_.SetRes(CmdRes::kCacheMiss);
+  }
 }
 
 void PttlCmd::DoThroughDB() {
@@ -1760,14 +1790,14 @@ void PKSetexAtCmd::DoInitial() {
   }
   key_ = argv_[1];
   value_ = argv_[3];
-  if ((pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_sec_) == 0) || time_stamp_sec_ >= INT32_MAX) {
+  if ((pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_) == 0) || time_stamp_ >= INT32_MAX) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
 }
 
 void PKSetexAtCmd::Do() {
-  s_ = db_->storage()->PKSetexAt(key_, value_, static_cast<int32_t>(time_stamp_sec_ * 1000));
+  s_ = db_->storage()->PKSetexAt(key_, value_, static_cast<int32_t>(time_stamp_));
   if (s_.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else if (s_.IsInvalidArgument()) {
@@ -1783,7 +1813,7 @@ void PKSetexAtCmd::DoThroughDB() {
 
 void PKSetexAtCmd::DoUpdateCache() {
   if (s_.ok()) {
-    auto expire = time_stamp_sec_ - static_cast<int64_t>(std::time(nullptr));
+    auto expire = time_stamp_ - static_cast<int64_t>(std::time(nullptr));
     if (expire <= 0) [[unlikely]] {
       db_->cache()->Del({key_});
       return;

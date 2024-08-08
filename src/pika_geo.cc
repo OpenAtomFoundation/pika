@@ -366,7 +366,7 @@ static void GetAllNeighbors(const std::shared_ptr<DB>& db, std::string& key, Geo
     int32_t count = 0;
     int32_t card = db->storage()->Exists({range.storekey});
     if (card) {
-      if (db->storage()->Del({range.storekey}) > 0) {
+      if (db->storage()->Del({range.storekey}) > 0){
         db->cache()->Del({range.storekey});
       }
     }

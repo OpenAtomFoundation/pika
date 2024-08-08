@@ -67,7 +67,7 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
 
   rocksdb::Status Del(const std::vector<std::string>& keys);
   rocksdb::Status Expire(std::string& key, int64_t ttl);
-  rocksdb::Status Expireat(std::string& key, int64_t ttl_sec);
+  rocksdb::Status Expireat(std::string& key, int64_t ttl);
   rocksdb::Status TTL(std::string& key, int64_t* ttl);
   rocksdb::Status Persist(std::string& key);
   rocksdb::Status Type(std::string& key, std::string* value);

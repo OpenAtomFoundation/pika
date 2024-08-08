@@ -44,18 +44,15 @@ class ListsMetaValue : public InternalValue {
     dst += kListValueIndexLength;
     memcpy(dst, reserve_, sizeof(reserve_));
     dst += kSuffixReserveLength;
-    // The most significant bit is 1 for milliseconds and 0 for seconds.
-    // The previous data was stored in seconds, but the subsequent data was stored in milliseconds
-    uint64_t ctime = ctime_ > 0 ? (ctime_ | (1ULL << 63)) : 0;
-    EncodeFixed64(dst, ctime);
+    EncodeFixed64(dst, ctime_);
     dst += kTimestampLength;
-    uint64_t etime = etime_ > 0 ? (etime_ | (1ULL << 63)) : 0;
-    EncodeFixed64(dst, etime);
+    EncodeFixed64(dst, etime_);
     return {start_, needed};
   }
 
   uint64_t UpdateVersion() {
-    pstd::TimeType unix_time = pstd::NowMillis();
+    int64_t unix_time;
+    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
     if (version_ >= static_cast<uint64_t>(unix_time)) {
       version_++;
     } else {
@@ -98,21 +95,10 @@ class ParsedListsMetaValue : public ParsedInternalValue {
       offset += kListValueIndexLength;
       memcpy(reserve_, internal_value_str->data() + offset, sizeof(reserve_));
       offset += kSuffixReserveLength;
-      uint64_t ctime = DecodeFixed64(internal_value_str->data() + offset);
+      ctime_ = DecodeFixed64(internal_value_str->data() + offset);
       offset += kTimestampLength;
-      uint64_t etime = DecodeFixed64(internal_value_str->data() + offset);
+      etime_ = DecodeFixed64(internal_value_str->data() + offset);
       offset += kTimestampLength;
-
-      ctime_ = (ctime & ~(1ULL << 63));
-      // if ctime_==ctime, means ctime_ storaged in seconds
-      if (ctime_ == ctime) {
-        ctime_ *= 1000;
-      }
-      etime_ = (etime & ~(1ULL << 63));
-      // if etime_==etime, means etime_ storaged in seconds
-      if (etime == etime_) {
-        etime_ *= 1000;
-      }
     }
     count_ = DecodeFixed64(internal_value_str->data() + kTypeLength);
   }
@@ -136,21 +122,10 @@ class ParsedListsMetaValue : public ParsedInternalValue {
       offset += kListValueIndexLength;
       memcpy(reserve_, internal_value_slice.data() + offset, sizeof(reserve_));
       offset += kSuffixReserveLength;
-      uint64_t ctime = DecodeFixed64(internal_value_slice.data() + offset);
+      ctime_ = DecodeFixed64(internal_value_slice.data() + offset);
       offset += kTimestampLength;
-      uint64_t etime = DecodeFixed64(internal_value_slice.data() + offset);
+      etime_ = DecodeFixed64(internal_value_slice.data() + offset);
       offset += kTimestampLength;
-
-      ctime_ = (ctime & ~(1ULL << 63));
-      // if ctime_==ctime, means ctime_ storaged in seconds
-      if (ctime_ == ctime) {
-        ctime_ *= 1000;
-      }
-      etime_ = (etime & ~(1ULL << 63));
-      // if etime_==etime, means etime_ storaged in seconds
-      if (etime == etime_) {
-        etime_ *= 1000;
-      }
     }
     count_ = DecodeFixed64(internal_value_slice.data() + kTypeLength);
   }
@@ -171,16 +146,14 @@ class ParsedListsMetaValue : public ParsedInternalValue {
   void SetCtimeToValue() override {
     if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() - 2 * kTimestampLength;
-      uint64_t ctime = ctime_ > 0 ? (ctime_ | (1ULL << 63)) : 0;
-      EncodeFixed64(dst, ctime);
+      EncodeFixed64(dst, ctime_);
     }
   }
 
   void SetEtimeToValue() override {
     if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() - kTimestampLength;
-      uint64_t etime = etime_ > 0 ? (etime_ | (1ULL << 63)) : 0;
-      EncodeFixed64(dst, etime);
+      EncodeFixed64(dst, etime_);
     }
   }
 
@@ -225,7 +198,8 @@ class ParsedListsMetaValue : public ParsedInternalValue {
   }
 
   uint64_t UpdateVersion() {
-    pstd::TimeType unix_time = pstd::NowMillis();
+    int64_t unix_time;
+    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
     if (version_ >= static_cast<uint64_t>(unix_time)) {
       version_++;
     } else {
