@@ -76,6 +76,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return log_path_;
   }
+  int log_retention_time() {
+    std::shared_lock l(rwlock_);
+    return log_retention_time_;
+  }
   std::string log_level() {
     std::shared_lock l(rwlock_);
     return log_level_;
@@ -828,6 +832,7 @@ class PikaConf : public pstd::BaseConf {
   int db_sync_speed_ = 0;
   std::string slaveof_;
   std::string log_path_;
+  int log_retention_time_;
   std::string log_level_;
   std::string db_path_;
   std::string db_sync_path_;
