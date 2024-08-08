@@ -183,6 +183,11 @@ jobs:
           source /opt/rh/gcc-toolset-13/enable
           cmake --build build --config ${{ env.BUILD_TYPE }}
 
+      - name: Cleanup
+        run: |
+          rm -rf ${GITHUB_WORKSPACE}/deps
+          rm -rf ${GITHUB_WORKSPACE}/buildtrees
+
       - name: Test
         working-directory: ${{ github.workspace }}/build
         run: ctest -C ${{ env.BUILD_TYPE }}
@@ -207,11 +212,6 @@ jobs:
           cd ../../tests/integration/
           chmod +x integrate_test.sh
           sh integrate_test.sh
-
-      - name: Cleanup
-        run: |
-          rm -rf ${GITHUB_WORKSPACE}/deps
-          rm -rf ${GITHUB_WORKSPACE}/buildtrees
 
   build_on_macos:
     runs-on: macos-12
@@ -243,6 +243,10 @@ jobs:
       - name: Build
         run: |
           cmake --build build --config ${{ env.BUILD_TYPE }}
+      - name: Cleanup
+        run: |
+          rm -rf ${GITHUB_WORKSPACE}/deps
+          rm -rf ${GITHUB_WORKSPACE}/buildtrees
 
       - name: Test
         working-directory: ${{ github.workspace }}/build
@@ -269,11 +273,6 @@ jobs:
           cd ../../tests/integration/
           chmod +x integrate_test.sh
           sh integrate_test.sh
-
-      - name: Cleanup
-        run: |
-          rm -rf ${GITHUB_WORKSPACE}/deps
-          rm -rf ${GITHUB_WORKSPACE}/buildtrees
 
   build_pika_image:
     name: Build Pika Docker image
