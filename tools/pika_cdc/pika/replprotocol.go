@@ -16,7 +16,7 @@ const HeaderLength = 4
 type ReplProtocol struct {
 	writer          *bufio.Writer
 	reader          *bufio.Reader
-	binlogSyncInfos []binlogSyncInfo
+	binlogSyncInfos map[string]binlogSyncInfo
 	dbMetaInfo      *inner.InnerResponse_MetaSync
 	ip              string
 	port            int32
@@ -34,9 +34,9 @@ func (repl *ReplProtocol) GetSyncWithPika() error {
 	if err := repl.sendMetaSyncRequest(); err != nil {
 		return err
 	}
-	metaResp := repl.getResponse()
-	if metaResp == nil {
-		logrus.Fatal("Failed to get metaResp")
+	metaResp, err := repl.getResponse()
+	if err != nil {
+		logrus.Fatal("Failed to get metaResp:", err)
 	}
 	repl.dbMetaInfo = metaResp.MetaSync
 
@@ -46,6 +46,7 @@ func (repl *ReplProtocol) GetSyncWithPika() error {
 	replDBs := metaResp.MetaSync.DbsInfo
 	var a uint64 = 0
 	var b uint32 = 0
+	repl.binlogSyncInfos = make(map[string]binlogSyncInfo)
 	for _, dbInfo := range replDBs {
 		newMetaInfo := binlogSyncInfo{
 			binlogOffset: &inner.BinlogOffset{
@@ -81,8 +82,8 @@ func (repl *ReplProtocol) GetSyncWithPika() error {
 			return err
 		}
 
-		trySyncResp := repl.getResponse()
-		if trySyncResp == nil || *trySyncResp.Code != inner.StatusCode_kOk {
+		trySyncResp, err := repl.getResponse()
+		if err != nil || trySyncResp == nil || *trySyncResp.Code != inner.StatusCode_kOk {
 			logrus.Fatal("Failed to get TrySync Response Msg")
 		}
 		startOffset := trySyncResp.TrySync.GetBinlogOffset()
@@ -91,17 +92,17 @@ func (repl *ReplProtocol) GetSyncWithPika() error {
 		if err := repl.sendReplReq(trySync); err != nil {
 			return err
 		}
-		trySyncResp = repl.getResponse()
+		trySyncResp, err = repl.getResponse()
 
 		newMetaInfo.binlogOffset = startOffset
 		newMetaInfo.sessionId = *trySyncResp.TrySync.SessionId
 		newMetaInfo.isFirst = true
-		repl.binlogSyncInfos = append(repl.binlogSyncInfos, newMetaInfo)
+		repl.binlogSyncInfos[dbInfo.GetDbName()] = newMetaInfo
 	}
 
 	// todo(leehao): Can find ways to optimize using coroutines here. May be use goroutine
-	for index, dbInfo := range repl.binlogSyncInfos {
-		slotId := uint32(*repl.dbMetaInfo.DbsInfo[index].SlotNum)
+	for dbName, dbInfo := range repl.binlogSyncInfos {
+		var slotId uint32 = 0
 		binlogSyncReq := &inner.InnerRequest{
 			Type:     &binlogSyncType,
 			MetaSync: nil,
@@ -112,7 +113,7 @@ func (repl *ReplProtocol) GetSyncWithPika() error {
 					Ip:   &repl.ip,
 					Port: &repl.port,
 				},
-				DbName:        repl.dbMetaInfo.DbsInfo[index].DbName,
+				DbName:        &dbName,
 				SlotId:        &slotId,
 				AckRangeStart: dbInfo.binlogOffset,
 				AckRangeEnd:   dbInfo.binlogOffset,
@@ -125,35 +126,40 @@ func (repl *ReplProtocol) GetSyncWithPika() error {
 		if err := repl.sendReplReq(binlogSyncReq); err != nil {
 			return err
 		}
-		repl.binlogSyncInfos[index].isFirst = false
 	}
 	return nil
 }
 
-func (repl *ReplProtocol) GetBinlogSync() ([]byte, error) {
+func (repl *ReplProtocol) GetBinlogSync() (map[string][]byte, error) {
 
 	binlogSyncType := inner.Type_kBinlogSync
-	var binlogByte []byte
+	// This is a collection of binlogs for all DB's
+	binlogBytes := make(map[string][]byte)
 	// todo(leehao): Receive multiple binlog sync responses simultaneously
-	binlogSyncResp := repl.getResponse()
+	binlogSyncResp, err := repl.getResponse()
+	if err != nil {
+		return nil, err
+	}
 	if binlogSyncResp == nil || *binlogSyncResp.Code != inner.StatusCode_kOk ||
 		*binlogSyncResp.Type != inner.Type_kBinlogSync || binlogSyncResp.BinlogSync == nil {
 		logrus.Fatal("get binlog sync response failed")
 	} else {
-		for index, item := range binlogSyncResp.BinlogSync {
-			slotId := uint32(*repl.dbMetaInfo.DbsInfo[index].SlotNum)
-			binlogOffset := repl.binlogSyncInfos[index].binlogOffset
-			if len(item.Binlog) == 0 {
+		for _, item := range binlogSyncResp.BinlogSync {
+			slotId := *item.Slot.SlotId
+			dbName := *item.Slot.DbName
+			binlogInfo := repl.binlogSyncInfos[dbName]
+			binlogInfo.isFirst = false
+			binlogOffset := item.BinlogOffset
+			if len(item.Binlog) == 0 || (*binlogOffset.Offset == binlogInfo.offset && *binlogOffset.Filenum == binlogInfo.fileNum) {
 				*binlogOffset.Filenum = 0
 				*binlogOffset.Offset = 0
-				logrus.Println("receive binlog response keep alive")
 			} else {
-				binlogOffset = item.BinlogOffset
-				repl.binlogSyncInfos[index].binlogOffset = binlogOffset
+				binlogInfo.binlogOffset = binlogOffset
 				if binlogItem, err := repl.decodeBinlogItem(item.Binlog); err != nil {
 					logrus.Fatal(err)
 				} else {
-					binlogByte = binlogItem.Content
+					logrus.Info("recv binlog db:", dbName, " ,size:", len(item.Binlog))
+					binlogBytes[dbName] = binlogItem.Content
 				}
 			}
 			err := repl.sendReplReq(&inner.InnerRequest{
@@ -166,23 +172,24 @@ func (repl *ReplProtocol) GetBinlogSync() ([]byte, error) {
 						Ip:   &repl.ip,
 						Port: &repl.port,
 					},
-					DbName:        repl.dbMetaInfo.DbsInfo[index].DbName,
+					DbName:        &dbName,
 					SlotId:        &slotId,
 					AckRangeStart: binlogOffset,
 					AckRangeEnd:   binlogOffset,
-					SessionId:     &repl.binlogSyncInfos[index].sessionId,
-					FirstSend:     &repl.binlogSyncInfos[index].isFirst,
+					SessionId:     &binlogInfo.sessionId,
+					FirstSend:     &binlogInfo.isFirst,
 				},
 				RemoveSlaveNode: nil,
 				ConsensusMeta:   nil,
 			})
+			repl.binlogSyncInfos[dbName] = binlogInfo
 			if err != nil {
-				logrus.Warn("Failed to send binlog sync, {}", err)
+				logrus.Warn("Failed to send binlog sync, ", err)
 				return nil, err
 			}
 		}
 	}
-	return binlogByte, nil
+	return binlogBytes, nil
 }
 
 func (repl *ReplProtocol) Ping() string {
@@ -202,7 +209,6 @@ func (repl *ReplProtocol) Ping() string {
 }
 
 func (repl *ReplProtocol) sendMetaSyncRequest() error {
-	logrus.Info("sendMetaSyncRequest")
 	metaSyncType := inner.Type_kMetaSync
 	request := &inner.InnerRequest{
 		Type: &metaSyncType,
@@ -232,14 +238,14 @@ func (repl *ReplProtocol) sendReplReq(request *inner.InnerRequest) error {
 	return nil
 }
 
-func (repl *ReplProtocol) getResponse() *inner.InnerResponse {
+func (repl *ReplProtocol) getResponse() (*inner.InnerResponse, error) {
 	header := make([]byte, HeaderLength)
 	_, err := repl.reader.Read(header)
 	if err != nil {
 		if err != io.EOF {
 			logrus.Fatal("Error reading header:", err)
 		}
-		return nil
+		return nil, err
 	}
 
 	// Convert the header to an integer
@@ -248,22 +254,23 @@ func (repl *ReplProtocol) getResponse() *inner.InnerResponse {
 	err = binary.Read(buffer, binary.BigEndian, &bodyLength)
 	if err != nil {
 		logrus.Fatal("Error converting header to integer:", err)
-		return nil
+		return nil, err
 	}
 	// Read the body
 	body := make([]byte, bodyLength)
 	_, err = repl.reader.Read(body)
 	if err != nil {
 		logrus.Fatal("Error reading body:", err)
-		return nil
+		return nil, err
 	}
 
 	res := &inner.InnerResponse{}
 	err = proto.Unmarshal(body, res)
 	if err != nil {
-		logrus.Fatal("Error Deserialization:", err)
+		logrus.Warn("Error Deserialization:", err)
+		return nil, err
 	}
-	return res
+	return res, nil
 }
 
 func (repl *ReplProtocol) buildInternalTag(resp []byte) (tag string) {

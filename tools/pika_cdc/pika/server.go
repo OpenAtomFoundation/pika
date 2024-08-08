@@ -3,7 +3,6 @@ package pika
 import (
 	"bufio"
 	"github.com/sirupsen/logrus"
-	"log"
 	"net"
 	"strconv"
 	"strings"
@@ -14,13 +13,14 @@ type Server struct {
 	stop             chan bool
 	pikaConn         net.Conn
 	pikaAddr         string
-	MsgChan          *chan []byte
+	bufferMsgNumber  int
+	MsgChanns        map[string]chan []byte
 	pikaReplProtocol ReplProtocol
 	writer           *bufio.Writer
 	reader           *bufio.Reader
 }
 
-// Use todo(leehao): add middleware here
+// Use todo(leehao): middleware can be added here in the future
 func Use() {
 
 }
@@ -37,16 +37,14 @@ func getIP(addr string) string {
 	return addr[:index]
 }
 
-func New(s string, msgChan *chan []byte) (Server, error) {
+func New(s string, bufferMsgNumber int) (Server, error) {
 	server := Server{}
-	if msgChan == nil {
-		ch := make(chan []byte, 10)
-		server.MsgChan = &ch
-	}
+	server.MsgChanns = make(map[string]chan []byte)
 	conn, err := net.Dial("tcp", s)
 	if err != nil {
-		log.Fatal("Error connecting to Pika server:", err)
+		logrus.Fatal("Error connecting to Pika server:", err)
 	}
+	server.bufferMsgNumber = bufferMsgNumber
 	server.pikaConn = conn
 	server.writer = bufio.NewWriter(server.pikaConn)
 	server.reader = bufio.NewReader(server.pikaConn)
@@ -57,7 +55,14 @@ func New(s string, msgChan *chan []byte) (Server, error) {
 		port:   getPort(conn.LocalAddr().String()),
 	}
 	err = server.CreateSyncWithPika()
+	server.buildMsgChann()
 	return server, err
+}
+func (s *Server) buildMsgChann() {
+	dbMetaInfo := s.pikaReplProtocol.dbMetaInfo
+	for _, dbInfo := range dbMetaInfo.DbsInfo {
+		s.MsgChanns[*dbInfo.DbName] = make(chan []byte, s.bufferMsgNumber)
+	}
 }
 
 // Run This method will block execution until an error occurs
@@ -67,10 +72,16 @@ func (s *Server) Run() {
 		case <-s.stop:
 			return
 		case <-time.After(100 * time.Millisecond):
-			bytes, _ := s.pikaReplProtocol.GetBinlogSync()
-			if len(bytes) != 0 {
-				logrus.Info("get a pika binlog send to msg chan")
-				*s.MsgChan <- bytes
+			binlogBytes, _ := s.pikaReplProtocol.GetBinlogSync()
+			if len(binlogBytes) != 0 {
+				for dbName, binlog := range binlogBytes {
+					chann, exists := s.MsgChanns[dbName]
+					if !exists {
+						chann = make(chan []byte, s.bufferMsgNumber)
+						s.MsgChanns[dbName] = chann
+					}
+					chann <- binlog
+				}
 			}
 		}
 	}
@@ -79,11 +90,11 @@ func (s *Server) Run() {
 func (s *Server) Exit() {
 	s.stop <- true
 	close(s.stop)
-	close(*s.MsgChan)
+	for _, chann := range s.MsgChanns {
+		close(chann)
+	}
 }
 
 func (s *Server) CreateSyncWithPika() error {
-	//ping := s.pikaReplProtocol.Ping()
-	//logrus.Info(ping)
 	return s.pikaReplProtocol.GetSyncWithPika()
 }

@@ -21,6 +21,7 @@ type PikaCdcConfig struct {
 	Retries            int      `yaml:"retries"`
 	RetryInterval      int      `yaml:"retry_interval"`
 	ParallelThreadSize int      `yaml:"parallel_thread_size"`
+	BufferMsgNumbers   int      `yaml:"buffer_msg_numbers"`
 }
 
 var ConfigInstance = PikaCdcConfig{}

@@ -14,6 +14,8 @@ retries : 0
 # retry interval while send message failed(ms)
 retry_interval: 10
 parallel_thread_size: 1
+# the size of the cached channel in pika cdc
+buffer_msg_numbers: 10
 
 
 
