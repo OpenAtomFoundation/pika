@@ -45,16 +45,10 @@ jobs:
         # Build your program with the given configuration
         run: cmake --build build --config ${{ env.BUILD_TYPE }}
 
-      - name: Print Paths for Debugging
+      - name: Cleanup
         run: |
-          echo "Current workspace: ${{ github.workspace }}"
-          find ${{ github.workspace }} -type d -name deps -print
-          find ${{ github.workspace }} -type d -name buildtrees -print
-
-          - name: Cleanup
-            run: |
-              rm -rf $(find ${{ github.workspace }} -type d -name deps)
-              rm -rf $(find ${{ github.workspace }} -type d -name buildtrees)
+          rm -rf  ./deps
+          rm -rf ./buildtrees
 
       - uses: actions/upload-artifact@v3
         with:
@@ -198,16 +192,10 @@ jobs:
           source /opt/rh/gcc-toolset-13/enable
           cmake --build build --config ${{ env.BUILD_TYPE }}
 
-      - name: Print Paths for Debugging
+      - name: Cleanup
         run: |
-          echo "Current workspace: ${{ github.workspace }}"
-          find ${{ github.workspace }} -type d -name deps -print
-          find ${{ github.workspace }} -type d -name buildtrees -print
-
-          - name: Cleanup
-            run: |
-              rm -rf $(find ${{ github.workspace }} -type d -name deps)
-              rm -rf $(find ${{ github.workspace }} -type d -name buildtrees)
+          rm -rf  ./deps
+          rm -rf ./buildtrees
 
       - name: Test
         working-directory: ${{ github.workspace }}/build
@@ -265,16 +253,10 @@ jobs:
         run: |
           cmake --build build --config ${{ env.BUILD_TYPE }}
 
-      - name: Print Paths for Debugging
+      - name: Cleanup
         run: |
-          echo "Current workspace: ${{ github.workspace }}"
-          find ${{ github.workspace }} -type d -name deps -print
-          find ${{ github.workspace }} -type d -name buildtrees -print
-
-          - name: Cleanup
-            run: |
-              rm -rf $(find ${{ github.workspace }} -type d -name deps)
-              rm -rf $(find ${{ github.workspace }} -type d -name buildtrees)
+          rm -rf  ./deps
+          rm -rf ./buildtrees
 
       - name: Test
         working-directory: ${{ github.workspace }}/build
