@@ -1,6 +1,8 @@
 syntax = "proto2";
 package RsyncService;
 
+option go_package = "./proto/rsync";
+
 enum Type {
     kRsyncMeta = 1;
     kRsyncFile = 2;
