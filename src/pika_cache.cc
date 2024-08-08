@@ -126,10 +126,10 @@ Status PikaCache::Expire(std::string& key, int64_t ttl) {
   return caches_[cache_index]->Expire(key, ttl);
 }
 
-Status PikaCache::Expireat(std::string& key, int64_t ttl) {
+Status PikaCache::Expireat(std::string& key, int64_t ttl_sec) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
-  return caches_[cache_index]->Expireat(key, ttl);
+  return caches_[cache_index]->Expireat(key, ttl_sec);
 }
 
 Status PikaCache::TTL(std::string& key, int64_t *ttl) {

@@ -86,7 +86,7 @@ int main(int argc, char* argv[]) {
 
   std::unique_ptr<ServerThread> st_thread(NewDispatchThread(ip, port, 24, &conn_factory, 1000));
   st_thread->StartThread();
-  uint64_t st, ed;
+  pstd::TimeType st, ed;
 
   while (!should_stop) {
     st = NowMicros();

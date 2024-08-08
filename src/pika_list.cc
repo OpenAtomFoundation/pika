@@ -130,7 +130,7 @@ void LLenCmd::Do() {
 void LLenCmd::ReadCache() {
   uint64_t llen = 0;
   auto s = db_->cache()->LLen(key_, &llen);
-  if (s.ok()){
+  if (s.ok()) {
     res_.AppendInteger(llen);
   } else if (s.IsNotFound()) {
     res_.SetRes(CmdRes::kCacheMiss);

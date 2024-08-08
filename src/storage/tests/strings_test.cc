@@ -44,7 +44,7 @@ class StringsTest : public ::testing::Test {
 
 static bool make_expired(storage::Storage* const db, const Slice& key) {
   std::map<storage::DataType, rocksdb::Status> type_status;
-  int ret = db->Expire(key, 1);
+  int ret = db->Expire(key, 1 * 100);
   if ((ret == 0) || !type_status[storage::DataType::kStrings].ok()) {
     return false;
   }
@@ -87,7 +87,7 @@ TEST_F(StringsTest, AppendTest) {
   // ***************** Group 2 Test *****************
   s = db.Set("GP2_APPEND_KEY", "VALUE");
   ASSERT_TRUE(s.ok());
-  ret = db.Expire("GP2_APPEND_KEY", 100);
+  ret = db.Expire("GP2_APPEND_KEY", 100 * 1000);
   ASSERT_EQ(ret, 1);
   type_status.clear();
   type_ttl = db.TTL("GP2_APPEND_KEY");
@@ -764,7 +764,7 @@ TEST_F(StringsTest, SetvxTest) {
   ASSERT_TRUE(s.ok());
 
   std::map<storage::DataType, Status> type_status;
-  ret = db.Expire("GP6_SETVX_KEY", 10);
+  ret = db.Expire("GP6_SETVX_KEY", 10 * 1000);
   ASSERT_EQ(ret, 1);
 
   sleep(1);
@@ -772,7 +772,7 @@ TEST_F(StringsTest, SetvxTest) {
   ASSERT_LT(0, ttl);
   ASSERT_GT(10, ttl);
 
-  s = db.Setvx("GP6_SETVX_KEY", "GP6_SETVX_VALUE", "GP6_SETVX_NEW_VALUE", &ret, 20);
+  s = db.Setvx("GP6_SETVX_KEY", "GP6_SETVX_VALUE", "GP6_SETVX_NEW_VALUE", &ret, 20 * 1000);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 1);
 
@@ -941,16 +941,13 @@ TEST_F(StringsTest, BitPosTest) {
 
 // PKSetexAt
 TEST_F(StringsTest, PKSetexAtTest) {
-#ifdef OS_MACOSX
-  return ;
-#endif
-  int64_t unix_time;
-  rocksdb::Env::Default()->GetCurrentTime(&unix_time);
+  pstd::TimeType unix_time;
   int64_t ttl_ret;
   std::map<storage::DataType, Status> type_status;
 
   // ***************** Group 1 Test *****************
-  s = db.PKSetexAt("GP1_PKSETEX_KEY", "VALUE", unix_time + 100);
+  unix_time = pstd::NowMillis();
+  s = db.PKSetexAt("GP1_PKSETEX_KEY", "VALUE", unix_time + 100*1000);
   ASSERT_TRUE(s.ok());
 
   type_status.clear();
@@ -960,9 +957,10 @@ TEST_F(StringsTest, PKSetexAtTest) {
   ASSERT_GE(ttl_ret, 90);
 
   // ***************** Group 2 Test *****************
+  unix_time = pstd::NowMillis();
   s = db.Set("GP2_PKSETEX_KEY", "VALUE");
   ASSERT_TRUE(s.ok());
-  s = db.PKSetexAt("GP2_PKSETEX_KEY", "VALUE", unix_time + 100);
+  s = db.PKSetexAt("GP2_PKSETEX_KEY", "VALUE", unix_time + 100*1000);
   ASSERT_TRUE(s.ok());
 
   type_status.clear();
@@ -972,7 +970,8 @@ TEST_F(StringsTest, PKSetexAtTest) {
   ASSERT_GE(ttl_ret, 90);
 
   // ***************** Group 3 Test *****************
-  s = db.PKSetexAt("GP3_PKSETEX_KEY", "VALUE", unix_time - 100);
+  unix_time = pstd::NowMillis();
+  s = db.PKSetexAt("GP3_PKSETEX_KEY", "VALUE", unix_time - 100*1000);
   ASSERT_TRUE(s.ok());
 
   type_status.clear();
@@ -980,9 +979,10 @@ TEST_F(StringsTest, PKSetexAtTest) {
   ASSERT_EQ(ttl_ret, -2);
 
   // ***************** Group 4 Test *****************
+  unix_time = pstd::NowMillis();
   s = db.Set("GP4_PKSETEX_KEY", "VALUE");
   ASSERT_TRUE(s.ok());
-  s = db.PKSetexAt("GP4_PKSETEX_KEY", "VALUE", unix_time - 100);
+  s = db.PKSetexAt("GP4_PKSETEX_KEY", "VALUE", unix_time - 100*1000);
   ASSERT_TRUE(s.ok());
 
   type_status.clear();
@@ -990,6 +990,7 @@ TEST_F(StringsTest, PKSetexAtTest) {
   ASSERT_EQ(ttl_ret, -2);
 
   // ***************** Group 5 Test *****************
+  unix_time = pstd::NowMillis();
   s = db.PKSetexAt("GP5_PKSETEX_KEY", "VALUE", -unix_time);
   ASSERT_TRUE(s.ok());
 
@@ -998,6 +999,7 @@ TEST_F(StringsTest, PKSetexAtTest) {
   ASSERT_EQ(ttl_ret, -2);
 
   // ***************** Group 6 Test *****************
+  unix_time = pstd::NowMillis();
   s = db.Set("GP6_PKSETEX_KEY", "VALUE");
   ASSERT_TRUE(s.ok());
   s = db.PKSetexAt("GP6_PKSETEX_KEY", "VALUE", -unix_time);
