@@ -183,27 +183,27 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     }
   }
 
+  if (c_ptr->res().ok() && c_ptr->is_write() && name() != kCmdNameExec) {
+    if (c_ptr->name() == kCmdNameFlushdb) {
+      auto flushdb = std::dynamic_pointer_cast<FlushdbCmd>(c_ptr);
+      SetTxnFailedIfKeyExists(flushdb->GetFlushDBname());
+    } else if (c_ptr->name() == kCmdNameFlushall) {
+      SetTxnFailedIfKeyExists();
+    } else {
+      auto table_keys = c_ptr->current_key();
+      for (auto& key : table_keys) {
+        key = c_ptr->db_name().append("_").append(key);
+      }
+      SetTxnFailedFromKeys(table_keys);
+    }
+  }
+
   // Process Command
   c_ptr->Execute();
   time_stat_->process_done_ts_ = pstd::NowMicros();
   auto cmdstat_map = g_pika_cmd_table_manager->GetCommandStatMap();
   (*cmdstat_map)[opt].cmd_count.fetch_add(1);
   (*cmdstat_map)[opt].cmd_time_consuming.fetch_add(time_stat_->total_time());
-
-  if (c_ptr->res().ok() && c_ptr->is_write() && name() != kCmdNameExec) {
-    if (c_ptr->name() == kCmdNameFlushdb) {
-      auto flushdb = std::dynamic_pointer_cast<FlushdbCmd>(c_ptr);
-      SetTxnFailedFromDBs(flushdb->GetFlushDBname());
-    } else if (c_ptr->name() == kCmdNameFlushall) {
-      SetAllTxnFailed();
-    } else {
-      auto table_keys = c_ptr->current_key();
-      for (auto& key : table_keys) {
-        key = c_ptr->db_name().append(key);
-      }
-      SetTxnFailedFromKeys(table_keys);
-    }
-  }
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     ProcessSlowlog(argv, c_ptr->GetDoDuration());
@@ -454,32 +454,42 @@ void PikaClientConn::SetTxnFailedFromKeys(const std::vector<std::string>& db_key
     auto involved_conns = std::vector<std::shared_ptr<NetConn>>{};
     involved_conns = dispatcher->GetInvolvedTxn(db_keys);
     for (auto& conn : involved_conns) {
-      if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr && c.get() != this) {
+      if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr) {
         c->SetTxnWatchFailState(true);
       }
     }
   }
 }
 
-void PikaClientConn::SetAllTxnFailed() {
+// if key in target_db exists, then the key been watched multi will be failed
+void PikaClientConn::SetTxnFailedIfKeyExists(std::string target_db_name) {
   auto dispatcher = dynamic_cast<net::DispatchThread*>(server_thread());
-  if (dispatcher != nullptr) {
-    auto involved_conns = dispatcher->GetAllTxns();
-    for (auto& conn : involved_conns) {
-      if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr && c.get() != this) {
-        c->SetTxnWatchFailState(true);
-      }
-    }
+  if (dispatcher == nullptr) {
+    return;
   }
-}
+  auto involved_conns = dispatcher->GetAllTxns();
+  for (auto& conn : involved_conns) {
+    std::shared_ptr<PikaClientConn> c;
+    if (c = std::dynamic_pointer_cast<PikaClientConn>(conn); c == nullptr) {
+      continue;
+    }
 
-void PikaClientConn::SetTxnFailedFromDBs(std::string db_name) {
-  auto dispatcher = dynamic_cast<net::DispatchThread*>(server_thread());
-  if (dispatcher != nullptr) {
-    auto involved_conns = dispatcher->GetDBTxns(db_name);
-    for (auto& conn : involved_conns) {
-      if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr && c.get() != this) {
-        c->SetTxnWatchFailState(true);
+    for (const auto& db_key : c->watched_db_keys_) {
+      size_t pos = db_key.find('_');
+      if (pos == std::string::npos) {
+        continue;
+      }
+
+      auto db_name = db_key.substr(0, pos);
+      auto key = db_key.substr(pos + 1);
+
+      if (target_db_name == "" || target_db_name == "all" || target_db_name == db_name) {
+        auto db = g_pika_server->GetDB(db_name);
+        // if watched key exists, set watch state to failed
+        if (db->storage()->Exists({key}) > 0) {
+          c->SetTxnWatchFailState(true);
+          break;
+        }
       }
     }
   }

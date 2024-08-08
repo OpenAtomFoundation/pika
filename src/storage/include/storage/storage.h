@@ -1001,6 +1001,11 @@ class Storage {
   // return >=0 the number of keys existing
   int64_t Exists(const std::vector<std::string>& keys, std::map<DataType, Status>* type_status);
 
+    // Returns if key exists.
+    // return -1 operation exception errors happen in database
+    // return >=0 the number of keys existing
+  int64_t Exists(const std::vector<std::string>& keys);
+
   // Return the key exists type count
   // return param type_status: return every type status
   int64_t IsExist(const Slice& key, std::map<DataType, Status>* type_status);
