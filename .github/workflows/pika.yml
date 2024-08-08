@@ -45,6 +45,11 @@ jobs:
         # Build your program with the given configuration
         run: cmake --build build --config ${{ env.BUILD_TYPE }}
 
+      - name: Cleanup
+        run: |
+          rm -rf  ./deps
+          rm -rf ./buildtrees
+
       - uses: actions/upload-artifact@v3
         with:
           name: ${{ env.ARTIFACT_PIKA_NAME }}
@@ -187,6 +192,11 @@ jobs:
           source /opt/rh/gcc-toolset-13/enable
           cmake --build build --config ${{ env.BUILD_TYPE }}
 
+      - name: Cleanup
+        run: |
+          rm -rf  ./deps
+          rm -rf ./buildtrees
+
       - name: Test
         working-directory: ${{ github.workspace }}/build
         run: ctest -C ${{ env.BUILD_TYPE }}
@@ -242,6 +252,11 @@ jobs:
       - name: Build
         run: |
           cmake --build build --config ${{ env.BUILD_TYPE }}
+
+      - name: Cleanup
+        run: |
+          rm -rf  ./deps
+          rm -rf ./buildtrees
 
       - name: Test
         working-directory: ${{ github.workspace }}/build
