@@ -163,8 +163,6 @@ make -j ${CPU_CORE}
 
 if [ $? -eq 0 ]; then
     echo -e "pika compile complete, output file ${C_GREEN} ${BUILD_DIR}/pika ${C_END}"
-    rm -rf ../deps
-        echo -e "${C_GREEN}deps directory has been removed${C_END}"
 else
     echo -e "${C_RED} pika compile fail ${C_END}"
     exit 1
