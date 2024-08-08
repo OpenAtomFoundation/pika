@@ -34,8 +34,7 @@ rocksdb::Status Redis::ScanSetsKeyNum(KeyInfo* key_info) {
   iterator_options.snapshot = snapshot;
   iterator_options.fill_cache = false;
 
-  int64_t curtime;
-  rocksdb::Env::Default()->GetCurrentTime(&curtime);
+  pstd::TimeType curtime = pstd::NowMillis();
 
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kMetaCF]);
   for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
@@ -124,7 +123,7 @@ rocksdb::Status Redis::SAdd(const Slice& key, const std::vector<std::string>& me
       if (cnt == 0) {
         return rocksdb::Status::OK();
       } else {
-        if (!parsed_sets_meta_value.CheckModifyCount(cnt)){
+        if (!parsed_sets_meta_value.CheckModifyCount(cnt)) {
           return Status::InvalidArgument("set size overflow");
         }
         parsed_sets_meta_value.ModifyCount(cnt);
@@ -743,7 +742,7 @@ rocksdb::Status Redis::SMembers(const Slice& key, std::vector<std::string>* memb
 
 Status Redis::SMembersWithTTL(const Slice& key,
                               std::vector<std::string>* members,
-                              int64_t* ttl) {
+                              int64_t* ttl_millsec) {
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot;
 
@@ -771,13 +770,12 @@ Status Redis::SMembersWithTTL(const Slice& key,
       return Status::NotFound("Stale");
     } else {
       // ttl
-      *ttl = parsed_sets_meta_value.Etime();
-      if (*ttl == 0) {
-        *ttl = -1;
+      *ttl_millsec = parsed_sets_meta_value.Etime();
+      if (*ttl_millsec == 0) {
+        *ttl_millsec = -1;
       } else {
-        int64_t curtime;
-        rocksdb::Env::Default()->GetCurrentTime(&curtime);
-        *ttl = *ttl - curtime >= 0 ? *ttl - curtime : -2;
+        pstd::TimeType curtime = pstd::NowMillis();
+        *ttl_millsec = *ttl_millsec - curtime >= 0 ? *ttl_millsec - curtime : -2;
       }
 
       version = parsed_sets_meta_value.Version();
@@ -838,7 +836,7 @@ rocksdb::Status Redis::SMove(const Slice& source, const Slice& destination, cons
       s = db_->Get(default_read_options_, handles_[kSetsDataCF], sets_member_key.Encode(), &member_value);
       if (s.ok()) {
         *ret = 1;
-        if (!parsed_sets_meta_value.CheckModifyCount(-1)){
+        if (!parsed_sets_meta_value.CheckModifyCount(-1)) {
           return Status::InvalidArgument("set size overflow");
         }
         parsed_sets_meta_value.ModifyCount(-1);
@@ -886,7 +884,7 @@ rocksdb::Status Redis::SMove(const Slice& source, const Slice& destination, cons
       SetsMemberKey sets_member_key(destination, version, member);
       s = db_->Get(default_read_options_, handles_[kSetsDataCF], sets_member_key.Encode(), &member_value);
       if (s.IsNotFound()) {
-        if (!parsed_sets_meta_value.CheckModifyCount(1)){
+        if (!parsed_sets_meta_value.CheckModifyCount(1)) {
           return Status::InvalidArgument("set size overflow");
         }
         parsed_sets_meta_value.ModifyCount(1);
@@ -920,8 +918,6 @@ rocksdb::Status Redis::SPop(const Slice& key, std::vector<std::string>* members,
   std::string meta_value;
   rocksdb::WriteBatch batch;
   ScopeRecordLock l(lock_mgr_, key);
-
-  uint64_t start_us = pstd::NowMicros();
 
   BaseMetaKey base_meta_key(key);
   Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
@@ -1000,7 +996,7 @@ rocksdb::Status Redis::SPop(const Slice& key, std::vector<std::string>* members,
           }
         }
 
-        if (!parsed_sets_meta_value.CheckModifyCount(static_cast<int32_t>(-cnt))){
+        if (!parsed_sets_meta_value.CheckModifyCount(static_cast<int32_t>(-cnt))) {
           return Status::InvalidArgument("set size overflow");
         }
         parsed_sets_meta_value.ModifyCount(static_cast<int32_t>(-cnt));
@@ -1149,7 +1145,7 @@ rocksdb::Status Redis::SRem(const Slice& key, const std::vector<std::string>& me
         }
       }
       *ret = cnt;
-      if (!parsed_sets_meta_value.CheckModifyCount(-cnt)){
+      if (!parsed_sets_meta_value.CheckModifyCount(-cnt)) {
         return Status::InvalidArgument("set size overflow");
       }
       parsed_sets_meta_value.ModifyCount(-cnt);
@@ -1407,7 +1403,7 @@ rocksdb::Status Redis::SScan(const Slice& key, int64_t cursor, const std::string
   return rocksdb::Status::OK();
 }
 
-rocksdb::Status Redis::SetsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta) {
+rocksdb::Status Redis::SetsExpire(const Slice& key, int64_t ttl_millsec, std::string&& prefetch_meta) {
   std::string meta_value(std::move(prefetch_meta));
   ScopeRecordLock l(lock_mgr_, key);
   BaseMetaKey base_meta_key(key);
@@ -1436,8 +1432,8 @@ rocksdb::Status Redis::SetsExpire(const Slice& key, int64_t ttl, std::string&& p
       return rocksdb::Status::NotFound();
     }
 
-    if (ttl > 0) {
-      parsed_sets_meta_value.SetRelativeTimestamp(ttl);
+    if (ttl_millsec > 0) {
+      parsed_sets_meta_value.SetRelativeTimestamp(ttl_millsec);
       s = db_->Put(default_write_options_, handles_[kMetaCF], base_meta_key.Encode(), meta_value);
     } else {
       parsed_sets_meta_value.InitialMetaValue();
@@ -1484,7 +1480,7 @@ rocksdb::Status Redis::SetsDel(const Slice& key, std::string&& prefetch_meta) {
   return s;
 }
 
-rocksdb::Status Redis::SetsExpireat(const Slice& key, int64_t timestamp, std::string&& prefetch_meta) {
+rocksdb::Status Redis::SetsExpireat(const Slice& key, int64_t timestamp_millsec, std::string&& prefetch_meta) {
   std::string meta_value(std::move(prefetch_meta));
   ScopeRecordLock l(lock_mgr_, key);
   BaseMetaKey base_meta_key(key);
@@ -1512,8 +1508,8 @@ rocksdb::Status Redis::SetsExpireat(const Slice& key, int64_t timestamp, std::st
     } else if (parsed_sets_meta_value.Count() == 0) {
       return rocksdb::Status::NotFound();
     } else {
-      if (timestamp > 0) {
-        parsed_sets_meta_value.SetEtime(static_cast<uint64_t>(timestamp));
+      if (timestamp_millsec > 0) {
+        parsed_sets_meta_value.SetEtime(static_cast<uint64_t>(timestamp_millsec));
       } else {
         parsed_sets_meta_value.InitialMetaValue();
       }
@@ -1563,7 +1559,7 @@ rocksdb::Status Redis::SetsPersist(const Slice& key, std::string&& prefetch_meta
   return s;
 }
 
-rocksdb::Status Redis::SetsTTL(const Slice& key, int64_t* timestamp, std::string&& prefetch_meta) {
+rocksdb::Status Redis::SetsTTL(const Slice& key, int64_t* ttl_millsec, std::string&& prefetch_meta) {
   std::string meta_value(std::move(prefetch_meta));
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s;
@@ -1586,23 +1582,22 @@ rocksdb::Status Redis::SetsTTL(const Slice& key, int64_t* timestamp, std::string
   if (s.ok()) {
     ParsedSetsMetaValue parsed_setes_meta_value(&meta_value);
     if (parsed_setes_meta_value.IsStale()) {
-      *timestamp = -2;
+      *ttl_millsec = -2;
       return rocksdb::Status::NotFound("Stale");
     } else if (parsed_setes_meta_value.Count() == 0) {
-      *timestamp = -2;
+      *ttl_millsec = -2;
       return rocksdb::Status::NotFound();
     } else {
-      *timestamp = parsed_setes_meta_value.Etime();
-      if (*timestamp == 0) {
-        *timestamp = -1;
+      *ttl_millsec = parsed_setes_meta_value.Etime();
+      if (*ttl_millsec == 0) {
+        *ttl_millsec = -1;
       } else {
-        int64_t curtime;
-        rocksdb::Env::Default()->GetCurrentTime(&curtime);
-        *timestamp = *timestamp - curtime >= 0 ? *timestamp - curtime : -2;
+        pstd::TimeType curtime = pstd::NowMillis();
+        *ttl_millsec = *ttl_millsec - curtime >= 0 ? *ttl_millsec - curtime : -2;
       }
     }
   } else if (s.IsNotFound()) {
-    *timestamp = -2;
+    *ttl_millsec = -2;
   }
   return s;
 }
