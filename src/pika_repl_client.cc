@@ -77,6 +77,23 @@ int PikaReplClient::Stop() {
   for (auto & binlog_worker : write_binlog_workers_) {
     binlog_worker->StopThread();
   }
+
+  // write DB task is async task, we must wait all writeDB task done and then to exit
+  // or some data will be loss
+  bool all_write_db_task_done = true;
+  do {
+    for (auto &db_worker: write_db_workers_) {
+      if (db_worker->TaskQueueSize() != 0) {
+        all_write_db_task_done = false;
+        std::this_thread::sleep_for(std::chrono::microseconds(300));
+        break;
+      } else {
+        all_write_db_task_done = true;
+      }
+    }
+    //if there are unfinished async write db task, just continue to wait
+  } while(!all_write_db_task_done);
+
   for (auto &db_worker: write_db_workers_) {
     db_worker->StopThread();
   }

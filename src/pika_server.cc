@@ -108,8 +108,9 @@ PikaServer::PikaServer()
 
 PikaServer::~PikaServer() {
   rsync_server_->Stop();
-  // DispatchThread will use queue of worker thread,
-  // so we need to delete dispatch before worker.
+  // DispatchThread will use queue of worker thread
+  // so we need to Stop dispatch before worker.
+  pika_dispatch_thread_->StopThread();
   pika_client_processor_->Stop();
   pika_slow_cmd_thread_pool_->stop_thread_pool();
   pika_admin_cmd_thread_pool_->stop_thread_pool();

@@ -1219,10 +1219,11 @@ void InfoCmd::InfoReplication(std::string& info) {
   Status s;
   uint32_t filenum = 0;
   uint64_t offset = 0;
+  uint64_t total_file_num = 0;
+  uint64_t total_offset = 0;
   uint64_t slave_repl_offset = 0;
   std::string safety_purge;
   std::shared_ptr<SyncMasterDB> master_db = nullptr;
-  bool first_db = true;
   for (const auto& t_item : g_pika_server->dbs_) {
     std::shared_lock db_rwl(t_item.second->dbs_rw_);
     std::string db_name = t_item.first;
@@ -1232,14 +1233,17 @@ void InfoCmd::InfoReplication(std::string& info) {
       continue;
     }
     master_db->Logger()->GetProducerStatus(&filenum, &offset);
-    if (first_db) {
-      first_db = false;
-      slave_repl_offset = (static_cast<uint64_t>(filenum) << 32) | static_cast<uint64_t>(offset);
-    }
+    total_file_num += filenum;
+    total_offset += offset;
     tmp_stream << db_name << ":binlog_offset=" << filenum << " " << offset;
     s = master_db->GetSafetyPurgeBinlog(&safety_purge);
     tmp_stream << ",safety_purge=" << (s.ok() ? safety_purge : "error") << "\r\n";
   }
+  total_file_num += total_offset / g_pika_conf->binlog_file_size();
+  total_offset = total_offset % g_pika_conf->binlog_file_size();
+  //then total_offset will not greater than binlog file size whose max value is 2GB in bytes
+  //which can be contained by uint32_t
+  slave_repl_offset = (total_file_num << 32) | total_offset;
   tmp_stream << "slave_repl_offset:" << slave_repl_offset << "\r\n";
   info.append(tmp_stream.str());
 }
