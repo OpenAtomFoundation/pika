@@ -1,11 +1,11 @@
-package mq
+package consumer
 
 import (
 	"context"
 	"errors"
 	"github.com/segmentio/kafka-go"
+	"github.com/sirupsen/logrus"
 	"log"
-	"pika_cdc/pika"
 	"sync"
 	"time"
 )
@@ -19,15 +19,16 @@ type Kafka struct {
 	messageChan chan kafka.Message
 	stopChan    chan bool
 	once        sync.Once
+	protocol    Protocol
 }
 
-func (k *Kafka) SendCmdMessage(cmd pika.Cmd) error {
+func (k *Kafka) SendCmdMessage(msg []byte) error {
 	select {
-	case k.messageChan <- kafka.Message{Value: []byte(cmd.Name())}:
+	case k.messageChan <- kafka.Message{Value: k.protocol.ToConsumer(msg)}:
 		return nil
 	case <-time.After(2 * time.Second):
 		e := errors.New("send pika cmd timeout")
-		log.Printf("%v", e)
+		logrus.Warn("{}", e)
 		return e
 	}
 }
@@ -51,6 +52,7 @@ func (k *Kafka) Name() string {
 
 func NewKafka(servers []string, topic string, retries int) (*Kafka, error) {
 	k := &Kafka{}
+	k.protocol = &KafkaProtocol{}
 	for _, server := range servers {
 		conn, err := kafka.DialLeader(context.Background(), "tcp", server, topic, 0)
 		if err != nil {
@@ -86,4 +88,10 @@ func (k *Kafka) Close() error {
 		err = k.close()
 	})
 	return err
+}
+func (k *Kafka) Run() {
+
+}
+func (k *Kafka) Stop() {
+
 }

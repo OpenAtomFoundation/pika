@@ -2,21 +2,21 @@ package conf
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"runtime"
-	"strings"
-
-	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 )
 
 type PikaCdcConfig struct {
 	PikaServer         string   `yaml:"pika_server"`
-	MqServers          []string `yaml:"mq_servers"`
+	KafkaServers       []string `yaml:"kafka_servers"`
+	RedisServers       []string `yaml:"redis_servers"`
+	PulsarServers      []string `yaml:"pulsar_servers"`
 	Topic              string   `yaml:"topic"`
 	Retries            int      `yaml:"retries"`
 	RetryInterval      int      `yaml:"retry_interval"`
@@ -47,26 +47,4 @@ func init() {
 
 	logrus.SetReportCaller(true)
 	logrus.SetOutput(os.Stdout)
-}
-
-func (c *PikaCdcConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var tmp struct {
-		PikaServer         string `yaml:"pika_server"`
-		MqServers          string `yaml:"mq_servers"`
-		Topic              string `yaml:"topic"`
-		Retries            int    `yaml:"retries"`
-		RetryInterval      int    `yaml:"retry_interval"`
-		ParallelThreadSize int    `yaml:"parallel_thread_size"`
-	}
-
-	if err := unmarshal(&tmp); err != nil {
-		return err
-	}
-
-	c.MqServers = strings.Split(tmp.MqServers, ",")
-	c.Retries = tmp.Retries
-	c.Topic = tmp.Topic
-	c.PikaServer = tmp.PikaServer
-
-	return nil
 }

@@ -1,27 +1,23 @@
 package main
 
 import (
-	"fmt"
+	"github.com/sirupsen/logrus"
 	"pika_cdc/conf"
-	"pika_cdc/mq"
+	"pika_cdc/consumer"
 	"pika_cdc/pika"
-	"time"
 )
 
 func main() {
-	mqFactory := mq.Factory{}
-	messageQue, err := mqFactory.GetMq(mq.KAFKA, conf.ConfigInstance)
-	if err != nil {
-		panic("failed to create mq, " + err.Error())
+	if pikaServer, err := pika.New(conf.ConfigInstance.PikaServer, nil); err != nil {
+		logrus.Fatal("failed to connect pika server, {}", err)
 	} else {
-		fmt.Println(messageQue.Name())
-		c := pika.Cmd{}
-		_ = messageQue.SendCmdMessage(c)
+		if consumers, err := consumer.GenerateConsumers(conf.ConfigInstance, pikaServer.MsgChan); err != nil {
+			logrus.Fatal("failed to generate consumers, {}", err)
+		} else {
+			for _, c := range consumers {
+				go c.Run()
+			}
+		}
+		pikaServer.Run()
 	}
-	defer messageQue.Close()
-	time.Sleep(time.Second)
-
-	//pikaServer := pika.New(conf.ConfigInstance.PikaServer)
-	//pikaServer.Start()
-	//defer pikaServer.Close()
 }

@@ -15,7 +15,6 @@ import (
 	"pika_cdc/conf"
 	"pika_cdc/pika/proto/inner"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 )
@@ -31,18 +30,18 @@ func TestConnect(t *testing.T) {
 	fmt.Println(client.Get(cxt, "key"))
 }
 
-func getPort(addr string) int32 {
-	portStr := addr[strings.LastIndex(addr, ":")+1:]
-	port, _ := strconv.Atoi(portStr)
-	return int32(port)
-}
-func getIP(addr string) string {
-	index := strings.LastIndex(addr, ":")
-	if index == -1 {
-		return addr
-	}
-	return addr[:index]
-}
+//func getPort(addr string) int32 {
+//	portStr := addr[strings.LastIndex(addr, ":")+1:]
+//	port, _ := strconv.Atoi(portStr)
+//	return int32(port)
+//}
+//func getIP(addr string) string {
+//	index := strings.LastIndex(addr, ":")
+//	if index == -1 {
+//		return addr
+//	}
+//	return addr[:index]
+//}
 
 func TestSendMetaSync(t *testing.T) {
 	ip := string("127.0.0.1")
@@ -79,8 +78,6 @@ func TestSendMetaSync(t *testing.T) {
 		os.Exit(1)
 	}
 }
-
-const HeaderLength = 4
 
 func receiveReplMsg(listener net.Listener) {
 	defer listener.Close()
