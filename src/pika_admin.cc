@@ -1239,8 +1239,8 @@ void InfoCmd::InfoReplication(std::string& info) {
     s = master_db->GetSafetyPurgeBinlog(&safety_purge);
     tmp_stream << ",safety_purge=" << (s.ok() ? safety_purge : "error") << "\r\n";
   }
-  total_file_num += total_offset / g_pika_conf->binlog_file_size();
-  total_offset = total_offset % g_pika_conf->binlog_file_size();
+  total_file_num += total_offset / static_cast<uint64_t>(g_pika_conf->binlog_file_size());
+  total_offset = total_offset % static_cast<uint64_t>(g_pika_conf->binlog_file_size());
   //then total_offset will not greater than binlog file size whose max value is 2GB in bytes
   //which can be contained by uint32_t
   slave_repl_offset = (total_file_num << 32) | total_offset;
