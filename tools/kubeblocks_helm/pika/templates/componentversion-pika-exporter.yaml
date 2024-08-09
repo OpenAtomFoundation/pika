@@ -9,10 +9,10 @@ spec:
     - compDefs: 
       - pika-exporter
       releases: 
-        - 3.5.3
+        - {{ .Chart.AppVersion }}
   releases:
-    - name: 3.5.3
+    - name: {{ .Chart.AppVersion }}
       changes:
-      serviceVersion: 3.5.3
+      serviceVersion: {{ .Chart.AppVersion }}
       images:
         codis-dashboard: {{ include "pikaExporter.image" . }}

@@ -9,10 +9,10 @@ spec:
     - compDefs: 
       - pika-etcd
       releases: 
-        - 3.5.9
+        - {{ .Chart.AppVersion }}
   releases:
-    - name: 3.5.9
+    - name: {{ .Chart.AppVersion }}
       changes:
-      serviceVersion: 3.5.9
+      serviceVersion: {{ .Chart.AppVersion }}
       images:
         codis-dashboard: {{ include "etcd.image" . }}
