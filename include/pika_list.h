@@ -105,7 +105,7 @@ class BlockingBaseCmd : public Cmd {
   void BlockThisClientToWaitLRPush(BlockKeyType block_pop_type, std::vector<std::string>& keys, int64_t expire_time);
   void TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<DB> db);
   static void ServeAndUnblockConns(void* args);
-  static void WriteBinlogOfPop(std::vector<WriteBinlogOfPopArgs>& pop_args);
+  static void WriteBinlogOfPopAndUpdateCache(std::vector<WriteBinlogOfPopArgs>& pop_args);
   void removeDuplicates(std::vector<std::string>& keys_);
   // blpop/brpop used functions end
 };
