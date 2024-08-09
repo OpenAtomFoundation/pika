@@ -260,7 +260,7 @@ class Storage {
   // If key already exists and is a string, this command appends the value at
   // the end of the string
   // return the length of the string after the append operation
-  Status Append(const Slice& key, const Slice& value, int32_t* ret, int64_t* expired_timestamp_sec, std::string& out_new_value);
+  Status Append(const Slice& key, const Slice& value, int32_t* ret, int64_t* expired_timestamp_millsec, std::string& out_new_value);
 
   // Count the number of set bits (population counting) in a string.
   // return the number of bits set to 1
@@ -285,7 +285,7 @@ class Storage {
 
   // Increments the number stored at key by increment.
   // If the key does not exist, it is set to 0 before performing the operation
-  Status Incrby(const Slice& key, int64_t value, int64_t* ret, int64_t* expired_timestamp_sec);
+  Status Incrby(const Slice& key, int64_t value, int64_t* ret, int64_t* expired_timestamp_millsec);
 
   // Increment the string representing a floating point number
   // stored at key by the specified increment.

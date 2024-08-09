@@ -62,10 +62,10 @@ Status Redis::ScanStringsKeyNum(KeyInfo* key_info) {
   return Status::OK();
 }
 
-Status Redis::Append(const Slice& key, const Slice& value, int32_t* ret, int64_t* expired_timestamp_sec, std::string& out_new_value) {
+Status Redis::Append(const Slice& key, const Slice& value, int32_t* ret, int64_t* expired_timestamp_millsec, std::string& out_new_value) {
   std::string old_value;
   *ret = 0;
-  *expired_timestamp_sec = 0;
+  *expired_timestamp_millsec = 0;
   ScopeRecordLock l(lock_mgr_, key);
 
   BaseKey base_key(key);
@@ -94,13 +94,13 @@ Status Redis::Append(const Slice& key, const Slice& value, int32_t* ret, int64_t
       StringsValue strings_value(new_value);
       strings_value.SetEtime(timestamp);
       *ret = static_cast<int32_t>(new_value.size());
-      *expired_timestamp_sec = timestamp;
+      *expired_timestamp_millsec = timestamp;
       return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
     }
   } else if (s.IsNotFound()) {
     *ret = static_cast<int32_t>(value.size());
     StringsValue strings_value(value);
-    *expired_timestamp_sec = 0;
+    *expired_timestamp_millsec = 0;
     return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
   }
   return s;
@@ -619,7 +619,7 @@ Status Redis::GetSet(const Slice& key, const Slice& value, std::string* old_valu
   return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
 }
 
-Status Redis::Incrby(const Slice& key, int64_t value, int64_t* ret, int64_t* expired_timestamp_sec) {
+Status Redis::Incrby(const Slice& key, int64_t value, int64_t* ret, int64_t* expired_timestamp_millsec) {
   std::string old_value;
   std::string new_value;
   ScopeRecordLock l(lock_mgr_, key);
@@ -657,7 +657,7 @@ Status Redis::Incrby(const Slice& key, int64_t value, int64_t* ret, int64_t* exp
       new_value = std::to_string(*ret);
       StringsValue strings_value(new_value);
       strings_value.SetEtime(timestamp);
-      *expired_timestamp_sec = timestamp;
+      *expired_timestamp_millsec = timestamp;
       return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
     }
   } else if (s.IsNotFound()) {
