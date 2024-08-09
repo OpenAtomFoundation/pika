@@ -63,9 +63,10 @@ Status Redis::ScanStringsKeyNum(KeyInfo* key_info) {
   return Status::OK();
 }
 
-Status Redis::Append(const Slice& key, const Slice& value, int32_t* ret) {
+Status Redis::Append(const Slice& key, const Slice& value, int32_t* ret, int64_t* expired_timestamp_sec, std::string& out_new_value) {
   std::string old_value;
   *ret = 0;
+  *expired_timestamp_sec = 0;
   ScopeRecordLock l(lock_mgr_, key);
 
   BaseKey base_key(key);
@@ -90,14 +91,17 @@ Status Redis::Append(const Slice& key, const Slice& value, int32_t* ret) {
       uint64_t timestamp = parsed_strings_value.Etime();
       std::string old_user_value = parsed_strings_value.UserValue().ToString();
       std::string new_value = old_user_value + value.ToString();
+      out_new_value = new_value;
       StringsValue strings_value(new_value);
       strings_value.SetEtime(timestamp);
       *ret = static_cast<int32_t>(new_value.size());
+      *expired_timestamp_sec = timestamp;
       return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
     }
   } else if (s.IsNotFound()) {
     *ret = static_cast<int32_t>(value.size());
     StringsValue strings_value(value);
+    *expired_timestamp_sec = 0;
     return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
   }
   return s;
@@ -618,11 +622,10 @@ Status Redis::GetSet(const Slice& key, const Slice& value, std::string* old_valu
   return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
 }
 
-Status Redis::Incrby(const Slice& key, int64_t value, int64_t* ret) {
+Status Redis::Incrby(const Slice& key, int64_t value, int64_t* ret, int64_t* expired_timestamp_sec) {
   std::string old_value;
   std::string new_value;
   ScopeRecordLock l(lock_mgr_, key);
-
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), &old_value);
   char buf[32] = {0};
@@ -630,10 +633,9 @@ Status Redis::Incrby(const Slice& key, int64_t value, int64_t* ret) {
     if (ExpectedStale(old_value)) {
       s = Status::NotFound();
     } else {
-     return Status::InvalidArgument(
-        "WRONGTYPE, key: " + key.ToString() + ", expect type: " +
-        DataTypeStrings[static_cast<int>(DataType::kStrings)] + ", get type: " +
-        DataTypeStrings[static_cast<int>(GetMetaValueType(old_value))]);
+      return Status::InvalidArgument("WRONGTYPE, key: " + key.ToString() +
+                                     ", expect type: " + DataTypeStrings[static_cast<int>(DataType::kStrings)] +
+                                     ", get type: " + DataTypeStrings[static_cast<int>(GetMetaValueType(old_value))]);
     }
   }
   if (s.ok()) {
@@ -658,6 +660,7 @@ Status Redis::Incrby(const Slice& key, int64_t value, int64_t* ret) {
       new_value = std::to_string(*ret);
       StringsValue strings_value(new_value);
       strings_value.SetEtime(timestamp);
+      *expired_timestamp_sec = timestamp;
       return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
     }
   } else if (s.IsNotFound()) {
@@ -670,9 +673,10 @@ Status Redis::Incrby(const Slice& key, int64_t value, int64_t* ret) {
   }
 }
 
-Status Redis::Incrbyfloat(const Slice& key, const Slice& value, std::string* ret) {
+Status Redis::Incrbyfloat(const Slice& key, const Slice& value, std::string* ret, int64_t* expired_timestamp_sec) {
   std::string old_value;
   std::string new_value;
+  *expired_timestamp_sec = 0;
   long double long_double_by;
   if (StrToLongDouble(value.data(), value.size(), &long_double_by) == -1) {
     return Status::Corruption("Value is not a vaild float");
@@ -713,6 +717,7 @@ Status Redis::Incrbyfloat(const Slice& key, const Slice& value, std::string* ret
       *ret = new_value;
       StringsValue strings_value(new_value);
       strings_value.SetEtime(timestamp);
+      *expired_timestamp_sec = timestamp;
       return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
     }
   } else if (s.IsNotFound()) {

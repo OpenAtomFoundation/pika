@@ -149,7 +149,7 @@ class Redis {
   virtual Status SetsTTL(const Slice& key, int64_t* timestamp, std::string&& prefetch_meta = {});
 
   // Strings Commands
-  Status Append(const Slice& key, const Slice& value, int32_t* ret);
+  Status Append(const Slice& key, const Slice& value, int32_t* ret, int64_t* expired_timestamp_sec, std::string& out_new_value);
   Status BitCount(const Slice& key, int64_t start_offset, int64_t end_offset, int32_t* ret, bool have_range);
   Status BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys, std::string &value_to_dest, int64_t* ret);
   Status Decrby(const Slice& key, int64_t value, int64_t* ret);
@@ -163,8 +163,8 @@ class Redis {
   Status GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t end_offset,
                            std::string* ret, std::string* value, int64_t* ttl);
   Status GetSet(const Slice& key, const Slice& value, std::string* old_value);
-  Status Incrby(const Slice& key, int64_t value, int64_t* ret);
-  Status Incrbyfloat(const Slice& key, const Slice& value, std::string* ret);
+  Status Incrby(const Slice& key, int64_t value, int64_t* ret, int64_t* expired_timestamp_sec);
+  Status Incrbyfloat(const Slice& key, const Slice& value, std::string* ret, int64_t* expired_timestamp_sec);
   Status MSet(const std::vector<KeyValue>& kvs);
   Status MSetnx(const std::vector<KeyValue>& kvs, int32_t* ret);
   Status Set(const Slice& key, const Slice& value);
