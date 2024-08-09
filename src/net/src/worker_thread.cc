@@ -235,6 +235,7 @@ void WorkerThread::DoCronTask() {
       }
       conns_.clear();
       deleting_conn_ipport_.clear();
+      return;
     }
 
     auto iter = conns_.begin();
@@ -272,13 +273,10 @@ void WorkerThread::DoCronTask() {
       ++iter;
     }
   }
-
   for (const auto& conn : to_close) {
-    net_multiplexer_->NetDelEvent(conn->fd(), 0);
     CloseFd(conn);
   }
   for (const auto& conn : to_timeout) {
-    net_multiplexer_->NetDelEvent(conn->fd(), 0);
     CloseFd(conn);
     server_thread_->handle_->FdTimeoutHandle(conn->fd(), conn->ip_port());
   }
