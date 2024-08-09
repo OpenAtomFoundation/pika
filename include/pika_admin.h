@@ -185,17 +185,19 @@ class FlushallCmd : public Cmd {
       : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::KEYSPACE)) {}
   void Do() override;
   void DoThroughDB() override;
-  void DoUpdateCache(std::shared_ptr<DB> db);
   void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new FlushallCmd(*this); }
   bool FlushAllWithoutLock();
   void DoBinlog() override;
+  void DoBinlogByDB(const std::shared_ptr<SyncMasterDB>& sync_db);
 
  private:
   void DoInitial() override;
   bool DoWithoutLock(std::shared_ptr<DB> db);
+  void DoFlushCache(std::shared_ptr<DB> db);
   void Clear() override { flushall_succeed_ = false; }
+  std::string ToRedisProtocol() override;
 
   bool flushall_succeed_{false};
 };
