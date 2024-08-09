@@ -811,7 +811,7 @@ Status Redis::Setxx(const Slice& key, const Slice& value, int32_t* ret, int64_t 
   } else {
     *ret = 1;
     if (ttl_millsec > 0) {
-      strings_value.SetRelativeTimeByMillsec(ttl_millsec);
+      strings_value.SetRelativeTimeInMillsec(ttl_millsec);
     }
     return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
   }
@@ -881,7 +881,7 @@ Status Redis::Setex(const Slice& key, const Slice& value, int64_t ttl_millsec) {
     return Status::InvalidArgument("invalid expire time");
   }
   StringsValue strings_value(value);
-  auto s = strings_value.SetRelativeTimeByMillsec(ttl_millsec);
+  auto s = strings_value.SetRelativeTimeInMillsec(ttl_millsec);
   if (s != Status::OK()) {
     return s;
   }
@@ -909,7 +909,7 @@ Status Redis::Setnx(const Slice& key, const Slice& value, int32_t* ret, int64_t 
 
   StringsValue strings_value(value);
   if (ttl_millsec > 0) {
-    strings_value.SetRelativeTimeByMillsec(ttl_millsec);
+    strings_value.SetRelativeTimeInMillsec(ttl_millsec);
   }
   s = db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
   if (s.ok()) {
@@ -944,7 +944,7 @@ Status Redis::Setvx(const Slice& key, const Slice& value, const Slice& new_value
       if (value.compare(parsed_strings_value.UserValue()) == 0) {
         StringsValue strings_value(new_value);
         if (ttl_millsec > 0) {
-          strings_value.SetRelativeTimeByMillsec(ttl_millsec);
+          strings_value.SetRelativeTimeInMillsec(ttl_millsec);
         }
         s = db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
         if (!s.ok()) {

@@ -21,7 +21,7 @@ TEST(StringsFilterTest, FilterTest) {
 
   int64_t ttl = 1;
   StringsValue strings_value("FILTER_VALUE");
-  strings_value.SetRelativeTimeByMillsec(ttl);
+  strings_value.SetRelativeTimeInMillsec(ttl);
   is_stale = filter->Filter(0, "FILTER_KEY", strings_value.Encode(), &new_value, &value_changed);
   ASSERT_FALSE(is_stale);
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));
