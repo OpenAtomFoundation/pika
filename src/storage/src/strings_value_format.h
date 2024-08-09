@@ -35,13 +35,9 @@ class StringsValue : public InternalValue {
     dst += usize;
     memcpy(dst, reserve_, kSuffixReserveLength);
     dst += kSuffixReserveLength;
-    // The most significant bit is 1 for milliseconds and 0 for seconds.
-    // The previous data was stored in seconds, but the subsequent data was stored in milliseconds
-    uint64_t ctime = ctime_ > 0 ? (ctime_ | (1ULL << 63)) : 0;
-    EncodeFixed64(dst, ctime);
+    EncodeFixed64(dst, ctime_);
     dst += kTimestampLength;
-    uint64_t etime = etime_ > 0 ? (etime_ | (1ULL << 63)) : 0;
-    EncodeFixed64(dst, etime);
+    EncodeFixed64(dst, etime_);
     return {start_, needed};
   }
 };
@@ -82,20 +78,9 @@ class ParsedStringsValue : public ParsedInternalValue {
       offset += user_value_.size();
       memcpy(reserve_, internal_value_str->data() + offset, kSuffixReserveLength);
       offset += kSuffixReserveLength;
-      uint64_t ctime = DecodeFixed64(internal_value_str->data() + offset);
+      ctime_ = DecodeFixed64(internal_value_str->data() + offset);
       offset += sizeof(ctime_);
-      uint64_t etime = DecodeFixed64(internal_value_str->data() + offset);
-
-      ctime_ = (ctime & ~(1ULL << 63));
-      // if ctime_==ctime, means ctime_ storaged in seconds
-      if (ctime_ == ctime) {
-        ctime_ *= 1000;
-      }
-      etime_ = (etime & ~(1ULL << 63));
-      // if etime_==etime, means etime_ storaged in seconds
-      if (etime == etime_) {
-        etime_ *= 1000;
-      }
+      etime_ = DecodeFixed64(internal_value_str->data() + offset);
     }
   }
 
@@ -109,20 +94,9 @@ class ParsedStringsValue : public ParsedInternalValue {
       offset += user_value_.size();
       memcpy(reserve_, internal_value_slice.data() + offset, kSuffixReserveLength);
       offset += kSuffixReserveLength;
-      uint64_t ctime = DecodeFixed64(internal_value_slice.data() + offset);
+      ctime_ = DecodeFixed64(internal_value_slice.data() + offset);
       offset += kTimestampLength;
-      uint64_t etime = DecodeFixed64(internal_value_slice.data() + offset);
-
-      ctime_ = (ctime & ~(1ULL << 63));
-      // if ctime_==ctime, means ctime_ storaged in seconds
-      if (ctime_ == ctime) {
-        ctime_ *= 1000;
-      }
-      etime_ = (etime & ~(1ULL << 63));
-      // if etime_==etime, means etime_ storaged in seconds
-      if (etime == etime_) {
-        etime_ *= 1000;
-      }
+      etime_ = DecodeFixed64(internal_value_slice.data() + offset);
     }
   }
 
@@ -140,8 +114,7 @@ class ParsedStringsValue : public ParsedInternalValue {
     if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() -
                   kStringsValueSuffixLength + kSuffixReserveLength;
-      uint64_t ctime = ctime_ > 0 ? (ctime_ | (1ULL << 63)) : 0;
-      EncodeFixed64(dst, ctime);
+      EncodeFixed64(dst, ctime_);
     }
   }
 
@@ -149,8 +122,7 @@ class ParsedStringsValue : public ParsedInternalValue {
     if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() -
                   kStringsValueSuffixLength + kSuffixReserveLength + kTimestampLength;
-      uint64_t etime = etime_ > 0 ? (etime_ | (1ULL << 63)) : 0;
-      EncodeFixed64(dst, etime);
+      EncodeFixed64(dst, etime_);
     }
   }
 

@@ -114,7 +114,7 @@ void BitGetCmd::DoThroughDB() {
   Do();
 }
 
-void BitGetCmd::DoUpdateCache() {
+void BitGetCmd::DoUpdateCache(){
   if (s_.ok()) {
     db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_KV, key_, db_);
   }

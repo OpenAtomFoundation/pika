@@ -17,8 +17,6 @@ class SequentialFile;
 class RWFile;
 class RandomRWFile;
 
-using TimeType = uint64_t;
-
 /*
  *  Set the resource limits of a process
  */
@@ -63,10 +61,7 @@ class FileLock : public pstd::noncopyable {
 int GetChildren(const std::string& dir, std::vector<std::string>& result);
 void GetDescendant(const std::string& dir, std::vector<std::string>& result);
 
-TimeType NowMicros();
-
-TimeType NowMillis();
-
+uint64_t NowMicros();
 void SleepForMicroseconds(int micros);
 
 Status NewSequentialFile(const std::string& fname, std::unique_ptr<SequentialFile>& result);

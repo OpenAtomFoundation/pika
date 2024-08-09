@@ -605,7 +605,7 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
               master_boffset.offset - sent_slave_boffset.offset;
           tmp_stream << "(" << db->DBName() << ":" << lag << ")";
         }
-      } else if (s.ok() && slave_state == SlaveState::kSlaveDbSync) {
+      } else if (s.ok() && slave_state == SlaveState::kSlaveDbSync){
         tmp_stream << "(" << db->DBName() << ":full syncing)";
       } else {
         tmp_stream << "(" << db->DBName() << ":not syncing)";
@@ -1585,7 +1585,7 @@ void DoBgslotsreload(void* arg) {
   rocksdb::Status s;
   std::vector<std::string> keys;
   int64_t cursor_ret = -1;
-  while(cursor_ret != 0 && p->GetSlotsreloading()) {
+  while(cursor_ret != 0 && p->GetSlotsreloading()){
     cursor_ret = reload.db->storage()->Scan(storage::DataType::kAll, reload.cursor, reload.pattern, reload.count, &keys);
 
     std::vector<std::string>::const_iterator iter;
@@ -1593,8 +1593,8 @@ void DoBgslotsreload(void* arg) {
       std::string key_type;
       int s = GetKeyType(*iter, key_type, reload.db);
       //if key is slotkey, can't add to SlotKey
-      if (s > 0) {
-        if (key_type == "s" && ((*iter).find(SlotKeyPrefix) != std::string::npos || (*iter).find(SlotTagPrefix) != std::string::npos)) {
+      if (s > 0){
+        if (key_type == "s" && ((*iter).find(SlotKeyPrefix) != std::string::npos || (*iter).find(SlotTagPrefix) != std::string::npos)){
           continue;
         }
 
@@ -1703,7 +1703,7 @@ void DoBgslotscleanup(void* arg) {
   std::vector<std::string> keys;
   int64_t cursor_ret = -1;
   std::vector<int> cleanupSlots(cleanup.cleanup_slots);
-  while (cursor_ret != 0 && p->GetSlotscleaningup()) {
+  while (cursor_ret != 0 && p->GetSlotscleaningup()){
     cursor_ret = g_pika_server->bgslots_cleanup_.db->storage()->Scan(storage::DataType::kAll, cleanup.cursor, cleanup.pattern, cleanup.count, &keys);
 
     std::string key_type;
@@ -1712,12 +1712,12 @@ void DoBgslotscleanup(void* arg) {
       if ((*iter).find(SlotKeyPrefix) != std::string::npos || (*iter).find(SlotTagPrefix) != std::string::npos) {
         continue;
       }
-      if (std::find(cleanupSlots.begin(), cleanupSlots.end(), GetSlotID(g_pika_conf->default_slot_num(), *iter)) != cleanupSlots.end()) {
+      if (std::find(cleanupSlots.begin(), cleanupSlots.end(), GetSlotID(g_pika_conf->default_slot_num(), *iter)) != cleanupSlots.end()){
         if (GetKeyType(*iter, key_type, g_pika_server->bgslots_cleanup_.db) <= 0) {
           LOG(WARNING) << "slots clean get key type for slot " << GetSlotID(g_pika_conf->default_slot_num(), *iter) << " key " << *iter << " error";
           continue;
         }
-        if (DeleteKey(*iter, key_type[0], g_pika_server->bgslots_cleanup_.db) <= 0) {
+        if (DeleteKey(*iter, key_type[0], g_pika_server->bgslots_cleanup_.db) <= 0){
           LOG(WARNING) << "slots clean del for slot " << GetSlotID(g_pika_conf->default_slot_num(), *iter) << " key "<< *iter << " error";
         }
       }
@@ -1728,7 +1728,7 @@ void DoBgslotscleanup(void* arg) {
     keys.clear();
   }
 
-  for (int cleanupSlot : cleanupSlots) {
+  for (int cleanupSlot : cleanupSlots){
     WriteDelKeyToBinlog(GetSlotKey(cleanupSlot), g_pika_server->bgslots_cleanup_.db);
     WriteDelKeyToBinlog(GetSlotsTagKey(cleanupSlot), g_pika_server->bgslots_cleanup_.db);
   }

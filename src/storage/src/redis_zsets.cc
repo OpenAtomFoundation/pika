@@ -36,7 +36,8 @@ Status Redis::ScanZsetsKeyNum(KeyInfo* key_info) {
   iterator_options.snapshot = snapshot;
   iterator_options.fill_cache = false;
 
-  pstd::TimeType curtime = pstd::NowMillis();
+  int64_t curtime;
+  rocksdb::Env::Default()->GetCurrentTime(&curtime);
 
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kMetaCF]);
   for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
@@ -107,7 +108,7 @@ Status Redis::ZPopMax(const Slice& key, const int64_t count, std::vector<ScoreMe
         batch.Delete(handles_[kZsetsScoreCF], iter->key());
       }
       delete iter;
-      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)) {
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
         return Status::InvalidArgument("zset size overflow");
       }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
@@ -165,7 +166,7 @@ Status Redis::ZPopMin(const Slice& key, const int64_t count, std::vector<ScoreMe
         batch.Delete(handles_[kZsetsScoreCF], iter->key());
       }
       delete iter;
-      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)) {
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
         return Status::InvalidArgument("zset size overflow");
       }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
@@ -260,7 +261,7 @@ Status Redis::ZAdd(const Slice& key, const std::vector<ScoreMember>& score_membe
         cnt++;
       }
     }
-    if (!parsed_zsets_meta_value.CheckModifyCount(cnt)) {
+    if (!parsed_zsets_meta_value.CheckModifyCount(cnt)){
       return Status::InvalidArgument("zset size overflow");
     }
     parsed_zsets_meta_value.ModifyCount(cnt);
@@ -443,7 +444,7 @@ Status Redis::ZIncrby(const Slice& key, const Slice& member, double increment, d
       statistic++;
     } else if (s.IsNotFound()) {
       score = increment;
-      if (!parsed_zsets_meta_value.CheckModifyCount(1)) {
+      if (!parsed_zsets_meta_value.CheckModifyCount(1)){
         return Status::InvalidArgument("zset size overflow");
       }
       parsed_zsets_meta_value.ModifyCount(1);
@@ -534,7 +535,7 @@ Status Redis::ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<
 }
 
 Status Redis::ZRangeWithTTL(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members,
-                                 int64_t* ttl_millsec) {
+                                 int64_t* ttl) {
   score_members->clear();
   rocksdb::ReadOptions read_options;
   const rocksdb::Snapshot* snapshot = nullptr;
@@ -563,12 +564,13 @@ Status Redis::ZRangeWithTTL(const Slice& key, int32_t start, int32_t stop, std::
       return Status::NotFound("Stale");
     } else {
       // ttl
-      *ttl_millsec = parsed_zsets_meta_value.Etime();
-      if (*ttl_millsec == 0) {
-        *ttl_millsec = -1;
+      *ttl = parsed_zsets_meta_value.Etime();
+      if (*ttl == 0) {
+        *ttl = -1;
       } else {
-        pstd::TimeType curtime = pstd::NowMillis();
-        *ttl_millsec = *ttl_millsec - curtime >= 0 ? *ttl_millsec - curtime : -2;
+        int64_t curtime;
+        rocksdb::Env::Default()->GetCurrentTime(&curtime);
+        *ttl = *ttl - curtime >= 0 ? *ttl - curtime : -2;
       }
 
       int32_t count = parsed_zsets_meta_value.Count();
@@ -795,7 +797,7 @@ Status Redis::ZRem(const Slice& key, const std::vector<std::string>& members, in
         }
       }
       *ret = del_cnt;
-      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)) {
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
         return Status::InvalidArgument("zset size overflow");
       }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
@@ -862,7 +864,7 @@ Status Redis::ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int
       }
       delete iter;
       *ret = del_cnt;
-      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)) {
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
         return Status::InvalidArgument("zset size overflow");
       }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
@@ -942,7 +944,7 @@ Status Redis::ZRemrangebyscore(const Slice& key, double min, double max, bool le
       }
       delete iter;
       *ret = del_cnt;
-      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)) {
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
         return Status::InvalidArgument("zset size overflow");
       }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
@@ -1654,7 +1656,7 @@ Status Redis::ZRemrangebylex(const Slice& key, const Slice& min, const Slice& ma
       delete iter;
     }
     if (del_cnt > 0) {
-      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)) {
+      if (!parsed_zsets_meta_value.CheckModifyCount(-del_cnt)){
         return Status::InvalidArgument("zset size overflow");
       }
       parsed_zsets_meta_value.ModifyCount(-del_cnt);
@@ -1669,7 +1671,7 @@ Status Redis::ZRemrangebylex(const Slice& key, const Slice& min, const Slice& ma
   return s;
 }
 
-Status Redis::ZsetsExpire(const Slice& key, int64_t ttl_millsec, std::string&& prefetch_meta) {
+Status Redis::ZsetsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta) {
   std::string meta_value(std::move(prefetch_meta));
   ScopeRecordLock l(lock_mgr_, key);
   BaseMetaKey base_meta_key(key);
@@ -1698,8 +1700,8 @@ Status Redis::ZsetsExpire(const Slice& key, int64_t ttl_millsec, std::string&& p
       return Status::NotFound();
     }
 
-    if (ttl_millsec > 0) {
-      parsed_zsets_meta_value.SetRelativeTimestamp(ttl_millsec);
+    if (ttl > 0) {
+      parsed_zsets_meta_value.SetRelativeTimestamp(ttl);
     } else {
       parsed_zsets_meta_value.InitialMetaValue();
     }
@@ -1745,7 +1747,7 @@ Status Redis::ZsetsDel(const Slice& key, std::string&& prefetch_meta) {
   return s;
 }
 
-Status Redis::ZsetsExpireat(const Slice& key, int64_t timestamp_millsec, std::string&& prefetch_meta) {
+Status Redis::ZsetsExpireat(const Slice& key, int64_t timestamp, std::string&& prefetch_meta) {
   std::string meta_value(std::move(prefetch_meta));
   ScopeRecordLock l(lock_mgr_, key);
   BaseMetaKey base_meta_key(key);
@@ -1773,8 +1775,8 @@ Status Redis::ZsetsExpireat(const Slice& key, int64_t timestamp_millsec, std::st
     } else if (parsed_zsets_meta_value.Count() == 0) {
       return Status::NotFound();
     } else {
-      if (timestamp_millsec > 0) {
-        parsed_zsets_meta_value.SetEtime(uint64_t(timestamp_millsec));
+      if (timestamp > 0) {
+        parsed_zsets_meta_value.SetEtime(uint64_t(timestamp));
       } else {
         parsed_zsets_meta_value.InitialMetaValue();
       }
@@ -1910,7 +1912,7 @@ Status Redis::ZsetsPersist(const Slice& key, std::string&& prefetch_meta) {
   return s;
 }
 
-Status Redis::ZsetsTTL(const Slice& key, int64_t* ttl_millsec, std::string&& prefetch_meta) {
+Status Redis::ZsetsTTL(const Slice& key, int64_t* timestamp, std::string&& prefetch_meta) {
   std::string meta_value(std::move(prefetch_meta));
   BaseMetaKey base_meta_key(key);
   Status s;
@@ -1933,22 +1935,23 @@ Status Redis::ZsetsTTL(const Slice& key, int64_t* ttl_millsec, std::string&& pre
   if (s.ok()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
     if (parsed_zsets_meta_value.IsStale()) {
-      *ttl_millsec = -2;
+      *timestamp = -2;
       return Status::NotFound("Stale");
     } else if (parsed_zsets_meta_value.Count() == 0) {
-      *ttl_millsec = -2;
+      *timestamp = -2;
       return Status::NotFound();
     } else {
-      *ttl_millsec = parsed_zsets_meta_value.Etime();
-      if (*ttl_millsec == 0) {
-        *ttl_millsec = -1;
+      *timestamp = parsed_zsets_meta_value.Etime();
+      if (*timestamp == 0) {
+        *timestamp = -1;
       } else {
-        pstd::TimeType curtime = pstd::NowMillis();
-        *ttl_millsec = *ttl_millsec - curtime >= 0 ? *ttl_millsec - curtime : -2;
+        int64_t curtime;
+        rocksdb::Env::Default()->GetCurrentTime(&curtime);
+        *timestamp = *timestamp - curtime >= 0 ? *timestamp - curtime : -2;
       }
     }
   } else if (s.IsNotFound()) {
-    *ttl_millsec = -2;
+    *timestamp = -2;
   }
   return s;
 }

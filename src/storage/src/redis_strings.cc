@@ -33,7 +33,8 @@ Status Redis::ScanStringsKeyNum(KeyInfo* key_info) {
   iterator_options.snapshot = snapshot;
   iterator_options.fill_cache = false;
 
-  pstd::TimeType curtime = pstd::NowMillis();
+  int64_t curtime;
+  rocksdb::Env::Default()->GetCurrentTime(&curtime);
 
   // Note: This is a string type and does not need to pass the column family as
   // a parameter, use the default column family
@@ -381,23 +382,24 @@ void ClearValueAndSetTTL(std::string* value, int64_t* ttl, int64_t ttl_value) {
 }
 
 int64_t CalculateTTL(int64_t expiry_time) {
-  pstd::TimeType current_time = pstd::NowMillis();
+  int64_t current_time;
+  rocksdb::Env::Default()->GetCurrentTime(&current_time);
   return expiry_time - current_time >= 0 ? expiry_time - current_time : -2;
 }
 
-Status HandleParsedStringsValue(ParsedStringsValue& parsed_strings_value, std::string* value, int64_t* ttl_millsec) {
+Status HandleParsedStringsValue(ParsedStringsValue& parsed_strings_value, std::string* value, int64_t* ttl) {
   if (parsed_strings_value.IsStale()) {
-    ClearValueAndSetTTL(value, ttl_millsec, -2);
+    ClearValueAndSetTTL(value, ttl, -2);
     return Status::NotFound("Stale");
   } else {
     parsed_strings_value.StripSuffix();
     int64_t expiry_time = parsed_strings_value.Etime();
-    *ttl_millsec = (expiry_time == 0) ? -1 : CalculateTTL(expiry_time);
+    *ttl = (expiry_time == 0) ? -1 : CalculateTTL(expiry_time);
   }
   return Status::OK();
 }
 
-Status Redis::GetWithTTL(const Slice& key, std::string* value, int64_t* ttl_millsec) {
+Status Redis::GetWithTTL(const Slice& key, std::string* value, int64_t* ttl) {
   value->clear();
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), value);
@@ -416,15 +418,15 @@ Status Redis::GetWithTTL(const Slice& key, std::string* value, int64_t* ttl_mill
 
   if (s.ok()) {
     ParsedStringsValue parsed_strings_value(value);
-    return HandleParsedStringsValue(parsed_strings_value, value, ttl_millsec);
+    return HandleParsedStringsValue(parsed_strings_value, value, ttl);
   } else if (s.IsNotFound()) {
-    ClearValueAndSetTTL(value, ttl_millsec, -2);
+    ClearValueAndSetTTL(value, ttl, -2);
   }
 
   return s;
 }
 
-Status Redis::MGetWithTTL(const Slice& key, std::string* value, int64_t* ttl_millsec) {
+Status Redis::MGetWithTTL(const Slice& key, std::string* value, int64_t* ttl) {
   value->clear();
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), value);
@@ -436,9 +438,9 @@ Status Redis::MGetWithTTL(const Slice& key, std::string* value, int64_t* ttl_mil
 
   if (s.ok()) {
     ParsedStringsValue parsed_strings_value(value);
-    return HandleParsedStringsValue(parsed_strings_value, value, ttl_millsec);
+    return HandleParsedStringsValue(parsed_strings_value, value, ttl);
   } else if (s.IsNotFound()) {
-    ClearValueAndSetTTL(value, ttl_millsec, -2);
+    ClearValueAndSetTTL(value, ttl, -2);
   }
 
   return s;
@@ -529,7 +531,7 @@ Status Redis::Getrange(const Slice& key, int64_t start_offset, int64_t end_offse
 }
 
 Status Redis::GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t end_offset,
-                                std::string* ret, std::string* value, int64_t* ttl_millsec) {
+                                std::string* ret, std::string* value, int64_t* ttl) {
   *ret = "";
   BaseKey base_key(key);
   Status s = db_->Get(default_read_options_, base_key.Encode(), value);
@@ -548,17 +550,18 @@ Status Redis::GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t 
     ParsedStringsValue parsed_strings_value(value);
     if (parsed_strings_value.IsStale()) {
       value->clear();
-      *ttl_millsec = -2;
+      *ttl = -2;
       return Status::NotFound("Stale");
     } else {
       parsed_strings_value.StripSuffix();
       // get ttl
-      *ttl_millsec = parsed_strings_value.Etime();
-      if (*ttl_millsec == 0) {
-        *ttl_millsec = -1;
+      *ttl = parsed_strings_value.Etime();
+      if (*ttl == 0) {
+        *ttl = -1;
       } else {
-        pstd::TimeType curtime = pstd::NowMillis();
-        *ttl_millsec = *ttl_millsec - curtime >= 0 ? *ttl_millsec - curtime : -2;
+        int64_t curtime;
+        rocksdb::Env::Default()->GetCurrentTime(&curtime);
+        *ttl = *ttl - curtime >= 0 ? *ttl - curtime : -2;
       }
 
       int64_t size = value->size();
@@ -584,7 +587,7 @@ Status Redis::GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t 
     }
   } else if (s.IsNotFound()) {
     value->clear();
-    *ttl_millsec = -2;
+    *ttl = -2;
   }
   return s;
 }
@@ -778,7 +781,7 @@ Status Redis::Set(const Slice& key, const Slice& value) {
   return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
 }
 
-Status Redis::Setxx(const Slice& key, const Slice& value, int32_t* ret, int64_t ttl_millsec) {
+Status Redis::Setxx(const Slice& key, const Slice& value, int32_t* ret, int64_t ttl) {
   bool not_found = true;
   std::string old_value;
   StringsValue strings_value(value);
@@ -810,8 +813,8 @@ Status Redis::Setxx(const Slice& key, const Slice& value, int32_t* ret, int64_t 
     return s;
   } else {
     *ret = 1;
-    if (ttl_millsec > 0) {
-      strings_value.SetRelativeTimeByMillsec(ttl_millsec);
+    if (ttl > 0) {
+      strings_value.SetRelativeTimestamp(ttl);
     }
     return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
   }
@@ -876,12 +879,12 @@ Status Redis::SetBit(const Slice& key, int64_t offset, int32_t on, int32_t* ret)
   }
 }
 
-Status Redis::Setex(const Slice& key, const Slice& value, int64_t ttl_millsec) {
-  if (ttl_millsec <= 0) {
+Status Redis::Setex(const Slice& key, const Slice& value, int64_t ttl) {
+  if (ttl <= 0) {
     return Status::InvalidArgument("invalid expire time");
   }
   StringsValue strings_value(value);
-  auto s = strings_value.SetRelativeTimeByMillsec(ttl_millsec);
+  auto s = strings_value.SetRelativeTimestamp(ttl);
   if (s != Status::OK()) {
     return s;
   }
@@ -891,7 +894,7 @@ Status Redis::Setex(const Slice& key, const Slice& value, int64_t ttl_millsec) {
   return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
 }
 
-Status Redis::Setnx(const Slice& key, const Slice& value, int32_t* ret, int64_t ttl_millsec) {
+Status Redis::Setnx(const Slice& key, const Slice& value, int32_t* ret, int64_t ttl) {
   *ret = 0;
   std::string old_value;
 
@@ -908,8 +911,8 @@ Status Redis::Setnx(const Slice& key, const Slice& value, int32_t* ret, int64_t 
   s = Status::NotFound();
 
   StringsValue strings_value(value);
-  if (ttl_millsec > 0) {
-    strings_value.SetRelativeTimeByMillsec(ttl_millsec);
+  if (ttl > 0) {
+    strings_value.SetRelativeTimestamp(ttl);
   }
   s = db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
   if (s.ok()) {
@@ -919,7 +922,7 @@ Status Redis::Setnx(const Slice& key, const Slice& value, int32_t* ret, int64_t 
 }
 
 Status Redis::Setvx(const Slice& key, const Slice& value, const Slice& new_value, int32_t* ret,
-                    int64_t ttl_millsec) {
+                    int64_t ttl) {
   *ret = 0;
   std::string old_value;
 
@@ -943,8 +946,8 @@ Status Redis::Setvx(const Slice& key, const Slice& value, const Slice& new_value
     } else {
       if (value.compare(parsed_strings_value.UserValue()) == 0) {
         StringsValue strings_value(new_value);
-        if (ttl_millsec > 0) {
-          strings_value.SetRelativeTimeByMillsec(ttl_millsec);
+        if (ttl > 0) {
+          strings_value.SetRelativeTimestamp(ttl);
         }
         s = db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
         if (!s.ok()) {
@@ -1289,18 +1292,16 @@ Status Redis::BitPos(const Slice& key, int32_t bit, int64_t start_offset, int64_
 }
 
 //TODO(wangshaoyi): timestamp uint64_t
-Status Redis::PKSetexAt(const Slice& key, const Slice& value, int64_t time_stamp_millsec_) {
+Status Redis::PKSetexAt(const Slice& key, const Slice& value, int64_t timestamp) {
   StringsValue strings_value(value);
-  if (time_stamp_millsec_ < 0) {
-    time_stamp_millsec_ = pstd::NowMillis() - 1;
-  }
+
   BaseKey base_key(key);
   ScopeRecordLock l(lock_mgr_, key);
-  strings_value.SetEtime(uint64_t(time_stamp_millsec_));
+  strings_value.SetEtime(uint64_t(timestamp));
   return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
 }
 
-Status Redis::StringsExpire(const Slice& key, int64_t ttl_millsec, std::string&& prefetch_meta) {
+Status Redis::StringsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta) {
   std::string value(std::move(prefetch_meta));
 
   BaseKey base_key(key);
@@ -1326,8 +1327,8 @@ Status Redis::StringsExpire(const Slice& key, int64_t ttl_millsec, std::string&&
     if (parsed_strings_value.IsStale()) {
       return Status::NotFound("Stale");
     }
-    if (ttl_millsec > 0) {
-      parsed_strings_value.SetRelativeTimestamp(ttl_millsec);
+    if (ttl > 0) {
+      parsed_strings_value.SetRelativeTimestamp(ttl);
       return db_->Put(default_write_options_, base_key.Encode(), value);
     } else {
       return db_->Delete(default_write_options_, base_key.Encode());
@@ -1367,7 +1368,7 @@ Status Redis::StringsDel(const Slice& key, std::string&& prefetch_meta) {
   return s;
 }
 
-Status Redis::StringsExpireat(const Slice& key, int64_t timestamp_millsec, std::string&& prefetch_meta) {
+Status Redis::StringsExpireat(const Slice& key, int64_t timestamp, std::string&& prefetch_meta) {
   std::string value(std::move(prefetch_meta));
   ScopeRecordLock l(lock_mgr_, key);
   BaseKey base_key(key);
@@ -1393,8 +1394,8 @@ Status Redis::StringsExpireat(const Slice& key, int64_t timestamp_millsec, std::
     if (parsed_strings_value.IsStale()) {
       return Status::NotFound("Stale");
     } else {
-      if (timestamp_millsec > 0) {
-        parsed_strings_value.SetEtime(static_cast<uint64_t>(timestamp_millsec));
+      if (timestamp > 0) {
+        parsed_strings_value.SetEtime(static_cast<uint64_t>(timestamp));
         return db_->Put(default_write_options_, base_key.Encode(), value);
       } else {
         return db_->Delete(default_write_options_, base_key.Encode());
@@ -1442,7 +1443,7 @@ Status Redis::StringsPersist(const Slice& key, std::string&& prefetch_meta) {
   return s;
 }
 
-Status Redis::StringsTTL(const Slice& key, int64_t* ttl_millsec, std::string&& prefetch_meta) {
+Status Redis::StringsTTL(const Slice& key, int64_t* timestamp, std::string&& prefetch_meta) {
   std::string value(std::move(prefetch_meta));
   ScopeRecordLock l(lock_mgr_, key);
   BaseKey base_key(key);
@@ -1466,19 +1467,20 @@ Status Redis::StringsTTL(const Slice& key, int64_t* ttl_millsec, std::string&& p
   if (s.ok()) {
     ParsedStringsValue parsed_strings_value(&value);
     if (parsed_strings_value.IsStale()) {
-      *ttl_millsec = -2;
+      *timestamp = -2;
       return Status::NotFound("Stale");
     } else {
-      *ttl_millsec = parsed_strings_value.Etime();
-      if (*ttl_millsec == 0) {
-        *ttl_millsec = -1;
+      *timestamp = parsed_strings_value.Etime();
+      if (*timestamp == 0) {
+        *timestamp = -1;
       } else {
-        pstd::TimeType curtime = pstd::NowMillis();
-        *ttl_millsec = *ttl_millsec - curtime >= 0 ? *ttl_millsec - curtime : -2;
+        int64_t curtime;
+        rocksdb::Env::Default()->GetCurrentTime(&curtime);
+        *timestamp = *timestamp - curtime >= 0 ? *timestamp - curtime : -2;
       }
     }
   } else if (s.IsNotFound()) {
-    *ttl_millsec = -2;
+    *timestamp = -2;
   }
   return s;
 }
@@ -1570,7 +1572,7 @@ rocksdb::Status Redis::Del(const Slice& key) {
   return rocksdb::Status::NotFound();
 }
 
-rocksdb::Status Redis::Expire(const Slice& key, int64_t ttl_millsec) {
+rocksdb::Status Redis::Expire(const Slice& key, int64_t ttl) {
   std::string meta_value;
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
@@ -1578,15 +1580,15 @@ rocksdb::Status Redis::Expire(const Slice& key, int64_t ttl_millsec) {
     auto type = static_cast<DataType>(static_cast<uint8_t>(meta_value[0]));
     switch (type) {
       case DataType::kSets:
-        return SetsExpire(key, ttl_millsec, std::move(meta_value));
+        return SetsExpire(key, ttl, std::move(meta_value));
       case DataType::kZSets:
-        return ZsetsExpire(key, ttl_millsec, std::move(meta_value));
+        return ZsetsExpire(key, ttl, std::move(meta_value));
       case DataType::kHashes:
-        return HashesExpire(key, ttl_millsec, std::move(meta_value));
+        return HashesExpire(key, ttl, std::move(meta_value));
       case DataType::kLists:
-        return ListsExpire(key, ttl_millsec, std::move(meta_value));
+        return ListsExpire(key, ttl, std::move(meta_value));
       case DataType::kStrings:
-        return StringsExpire(key, ttl_millsec, std::move(meta_value));
+        return StringsExpire(key, ttl, std::move(meta_value));
       default:
         return rocksdb::Status::NotFound();
     }
@@ -1594,7 +1596,7 @@ rocksdb::Status Redis::Expire(const Slice& key, int64_t ttl_millsec) {
   return rocksdb::Status::NotFound();
 }
 
-rocksdb::Status Redis::Expireat(const Slice& key, int64_t timestamp_millsec) {
+rocksdb::Status Redis::Expireat(const Slice& key, int64_t ttl) {
   std::string meta_value;
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
@@ -1602,15 +1604,15 @@ rocksdb::Status Redis::Expireat(const Slice& key, int64_t timestamp_millsec) {
     auto type = static_cast<DataType>(static_cast<uint8_t>(meta_value[0]));
     switch (type) {
       case DataType::kSets:
-        return SetsExpireat(key, timestamp_millsec, std::move(meta_value));
+        return SetsExpireat(key, ttl, std::move(meta_value));
       case DataType::kZSets:
-        return ZsetsExpireat(key, timestamp_millsec, std::move(meta_value));
+        return ZsetsExpireat(key, ttl, std::move(meta_value));
       case DataType::kHashes:
-        return HashesExpireat(key, timestamp_millsec, std::move(meta_value));
+        return HashesExpireat(key, ttl, std::move(meta_value));
       case DataType::kLists:
-        return ListsExpireat(key, timestamp_millsec, std::move(meta_value));
+        return ListsExpireat(key, ttl, std::move(meta_value));
       case DataType::kStrings:
-        return StringsExpireat(key, timestamp_millsec, std::move(meta_value));
+        return StringsExpireat(key, ttl, std::move(meta_value));
       default:
         return rocksdb::Status::NotFound();
     }
@@ -1642,7 +1644,7 @@ rocksdb::Status Redis::Persist(const Slice& key) {
   return rocksdb::Status::NotFound();
 }
 
-rocksdb::Status Redis::TTL(const Slice& key, int64_t* ttl_millsec) {
+rocksdb::Status Redis::TTL(const Slice& key, int64_t* timestamp) {
   std::string meta_value;
   BaseMetaKey base_meta_key(key);
   rocksdb::Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
@@ -1650,15 +1652,15 @@ rocksdb::Status Redis::TTL(const Slice& key, int64_t* ttl_millsec) {
     auto type = static_cast<DataType>(static_cast<uint8_t>(meta_value[0]));
     switch (type) {
       case DataType::kSets:
-        return SetsTTL(key, ttl_millsec, std::move(meta_value));
+        return SetsTTL(key, timestamp, std::move(meta_value));
       case DataType::kZSets:
-        return ZsetsTTL(key, ttl_millsec, std::move(meta_value));
+        return ZsetsTTL(key, timestamp, std::move(meta_value));
       case DataType::kHashes:
-        return HashesTTL(key, ttl_millsec, std::move(meta_value));
+        return HashesTTL(key, timestamp, std::move(meta_value));
       case DataType::kLists:
-        return ListsTTL(key, ttl_millsec, std::move(meta_value));
+        return ListsTTL(key, timestamp, std::move(meta_value));
       case DataType::kStrings:
-        return StringsTTL(key, ttl_millsec, std::move(meta_value));
+        return StringsTTL(key, timestamp, std::move(meta_value));
       default:
         return rocksdb::Status::NotFound();
     }

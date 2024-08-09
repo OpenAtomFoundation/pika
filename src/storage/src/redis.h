@@ -117,11 +117,11 @@ class Redis {
   Status ScanStreamsKeyNum(KeyInfo* key_info);
 
   // Keys Commands
-  virtual Status StringsExpire(const Slice& key, int64_t ttl_millsec, std::string&& prefetch_meta = {});
-  virtual Status HashesExpire(const Slice& key, int64_t ttl_millsec, std::string&& prefetch_meta = {});
-  virtual Status ListsExpire(const Slice& key, int64_t ttl_millsec, std::string&& prefetch_meta = {});
-  virtual Status ZsetsExpire(const Slice& key, int64_t ttl_millsec, std::string&& prefetch_meta = {});
-  virtual Status SetsExpire(const Slice& key, int64_t ttl_millsec, std::string&& prefetch_meta = {});
+  virtual Status StringsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta = {});
+  virtual Status HashesExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta = {});
+  virtual Status ListsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta = {});
+  virtual Status ZsetsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta = {});
+  virtual Status SetsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta = {});
 
   virtual Status StringsDel(const Slice& key, std::string&& prefetch_meta = {});
   virtual Status HashesDel(const Slice& key, std::string&& prefetch_meta = {});
@@ -130,11 +130,11 @@ class Redis {
   virtual Status SetsDel(const Slice& key, std::string&& prefetch_meta = {});
   virtual Status StreamsDel(const Slice& key, std::string&& prefetch_meta = {});
 
-  virtual Status StringsExpireat(const Slice& key, int64_t timestamp_millsec, std::string&& prefetch_meta = {});
-  virtual Status HashesExpireat(const Slice& key, int64_t timestamp_millsec, std::string&& prefetch_meta = {});
-  virtual Status ListsExpireat(const Slice& key, int64_t timestamp_millsec, std::string&& prefetch_meta = {});
-  virtual Status SetsExpireat(const Slice& key, int64_t timestamp_millsec, std::string&& prefetch_meta = {});
-  virtual Status ZsetsExpireat(const Slice& key, int64_t timestamp_millsec, std::string&& prefetch_meta = {});
+  virtual Status StringsExpireat(const Slice& key, int64_t timestamp, std::string&& prefetch_meta = {});
+  virtual Status HashesExpireat(const Slice& key, int64_t timestamp, std::string&& prefetch_meta = {});
+  virtual Status ListsExpireat(const Slice& key, int64_t timestamp, std::string&& prefetch_meta = {});
+  virtual Status SetsExpireat(const Slice& key, int64_t timestamp, std::string&& prefetch_meta = {});
+  virtual Status ZsetsExpireat(const Slice& key, int64_t timestamp, std::string&& prefetch_meta = {});
 
   virtual Status StringsPersist(const Slice& key, std::string&& prefetch_meta = {});
   virtual Status HashesPersist(const Slice& key, std::string&& prefetch_meta = {});
@@ -142,11 +142,11 @@ class Redis {
   virtual Status ZsetsPersist(const Slice& key, std::string&& prefetch_meta = {});
   virtual Status SetsPersist(const Slice& key, std::string&& prefetch_meta = {});
 
-  virtual Status StringsTTL(const Slice& key, int64_t* ttl_millsec, std::string&& prefetch_meta = {});
-  virtual Status HashesTTL(const Slice& key, int64_t* ttl_millsec, std::string&& prefetch_meta = {});
-  virtual Status ListsTTL(const Slice& key, int64_t* ttl_millsec, std::string&& prefetch_meta = {});
-  virtual Status ZsetsTTL(const Slice& key, int64_t* ttl_millsec, std::string&& prefetch_meta = {});
-  virtual Status SetsTTL(const Slice& key, int64_t* ttl_millsec, std::string&& prefetch_meta = {});
+  virtual Status StringsTTL(const Slice& key, int64_t* timestamp, std::string&& prefetch_meta = {});
+  virtual Status HashesTTL(const Slice& key, int64_t* timestamp, std::string&& prefetch_meta = {});
+  virtual Status ListsTTL(const Slice& key, int64_t* timestamp, std::string&& prefetch_meta = {});
+  virtual Status ZsetsTTL(const Slice& key, int64_t* timestamp, std::string&& prefetch_meta = {});
+  virtual Status SetsTTL(const Slice& key, int64_t* timestamp, std::string&& prefetch_meta = {});
 
   // Strings Commands
   Status Append(const Slice& key, const Slice& value, int32_t* ret, int64_t* expired_timestamp_sec, std::string& out_new_value);
@@ -156,12 +156,12 @@ class Redis {
   Status Get(const Slice& key, std::string* value);
   Status HyperloglogGet(const Slice& key, std::string* value);
   Status MGet(const Slice& key, std::string* value);
-  Status GetWithTTL(const Slice& key, std::string* value, int64_t* ttl_millsec);
-  Status MGetWithTTL(const Slice& key, std::string* value, int64_t* ttl_millsec);
+  Status GetWithTTL(const Slice& key, std::string* value, int64_t* ttl);
+  Status MGetWithTTL(const Slice& key, std::string* value, int64_t* ttl);
   Status GetBit(const Slice& key, int64_t offset, int32_t* ret);
   Status Getrange(const Slice& key, int64_t start_offset, int64_t end_offset, std::string* ret);
   Status GetrangeWithValue(const Slice& key, int64_t start_offset, int64_t end_offset,
-                           std::string* ret, std::string* value, int64_t* ttl_millsec);
+                           std::string* ret, std::string* value, int64_t* ttl);
   Status GetSet(const Slice& key, const Slice& value, std::string* old_value);
   Status Incrby(const Slice& key, int64_t value, int64_t* ret, int64_t* expired_timestamp_sec);
   Status Incrbyfloat(const Slice& key, const Slice& value, std::string* ret, int64_t* expired_timestamp_sec);
@@ -169,11 +169,11 @@ class Redis {
   Status MSetnx(const std::vector<KeyValue>& kvs, int32_t* ret);
   Status Set(const Slice& key, const Slice& value);
   Status HyperloglogSet(const Slice& key, const Slice& value);
-  Status Setxx(const Slice& key, const Slice& value, int32_t* ret, int64_t ttl_millsec = 0);
+  Status Setxx(const Slice& key, const Slice& value, int32_t* ret, int64_t ttl = 0);
   Status SetBit(const Slice& key, int64_t offset, int32_t value, int32_t* ret);
-  Status Setex(const Slice& key, const Slice& value, int64_t ttl_millsec);
-  Status Setnx(const Slice& key, const Slice& value, int32_t* ret, int64_t ttl_millsec = 0);
-  Status Setvx(const Slice& key, const Slice& value, const Slice& new_value, int32_t* ret, int64_t ttl_millsec = 0);
+  Status Setex(const Slice& key, const Slice& value, int64_t ttl);
+  Status Setnx(const Slice& key, const Slice& value, int32_t* ret, int64_t ttl = 0);
+  Status Setvx(const Slice& key, const Slice& value, const Slice& new_value, int32_t* ret, int64_t ttl = 0);
   Status Delvx(const Slice& key, const Slice& value, int32_t* ret);
   Status Setrange(const Slice& key, int64_t start_offset, const Slice& value, int32_t* ret);
   Status Strlen(const Slice& key, int32_t* len);
@@ -181,14 +181,14 @@ class Redis {
   Status BitPos(const Slice& key, int32_t bit, int64_t* ret);
   Status BitPos(const Slice& key, int32_t bit, int64_t start_offset, int64_t* ret);
   Status BitPos(const Slice& key, int32_t bit, int64_t start_offset, int64_t end_offset, int64_t* ret);
-  Status PKSetexAt(const Slice& key, const Slice& value, int64_t time_stamp_millsec_);
+  Status PKSetexAt(const Slice& key, const Slice& value, int64_t timestamp);
 
   Status Exists(const Slice& key);
   Status Del(const Slice& key);
-  Status Expire(const Slice& key, int64_t ttl_millsec);
-  Status Expireat(const Slice& key, int64_t timestamp_millsec);
+  Status Expire(const Slice& key, int64_t timestamp);
+  Status Expireat(const Slice& key, int64_t timestamp);
   Status Persist(const Slice& key);
-  Status TTL(const Slice& key, int64_t* ttl_millsec);
+  Status TTL(const Slice& key, int64_t* timestamp);
   Status PKPatternMatchDelWithRemoveKeys(const std::string& pattern, int64_t* ret, std::vector<std::string>* remove_keys, const int64_t& max_count);
 
   Status GetType(const Slice& key, enum DataType& type);
@@ -198,7 +198,7 @@ class Redis {
   Status HExists(const Slice& key, const Slice& field);
   Status HGet(const Slice& key, const Slice& field, std::string* value);
   Status HGetall(const Slice& key, std::vector<FieldValue>* fvs);
-  Status HGetallWithTTL(const Slice& key, std::vector<FieldValue>* fvs, int64_t* ttl_millsec);
+  Status HGetallWithTTL(const Slice& key, std::vector<FieldValue>* fvs, int64_t* ttl);
   Status HIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret);
   Status HIncrbyfloat(const Slice& key, const Slice& field, const Slice& by, std::string* new_value);
   Status HKeys(const Slice& key, std::vector<std::string>* fields);
@@ -255,7 +255,7 @@ class Redis {
   Status SInterstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret);
   Status SIsmember(const Slice& key, const Slice& member, int32_t* ret);
   Status SMembers(const Slice& key, std::vector<std::string>* members);
-  Status SMembersWithTTL(const Slice& key, std::vector<std::string>* members, int64_t* ttl_millsec);
+  Status SMembersWithTTL(const Slice& key, std::vector<std::string>* members, int64_t* ttl);
   Status SMove(const Slice& source, const Slice& destination, const Slice& member, int32_t* ret);
   Status SPop(const Slice& key, std::vector<std::string>* members, int64_t cnt);
   Status SRandmember(const Slice& key, int32_t count, std::vector<std::string>* members);
@@ -276,7 +276,7 @@ class Redis {
   Status LPush(const Slice& key, const std::vector<std::string>& values, uint64_t* ret);
   Status LPushx(const Slice& key, const std::vector<std::string>& values, uint64_t* len);
   Status LRange(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret);
-  Status LRangeWithTTL(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret, int64_t* ttl_millsec);
+  Status LRangeWithTTL(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret, int64_t* ttl);
   Status LRem(const Slice& key, int64_t count, const Slice& value, uint64_t* ret);
   Status LSet(const Slice& key, int64_t index, const Slice& value);
   Status LTrim(const Slice& key, int64_t start, int64_t stop);
@@ -291,7 +291,7 @@ class Redis {
   Status ZCount(const Slice& key, double min, double max, bool left_close, bool right_close, int32_t* ret);
   Status ZIncrby(const Slice& key, const Slice& member, double increment, double* ret);
   Status ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members);
-  Status ZRangeWithTTL(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members, int64_t* ttl_millsec);
+  Status ZRangeWithTTL(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members, int64_t* ttl);
   Status ZRangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close, int64_t count,
                        int64_t offset, std::vector<ScoreMember>* score_members);
   Status ZRank(const Slice& key, const Slice& member, int32_t* rank);
