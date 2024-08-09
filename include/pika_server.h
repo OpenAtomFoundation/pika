@@ -515,7 +515,8 @@ class PikaServer : public pstd::noncopyable {
    */
   void DoTimingTask();
   void AutoCompactRange();
-  void AutoPurge();
+  void AutoBinlogPurge();
+  void AutoServerlogPurge();
   void AutoDeleteExpiredDump();
   void AutoUpdateNetworkMetric();
   void PrintThreadPoolQueueStatus();

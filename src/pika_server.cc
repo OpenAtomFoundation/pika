@@ -1099,8 +1099,10 @@ int PikaServer::ClientPubSubChannelPatternSize(const std::shared_ptr<NetConn>& c
 void PikaServer::DoTimingTask() {
   // Maybe schedule compactrange
   AutoCompactRange();
-  // Purge log
-  AutoPurge();
+  // Purge serverlog
+  AutoServerlogPurge();
+  // Purge binlog
+  AutoBinlogPurge();
   // Delete expired dump
   AutoDeleteExpiredDump();
   // Cheek Rsync Status
@@ -1220,7 +1222,88 @@ void PikaServer::AutoCompactRange() {
   }
 }
 
-void PikaServer::AutoPurge() { DoSameThingEveryDB(TaskType::kPurgeLog); }
+void PikaServer::AutoBinlogPurge() { DoSameThingEveryDB(TaskType::kPurgeLog); }
+
+void PikaServer::AutoServerlogPurge() {
+  std::string log_path = g_pika_conf->log_path();
+  int retention_time = g_pika_conf->log_retention_time();
+  if (retention_time < 0) {
+    return;
+  }
+  std::vector<std::string> log_files;
+
+  if (!pstd::FileExists(log_path)) {
+    return;
+  }
+
+  if (pstd::GetChildren(log_path, log_files) != 0) {
+    return;
+  }
+  //Get the current time of system
+  time_t t = time(nullptr);
+  struct tm* now_time = localtime(&t);
+  now_time->tm_hour = 0;
+  now_time->tm_min = 0;
+  now_time->tm_sec = 0;
+  time_t now_timestamp = mktime(now_time);
+
+  std::map<std::string, std::vector<std::pair<std::string, int64_t>>> log_files_by_level;
+
+  //Serverlogformat: pika.[hostname].[user name].log.[severity level].[date].[time].[pid]
+  for (const auto& file : log_files) {
+    std::vector<std::string> file_parts;
+    pstd::StringSplit(file, '.', file_parts);
+    if (file_parts.size() < 7) {
+      continue;
+    }
+
+    std::string severity_level = file_parts[4];
+    if (severity_level != "WARNING" && severity_level != "INFO" && severity_level != "ERROR") {
+      continue;
+    }
+
+    int log_year, log_month, log_day;
+    if (sscanf(file_parts[5].c_str(), "%4d%2d%2d", &log_year, &log_month, &log_day) != 3) {
+      continue;
+    }
+
+    //Get the time when the server log file was originally created
+    struct tm log_time;
+    log_time.tm_year = log_year - 1900;
+    log_time.tm_mon = log_month - 1;
+    log_time.tm_mday = log_day;
+    log_time.tm_hour = 0;
+    log_time.tm_min = 0;
+    log_time.tm_sec = 0;
+    log_time.tm_isdst = -1;
+    time_t log_timestamp = mktime(&log_time);
+    log_files_by_level[severity_level].push_back({file, log_timestamp});
+}
+
+  // Process files for each log level
+  for (auto& [level, files] : log_files_by_level) {
+    // Sort by time in descending order
+    std::sort(files.begin(), files.end(),
+              [](const auto& a, const auto& b) { return a.second > b.second; });
+
+    bool has_recent_file = false;
+    for (const auto& [file, log_timestamp] : files) {
+      double diff_seconds = difftime(now_timestamp, log_timestamp);
+      int64_t interval_days = static_cast<int64_t>(diff_seconds / 86400);
+      if (interval_days <= retention_time) {
+        has_recent_file = true;
+        continue;
+      }
+      if (!has_recent_file) {
+        has_recent_file = true;
+        continue;
+      }
+      std::string log_file = log_path + "/" + file;
+      LOG(INFO) << "Deleting out of date log file: " << log_file;
+      if(!pstd::DeleteFile(log_file)) LOG(ERROR) << "Failed to delete log file: " << log_file;
+    }
+  }
+}
 
 void PikaServer::AutoDeleteExpiredDump() {
   std::string db_sync_prefix = g_pika_conf->bgsave_prefix();
