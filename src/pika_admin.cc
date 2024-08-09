@@ -2241,6 +2241,18 @@ void ConfigCmd::ConfigGet(std::string& ret) {
                                       : EncodeString(&config_body, "resetchannels");
   }
 
+  if (pstd::stringmatch(pattern.data(), "enable-db-statistics", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "enable-db-statistics");
+    EncodeString(&config_body, g_pika_conf->enable_db_statistics() ? "yes" : "no");
+  }
+
+  if (pstd::stringmatch(pattern.data(), "db-statistics-level", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "db-statistics-level");
+    EncodeNumber(&config_body, g_pika_conf->db_statistics_level());
+  }
+
   std::stringstream resp;
   resp << "*" << std::to_string(elements) << "\r\n" << config_body;
   ret = resp.str();

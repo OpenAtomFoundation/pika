@@ -70,6 +70,8 @@ struct StorageOptions {
   size_t block_cache_size = 0;
   bool share_block_cache = false;
   size_t statistics_max_size = 0;
+  int db_statistics_level = 0;
+  bool enable_db_statistics = false;
   size_t small_compaction_threshold = 5000;
   size_t small_compaction_duration_threshold = 10000;
   Status ResetOptions(const OptionType& option_type, const std::unordered_map<std::string, std::string>& options_map);
