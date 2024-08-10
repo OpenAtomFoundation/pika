@@ -184,7 +184,6 @@ void BlockingBaseCmd::ServeAndUnblockConns(void* args) {
   net::BlockKey blrPop_key{db->GetDBName(), key};
 
   pstd::lock::ScopeRecordLock record_lock(db->LockMgr(), key);//It's a RAII Lock
-  db->DBLockShared();
   std::unique_lock map_lock(dispatchThread->GetBlockMtx());// do not change the sequence of these 3 locks, or deadlock will happen
   auto it = key_to_conns_.find(blrPop_key);
   if (it == key_to_conns_.end()) {
@@ -225,7 +224,6 @@ void BlockingBaseCmd::ServeAndUnblockConns(void* args) {
   dispatchThread->CleanKeysAfterWaitNodeCleaned();
   map_lock.unlock();
   WriteBinlogOfPopAndUpdateCache(pop_binlog_args);
-  db->DBUnlockShared();
 }
 
 void BlockingBaseCmd::WriteBinlogOfPopAndUpdateCache(std::vector<WriteBinlogOfPopArgs>& pop_args) {
