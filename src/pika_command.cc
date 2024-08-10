@@ -527,6 +527,10 @@ void InitCmdTable(CmdTable* cmd_table) {
   std::unique_ptr<Cmd> zincrbyptr =
       std::make_unique<ZIncrbyCmd>(kCmdNameZIncrby, 4, kCmdFlagsWrite |  kCmdFlagsZset | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast) ;
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZIncrby, std::move(zincrbyptr)));
+  ////PKZSetat
+  std::unique_ptr<Cmd> pkzsetatptr =
+      std::make_unique<PKZSetAtCmd>(kCmdNamePKZSetAt, 6, kCmdFlagsWrite |  kCmdFlagsZset | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast) ;
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePKZSetAt, std::move(pkzsetatptr)));
   ////ZRangeCmd
   std::unique_ptr<Cmd> zrangeptr =
       std::make_unique<ZRangeCmd>(kCmdNameZRange, -4, kCmdFlagsRead |  kCmdFlagsZset |kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsSlow);

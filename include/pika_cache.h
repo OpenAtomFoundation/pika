@@ -23,6 +23,7 @@ class ZIncrbyCmd;
 class ZRangebyscoreCmd;
 class ZRevrangebyscoreCmd;
 class ZCountCmd;
+class PKZSetAtCmd;
 enum RangeStatus { RangeError = 1, RangeHit, RangeMiss };
 
 struct CacheInfo {
@@ -172,6 +173,7 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   rocksdb::Status ZLexcount(std::string& key, std::string& min, std::string& max, uint64_t* len,
                             const std::shared_ptr<DB>& db);
   rocksdb::Status ZRemrangebylex(std::string& key, std::string& min, std::string& max, const std::shared_ptr<DB>& db);
+  rocksdb::Status ZSetAtIfKeyExists(std::string& key, std::string& member, PKZSetAtCmd* cmd, const std::shared_ptr<DB>& db);
 
   // Bit Commands
   rocksdb::Status SetBit(std::string& key, size_t offset, int64_t value);

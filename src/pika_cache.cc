@@ -1626,3 +1626,65 @@ void PikaCache::ClearHitRatio(void) {
   std::unique_lock l(rwlock_);
   cache::RedisCache::ResetHitAndMissNum();
 }
+
+rocksdb::Status PikaCache::ZSetAtIfKeyExists(std::string& key, std::string& member, PKZSetAtCmd *cmd, const std::shared_ptr<DB>& db) {
+  if (!cmd->res().ok()) {
+    return Status::NotFound("key not exist");
+  }
+  std::lock_guard l(rwlock_);
+  int cache_index = CacheIndex(key);
+  std::lock_guard lm(*cache_mutexs_[cache_index]);
+  auto cache_obj = caches_[cache_index];
+  uint64_t cache_len = 0;
+  cache_obj->ZCard(key, &cache_len);
+
+  storage::ScoreMember cache_min_sm;
+  storage::ScoreMember cache_max_sm;
+  if (!GetCacheMinMaxSM(cache_obj, key, cache_min_sm, cache_max_sm)) {
+    return Status::NotFound("key not exist");
+  }
+  auto cache_min_score = cache_min_sm.score;
+  auto cache_max_score = cache_max_sm.score;
+  auto RemCacheRangebyscoreAndCheck = [this, cache_obj, &key, cache_len, db](double score) {
+    auto score_rm = std::to_string(score);
+    auto s = cache_obj->ZRemrangebyscore(key, score_rm, score_rm);
+    ReloadCacheKeyIfNeeded(cache_obj, key, cache_len, -1, db);
+    return s;
+  };
+  auto RemCacheKeyMember = [this, cache_obj, &key, cache_len, db](const std::string& member, bool check = true) {
+    std::vector<std::string> member_rm = {member};
+    auto s = cache_obj->ZRem(key, member_rm);
+    if (check) {
+      ReloadCacheKeyIfNeeded(cache_obj, key, cache_len, -1, db);
+    }
+    return s;
+  };
+
+  if (zset_cache_start_direction_ == cache::CACHE_START_FROM_BEGIN) {
+    if (cmd->Score() > cache_max_score) {
+      return RemCacheKeyMember(member);
+    } else if (cmd->Score() == cache_max_score) {
+      RemCacheKeyMember(member, false);
+      return RemCacheRangebyscoreAndCheck(cache_max_score);
+    } else {
+      std::vector<storage::ScoreMember> score_member = {{cmd->Score(), member}};
+      auto s = cache_obj->ZAdd(key, score_member);
+      CleanCacheKeyIfNeeded(cache_obj, key);
+      return s;
+    }
+  } else if (zset_cache_start_direction_ == cache::CACHE_START_FROM_END) {
+    if (cmd->Score() > cache_min_score) {
+      std::vector<storage::ScoreMember> score_member = {{cmd->Score(), member}};
+      auto s = cache_obj->ZAdd(key, score_member);
+      CleanCacheKeyIfNeeded(cache_obj, key);
+      return s;
+    } else if (cmd->Score() == cache_min_score) {
+      RemCacheKeyMember(member, false);
+      return RemCacheRangebyscoreAndCheck(cache_min_score);
+    } else {
+      std::vector<std::string> member_rm = {member};
+      return RemCacheKeyMember(member);
+    }
+  }
+  return Status::NotFound("key not exist");
+}
