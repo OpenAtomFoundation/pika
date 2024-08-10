@@ -200,8 +200,6 @@ void* WorkerThread::ThreadMain() {
         }
 
         if (((pfe->mask & kErrorEvent) != 0) || (should_close != 0)) {
-          //check if this conn disconnected from being blocked by blpop/brpop
-          dynamic_cast<net::DispatchThread*>(server_thread_)->ClosingConnCheckForBlrPop(std::dynamic_pointer_cast<net::RedisConn>(in_conn));
           net_multiplexer_->NetDelEvent(pfe->fd, 0);
           CloseFd(in_conn);
           in_conn = nullptr;
@@ -235,7 +233,6 @@ void WorkerThread::DoCronTask() {
       }
       conns_.clear();
       deleting_conn_ipport_.clear();
-      return;
     }
 
     auto iter = conns_.begin();
@@ -274,9 +271,11 @@ void WorkerThread::DoCronTask() {
     }
   }
   for (const auto& conn : to_close) {
+    net_multiplexer_->NetDelEvent(conn->fd(), 0);
     CloseFd(conn);
   }
   for (const auto& conn : to_timeout) {
+    net_multiplexer_->NetDelEvent(conn->fd(), 0);
     CloseFd(conn);
     server_thread_->handle_->FdTimeoutHandle(conn->fd(), conn->ip_port());
   }
@@ -304,6 +303,8 @@ bool WorkerThread::TryKillConn(const std::string& ip_port) {
 void WorkerThread::CloseFd(const std::shared_ptr<NetConn>& conn) {
   close(conn->fd());
   if (auto dispatcher = dynamic_cast<DispatchThread *>(server_thread_); dispatcher != nullptr ) {
+    //check if this conn disconnected from being blocked by blpop/brpop
+    dispatcher->ClosingConnCheckForBlrPop(std::dynamic_pointer_cast<net::RedisConn>(conn));
     dispatcher->RemoveWatchKeys(conn);
   }
   server_thread_->handle_->FdClosedHandle(conn->fd(), conn->ip_port());
