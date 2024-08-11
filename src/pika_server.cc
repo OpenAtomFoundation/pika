@@ -858,11 +858,10 @@ void PikaServer::KeyScanTaskSchedule(net::TaskFunc func, void* arg) {
 
 void PikaServer::ClientKillAll() {
   pika_dispatch_thread_->ClientKillAll();
-  pika_pubsub_thread_->NotifyToCloseAllConns();
+  pika_pubsub_thread_->NotifyCloseAllConns();
 }
 
-void PikaServer::ClientKillPubSub() {
-  pika_pubsub_thread_->NotifyToCloseAllConns();
+void PikaServer::ClientKillPubSub() { pika_pubsub_thread_->NotifyCloseAllConns();
 }
 
 void PikaServer::ClientKillAllNormal() {

@@ -151,8 +151,8 @@ void PubSubThread::RemoveConn(const std::shared_ptr<NetConn>& conn) {
 }
 
 void PubSubThread::CloseConn(const std::shared_ptr<NetConn>& conn) {
-  CloseFd(conn);
   net_multiplexer_->NetDelEvent(conn->fd(), 0);
+  CloseFd(conn);
   {
     std::lock_guard l(rwlock_);
     conns_.erase(conn->fd());
@@ -160,17 +160,23 @@ void PubSubThread::CloseConn(const std::shared_ptr<NetConn>& conn) {
 }
 
 void PubSubThread::CloseAllConns() {
-  std::lock_guard l(rwlock_);
-
-  pubsub_channel_.clear();
-  pubsub_pattern_.clear();
-
-  for (auto& pair : conns_) {
-    net_multiplexer_->NetDelEvent(pair.second->conn->fd(), 0);
-    CloseFd(pair.second->conn);
+  {
+    std::lock_guard l(channel_mutex_);
+    pubsub_channel_.clear();
   }
-  std::map<int, std::shared_ptr<ConnHandle>> empty_conns;
-  conns_.swap(empty_conns);
+  {
+    std::lock_guard l(pattern_mutex_);
+    pubsub_pattern_.clear();
+  }
+  {
+    std::lock_guard l(rwlock_);
+    for (auto& pair : conns_) {
+      net_multiplexer_->NetDelEvent(pair.second->conn->fd(), 0);
+      CloseFd(pair.second->conn);
+    }
+    std::map<int, std::shared_ptr<ConnHandle>> tmp;
+    conns_.swap(tmp);
+  }
 }
 
 int PubSubThread::Publish(const std::string& channel, const std::string& msg) {
@@ -605,7 +611,7 @@ void PubSubThread::Cleanup() {
   }
   conns_.clear();
 }
-void PubSubThread::NotifyToCloseAllConns() {
+void PubSubThread::NotifyCloseAllConns() {
   close_all_conn_sig_.store(true);
 }
 };  // namespace net
