@@ -181,7 +181,7 @@ void BlockingBaseCmd::ServeAndUnblockConns(void* args) {
   net::BlockKey blrPop_key{db->GetDBName(), key};
 
   pstd::lock::ScopeRecordLock record_lock(db->LockMgr(), key);//It's a RAII Lock
-  std::unique_lock map_lock(dispatchThread->GetBlockMtx());// do not change the sequence of these two lock, or deadlock will happen
+  std::unique_lock map_lock(dispatchThread->GetBlockMtx());// do not change the sequence of these 3 locks, or deadlock will happen
   auto it = key_to_conns_.find(blrPop_key);
   if (it == key_to_conns_.end()) {
     return;
@@ -220,10 +220,10 @@ void BlockingBaseCmd::ServeAndUnblockConns(void* args) {
   }
   dispatchThread->CleanKeysAfterWaitNodeCleaned();
   map_lock.unlock();
-  WriteBinlogOfPop(pop_binlog_args);
+  WriteBinlogOfPopAndUpdateCache(pop_binlog_args);
 }
 
-void BlockingBaseCmd::WriteBinlogOfPop(std::vector<WriteBinlogOfPopArgs>& pop_args) {
+void BlockingBaseCmd::WriteBinlogOfPopAndUpdateCache(std::vector<WriteBinlogOfPopArgs>& pop_args) {
   // write binlog of l/rpop
   for (auto& pop_arg : pop_args) {
     std::shared_ptr<Cmd> pop_cmd;
@@ -243,6 +243,7 @@ void BlockingBaseCmd::WriteBinlogOfPop(std::vector<WriteBinlogOfPopArgs>& pop_ar
     pop_cmd->SetConn(pop_arg.conn);
     auto resp_ptr = std::make_shared<std::string>("this resp won't be used for current code(consensus-level always be 0)");
     pop_cmd->SetResp(resp_ptr);
+    pop_cmd->DoUpdateCache();
     pop_cmd->DoBinlog();
   }
 }
@@ -388,7 +389,7 @@ void BLPopCmd::DoBinlog() {
   }
   std::vector<WriteBinlogOfPopArgs> args;
   args.push_back(std::move(binlog_args_));
-  WriteBinlogOfPop(args);
+  WriteBinlogOfPopAndUpdateCache(args);
 }
 
 void LPopCmd::DoInitial() {
@@ -713,7 +714,7 @@ void BRPopCmd::DoBinlog() {
   }
   std::vector<WriteBinlogOfPopArgs> args;
   args.push_back(std::move(binlog_args_));
-  WriteBinlogOfPop(args);
+  WriteBinlogOfPopAndUpdateCache(args);
 }
 
 
