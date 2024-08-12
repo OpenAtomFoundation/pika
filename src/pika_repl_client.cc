@@ -92,7 +92,7 @@ int PikaReplClient::Stop() {
       }
     }
     //if there are unfinished async write db task, just continue to wait
-  } while(!all_write_db_task_done);
+  } while (!all_write_db_task_done);
 
   for (auto &db_worker: write_db_workers_) {
     db_worker->StopThread();

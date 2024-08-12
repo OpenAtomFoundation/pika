@@ -682,10 +682,10 @@ void ClientCmd::DoInitial() {
       res_.SetRes(CmdRes::kErrOther, "Syntax error, try CLIENT (LIST [order by [addr|idle])");
       return;
     }
-  } else if ((strcasecmp(argv_[1].data(), "kill") == 0) && argv_.size() == 3) {
+  } else if (argv_.size() == 3 && (strcasecmp(argv_[1].data(), "kill") == 0)) {
     info_ = argv_[2];
-  } else if ((strcasecmp(argv_[1].data(), "kill") == 0) &&
-             argv_.size() == 4 &&
+  } else if (argv_.size() == 4 &&
+             (strcasecmp(argv_[1].data(), "kill") == 0) &&
              (strcasecmp(argv_[2].data(), "type") == 0) &&
              ((strcasecmp(argv_[3].data(), KILLTYPE_NORMAL.data()) == 0) || (strcasecmp(argv_[3].data(), KILLTYPE_PUBSUB.data()) == 0))) {
     //kill all if user wanna kill a type
