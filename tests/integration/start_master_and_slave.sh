@@ -14,7 +14,8 @@ mkdir slave_data
 # Example Change the location for storing data on primary and secondary nodes in the configuration file
 sed -i.bak  \
   -e 's|databases : 1|databases : 2|'  \
-  -e 's|#daemonize : yes|daemonize : yes|' ./pika_single.conf
+  -e 's|#daemonize : yes|daemonize : yes|' \
+  -e 's|timeout : 60|timeout : 500|' ./pika_single.conf
 
 sed -i.bak   \
   -e 's|databases : 1|databases : 2|'  \
@@ -24,7 +25,8 @@ sed -i.bak   \
   -e 's|dump-path : ./dump/|dump-path : ./master_data/dump/|'  \
   -e 's|pidfile : ./pika.pid|pidfile : ./master_data/pika.pid|'  \
   -e 's|db-sync-path : ./dbsync/|db-sync-path : ./master_data/dbsync/|'  \
-  -e 's|#daemonize : yes|daemonize : yes|' ./pika_master.conf
+  -e 's|#daemonize : yes|daemonize : yes|' \
+  -e 's|timeout : 60|timeout : 500|' ./pika_master.conf
 
 sed -i.bak   \
   -e 's|databases : 1|databases : 2|'  \
@@ -34,7 +36,8 @@ sed -i.bak   \
   -e 's|dump-path : ./dump/|dump-path : ./slave_data/dump/|'  \
   -e 's|pidfile : ./pika.pid|pidfile : ./slave_data/pika.pid|'  \
   -e 's|db-sync-path : ./dbsync/|db-sync-path : ./slave_data/dbsync/|'  \
-  -e 's|#daemonize : yes|daemonize : yes|' ./pika_slave.conf
+  -e 's|#daemonize : yes|daemonize : yes|' \
+  -e 's|timeout : 60|timeout : 500|' ./pika_slave.conf
 
 sed -i.bak   \
   -e 's|# rename-command : FLUSHALL 360flushall|rename-command : FLUSHALL 360flushall|'  \
@@ -46,7 +49,8 @@ sed -i.bak   \
   -e 's|dump-path : ./dump/|dump-path : ./rename_data/dump/|'  \
   -e 's|pidfile : ./pika.pid|pidfile : ./rename_data/pika.pid|'  \
   -e 's|db-sync-path : ./dbsync/|db-sync-path : ./rename_data/dbsync/|'  \
-  -e 's|#daemonize : yes|daemonize : yes|' ./pika_rename.conf
+  -e 's|#daemonize : yes|daemonize : yes|' \
+  -e 's|timeout : 60|timeout : 500|' ./pika_rename.conf
 
 sed -i.bak   \
   -e 's|requirepass :|requirepass : requirepass|' \
@@ -59,7 +63,8 @@ sed -i.bak   \
   -e 's|dump-path : ./dump/|dump-path : ./acl1_data/dump/|' \
   -e 's|pidfile : ./pika.pid|pidfile : ./acl1_data/pika.pid|' \
   -e 's|db-sync-path : ./dbsync/|db-sync-path : ./acl1_data/dbsync/|' \
-  -e 's|#daemonize : yes|daemonize : yes|' ./pika_acl_both_password.conf
+  -e 's|#daemonize : yes|daemonize : yes|' \
+  -e 's|timeout : 60|timeout : 500|' ./pika_acl_both_password.conf
 
 sed -i.bak   \
   -e 's|requirepass :|requirepass : requirepass|'  \
@@ -71,7 +76,8 @@ sed -i.bak   \
   -e 's|dump-path : ./dump/|dump-path : ./acl2_data/dump/|'  \
   -e 's|pidfile : ./pika.pid|pidfile : ./acl2_data/pika.pid|'  \
   -e 's|db-sync-path : ./dbsync/|db-sync-path : ./acl2_data/dbsync/|'  \
-  -e 's|#daemonize : yes|daemonize : yes|' ./pika_acl_only_admin_password.conf
+  -e 's|#daemonize : yes|daemonize : yes|' \
+  -e 's|timeout : 60|timeout : 500|' ./pika_acl_only_admin_password.conf
 sed -i.bak   \
   -e 's|requirepass :|requirepass : requirepass|'  \
   -e 's|masterauth :|masterauth : requirepass|'  \
@@ -83,7 +89,8 @@ sed -i.bak   \
   -e 's|dump-path : ./dump/|dump-path : ./acl3_data/dump/|'  \
   -e 's|pidfile : ./pika.pid|pidfile : ./acl3_data/pika.pid|'  \
   -e 's|db-sync-path : ./dbsync/|db-sync-path : ./acl3_data/dbsync/|'  \
-  -e 's|#daemonize : yes|daemonize : yes|' ./pika_has_other_acl_user.conf
+  -e 's|#daemonize : yes|daemonize : yes|' \
+  -e 's|timeout : 60|timeout : 500|' ./pika_has_other_acl_user.conf
 echo -e '\nuser : limit on >limitpass ~* +@all &*' >> ./pika_has_other_acl_user.conf
 
 # Start three nodes
