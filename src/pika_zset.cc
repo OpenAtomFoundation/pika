@@ -194,6 +194,56 @@ void ZIncrbyCmd::DoUpdateCache() {
   }
 }
 
+void PKZSetAtCmd::Do() {
+    if (ts_ms_ != 0 && ts_ms_ > pstd::NowMillis()) {
+      res_.SetRes(CmdRes::kErrOther, "abort expired operation");
+    }
+
+    double score = 0.0;
+    rocksdb::Status s = db_->storage()->PKZSetAt(key_, member_, old_score_, incr_value_);
+    if (s.ok()) {
+      res_.SetRes(CmdRes::kOk);
+    } else if (s_.IsInvalidArgument()) {
+      res_.SetRes(CmdRes::kMultiKey);
+    } else {
+      res_.SetRes(CmdRes::kErrOther, s.ToString());
+    }
+}
+
+void PKZSetAtCmd::DoUpdateCache() {
+  if (s_.ok()) {
+    db_->cache()->ZSetAtIfKeyExists(key_, member_, this, db_);
+  }
+}
+
+void PKZSetAtCmd::DoThroughDB() {
+  Do();
+}
+
+void PKZSetAtCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameZAdd);
+    return;
+  }
+  key_ = argv_[1];
+  member_ = argv_[2];
+
+  if (pstd::string2d(argv_[3].data(), argv_[3].size(), &old_score_) == 0) {
+    res_.SetRes(CmdRes::kInvalidFloat);
+    return;
+  }
+  if (pstd::string2d(argv_[4].data(), argv_[4].size(), &incr_value_) == 0) {
+    res_.SetRes(CmdRes::kInvalidFloat);
+    return;
+  }
+
+  if ((pstd::string2int(argv_[5].data(), argv_[5].size(), &ts_ms_) == 0) || ts_ms_ >= INT64_MAX) {
+    res_.SetRes(CmdRes::kInvalidInt);
+    return;
+  }
+}
+
+
 void ZsetRangeParentCmd::DoInitial() {
   if (argv_.size() == 5 && (strcasecmp(argv_[4].data(), "withscores") == 0)) {
     is_ws_ = true;

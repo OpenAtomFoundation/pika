@@ -14,6 +14,34 @@
 /*
  * zset
  */
+//format: zsetat key member old_score incr_value ts
+class PKZSetAtCmd : public Cmd {
+ public:
+  PKZSetAtCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SORTEDSET)) {}
+  std::vector<std::string> current_key() const override {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
+
+  void Do() override;
+  void DoUpdateCache() override;
+  void DoThroughDB() override;
+  void Split(const HintKeys& hint_keys) override{};
+  void Merge() override{};
+  Cmd* Clone() override { return new PKZSetAtCmd(*this); }
+  double Score() const { return old_score_ + incr_value_; }
+
+ private:
+  std::string key_;
+  std::string member_;
+  double old_score_ = .0f;
+  double incr_value_ = .0f;
+  int64_t ts_ms_ = -1;
+  void DoInitial() override;
+};
+
 class ZAddCmd : public Cmd {
  public:
   ZAddCmd(const std::string& name, int arity, uint32_t flag)
@@ -92,6 +120,7 @@ class ZIncrbyCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
+
   void Do() override;
   void DoUpdateCache() override;
   void DoThroughDB() override;
@@ -106,6 +135,7 @@ class ZIncrbyCmd : public Cmd {
   double score_ = .0f;
   void DoInitial() override;
 };
+
 
 class ZsetRangeParentCmd : public Cmd {
  public:
