@@ -711,6 +711,17 @@ int PikaConf::Load() {
     max_rsync_parallel_num_ = kMaxRsyncParallelNum;
   }
 
+  // rocksdb_statistics_tickers
+  std::string open_tickers;
+  GetConfStr("enable-db-statistics", &open_tickers);
+  enable_db_statistics_ = open_tickers == "yes";
+
+  db_statistics_level_ = 0;
+  GetConfInt("db-statistics-level", &db_statistics_level_);
+  if (db_statistics_level_ < 0) {
+    db_statistics_level_ = 0;
+  }
+
   int64_t tmp_rsync_timeout_ms = -1;
   GetConfInt64("rsync-timeout-ms", &tmp_rsync_timeout_ms);
   if(tmp_rsync_timeout_ms <= 0){
@@ -816,6 +827,8 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("slotmigrate", slotmigrate_.load() ? "yes" : "no");
   SetConfInt64("slotmigrate-thread-num", slotmigrate_thread_num_);
   SetConfInt64("thread-migrate-keys-num", thread_migrate_keys_num_);
+  SetConfStr("enable-db-statistics", enable_db_statistics_ ? "yes" : "no");
+  SetConfInt("db-statistics-level", db_statistics_level_);
   // slaveof config item is special
   SetConfStr("slaveof", slaveof_);
   // cache config
