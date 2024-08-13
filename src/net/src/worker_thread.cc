@@ -284,7 +284,8 @@ void WorkerThread::DoCronTask() {
    */
 
   for (auto& conn : ready_to_close_conns_) {
-    CloseFd(conn);
+    close(conn->fd());
+    server_thread_->handle_->FdClosedHandle(conn->fd(), conn->ip_port());
   }
   ready_to_close_conns_.clear();
 
