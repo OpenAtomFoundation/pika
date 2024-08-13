@@ -226,6 +226,8 @@ class PikaServer : public pstd::noncopyable {
   void ClientKillAll();
   int ClientKill(const std::string& ip_port);
   int64_t ClientList(std::vector<ClientInfo>* clients = nullptr);
+  void ClientKillPubSub();
+  void ClientKillAllNormal();
 
   /*
    * Monitor used

@@ -242,7 +242,10 @@ class ClientCmd : public Cmd {
   Cmd* Clone() override { return new ClientCmd(*this); }
 
  private:
-  std::string operation_, info_;
+  const static std::string KILLTYPE_NORMAL;
+  const static std::string KILLTYPE_PUBSUB;
+
+  std::string operation_, info_, kill_type_;
   void DoInitial() override;
 };
 
@@ -266,7 +269,6 @@ class InfoCmd : public Cmd {
     kInfoCommandStats,
     kInfoCache
   };
-
   InfoCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
   void Do() override;
   void Split(const HintKeys& hint_keys) override {};

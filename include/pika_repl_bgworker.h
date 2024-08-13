@@ -24,6 +24,12 @@ class PikaReplBgWorker {
   explicit PikaReplBgWorker(int queue_size);
   int StartThread();
   int StopThread();
+  int TaskQueueSize() {
+    int pri_size = 0;
+    int qu_size = 0;
+    bg_thread_.QueueSize(&pri_size, &qu_size);
+    return pri_size + qu_size;
+  }
   void Schedule(net::TaskFunc func, void* arg);
   void Schedule(net::TaskFunc func, void* arg, std::function<void()>& call_back);
   static void HandleBGWorkerWriteBinlog(void* arg);

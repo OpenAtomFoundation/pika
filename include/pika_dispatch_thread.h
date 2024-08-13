@@ -14,7 +14,7 @@ class PikaDispatchThread {
                      int max_conn_rbuf_size);
   ~PikaDispatchThread();
   int StartThread();
-
+  void StopThread();
   uint64_t ThreadClientList(std::vector<ClientInfo>* clients);
 
   bool ClientKill(const std::string& ip_port);

@@ -63,7 +63,7 @@ jobs:
 
       - name: Unit Test
         working-directory: ${{ github.workspace }}
-        run: ./pikatests.sh all
+        run: ./pikatests.sh all clean
 
         # master on port 9221, slave on port 9231, all with 2 db
       - name: Start codis, pika master and pika slave
@@ -203,7 +203,7 @@ jobs:
 
       - name: Unit Test
         working-directory: ${{ github.workspace }}
-        run: ./pikatests.sh all
+        run: ./pikatests.sh all clean
 
       - name: Start codis, pika master and pika slave
         working-directory: ${{ github.workspace }}/build
@@ -265,7 +265,7 @@ jobs:
       - name: Unit Test
         working-directory: ${{ github.workspace }}
         run: |
-          ./pikatests.sh all
+          ./pikatests.sh all clean
 
       - name: Start codis, pika master and pika slave
         working-directory: ${{ github.workspace }}/build

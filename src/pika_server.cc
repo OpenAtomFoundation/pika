@@ -103,12 +103,18 @@ PikaServer::PikaServer()
 
   acl_ = std::make_unique<::Acl>();
   SetSlowCmdThreadPoolFlag(g_pika_conf->slow_cmd_pool());
+  bgsave_thread_.set_thread_name("PikaServer::bgsave_thread_");
+  purge_thread_.set_thread_name("PikaServer::purge_thread_");
+  bgslots_cleanup_thread_.set_thread_name("PikaServer::bgslots_cleanup_thread_");
+  common_bg_thread_.set_thread_name("PikaServer::common_bg_thread_");
+  key_scan_thread_.set_thread_name("PikaServer::key_scan_thread_");
 }
 
 PikaServer::~PikaServer() {
   rsync_server_->Stop();
-  // DispatchThread will use queue of worker thread,
-  // so we need to delete dispatch before worker.
+  // DispatchThread will use queue of worker thread
+  // so we need to Stop dispatch before worker.
+  pika_dispatch_thread_->StopThread();
   pika_client_processor_->Stop();
   pika_slow_cmd_thread_pool_->stop_thread_pool();
   pika_admin_cmd_thread_pool_->stop_thread_pool();
@@ -805,13 +811,11 @@ size_t PikaServer::SlowCmdThreadPoolMaxQueueSize() {
 }
 
 void PikaServer::BGSaveTaskSchedule(net::TaskFunc func, void* arg) {
-  bgsave_thread_.set_thread_name("BGSaveTask");
   bgsave_thread_.StartThread();
   bgsave_thread_.Schedule(func, arg);
 }
 
 void PikaServer::PurgelogsTaskSchedule(net::TaskFunc func, void* arg) {
-  purge_thread_.set_thread_name("PurgelogsTask");
   purge_thread_.StartThread();
   purge_thread_.Schedule(func, arg);
 }
@@ -823,7 +827,6 @@ void PikaServer::PurgeDir(const std::string& path) {
 
 
 void PikaServer::PurgeDirTaskSchedule(void (*function)(void*), void* arg) {
-  purge_thread_.set_thread_name("PurgeDirTask");
   purge_thread_.StartThread();
   purge_thread_.Schedule(function, arg);
 }
@@ -875,12 +878,21 @@ void PikaServer::TryDBSync(const std::string& ip, int port, const std::string& d
 }
 
 void PikaServer::KeyScanTaskSchedule(net::TaskFunc func, void* arg) {
-  key_scan_thread_.set_thread_name("KeyScanTask");
   key_scan_thread_.StartThread();
   key_scan_thread_.Schedule(func, arg);
 }
 
-void PikaServer::ClientKillAll() { pika_dispatch_thread_->ClientKillAll(); }
+void PikaServer::ClientKillAll() {
+  pika_dispatch_thread_->ClientKillAll();
+  pika_pubsub_thread_->NotifyCloseAllConns();
+}
+
+void PikaServer::ClientKillPubSub() { pika_pubsub_thread_->NotifyCloseAllConns();
+}
+
+void PikaServer::ClientKillAllNormal() {
+  pika_dispatch_thread_->ClientKillAll();
+}
 
 int PikaServer::ClientKill(const std::string& ip_port) {
   if (pika_dispatch_thread_->ClientKill(ip_port)) {
@@ -1576,7 +1588,6 @@ void PikaServer::Bgslotsreload(const std::shared_ptr<DB>& db) {
   LOG(INFO) << "Start slot reloading";
 
   // Start new thread if needed
-  bgsave_thread_.set_thread_name("SlotsReload");
   bgsave_thread_.StartThread();
   bgsave_thread_.Schedule(&DoBgslotsreload, static_cast<void*>(this));
 }
@@ -1644,7 +1655,6 @@ void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots, const std::shared
   LOG(INFO) << "Start slot cleanup, slots: " << slotsStr << std::endl;
 
   // Start new thread if needed
-  bgslots_cleanup_thread_.set_thread_name("SlotsCleanup");
   bgslots_cleanup_thread_.StartThread();
   bgslots_cleanup_thread_.Schedule(&DoBgslotscleanup, static_cast<void*>(this));
 }
@@ -1749,7 +1759,6 @@ void DoBgslotscleanup(void* arg) {
 void PikaServer::ResetCacheAsync(uint32_t cache_num, std::shared_ptr<DB> db, cache::CacheConfig *cache_cfg) {
   if (PIKA_CACHE_STATUS_OK == db->cache()->CacheStatus()
       || PIKA_CACHE_STATUS_NONE == db->cache()->CacheStatus()) {
-    common_bg_thread_.set_thread_name("ResetCacheTask");
     common_bg_thread_.StartThread();
     BGCacheTaskArg *arg = new BGCacheTaskArg();
     arg->db = db;
@@ -1773,7 +1782,6 @@ void PikaServer::ClearCacheDbAsync(std::shared_ptr<DB> db) {
     LOG(WARNING) << "can not clear cache in status: " << db->cache()->CacheStatus();
     return;
   }
-  common_bg_thread_.set_thread_name("CacheClearThread");
   common_bg_thread_.StartThread();
   BGCacheTaskArg *arg = new BGCacheTaskArg();
   arg->db = db;
@@ -1841,7 +1849,6 @@ void PikaServer::ClearCacheDbAsyncV2(std::shared_ptr<DB> db) {
     LOG(WARNING) << "can not clear cache in status: " << db->cache()->CacheStatus();
     return;
   }
-  common_bg_thread_.set_thread_name("V2CacheClearThread");
   common_bg_thread_.StartThread();
   BGCacheTaskArg *arg = new BGCacheTaskArg();
   arg->db = db;
