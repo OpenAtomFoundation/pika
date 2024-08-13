@@ -284,7 +284,7 @@ void WorkerThread::DoCronTask() {
    */
 
   for (auto& conn : ready_to_close_conns_) {
-    close(conn->fd());
+    CloseFd(conn);
   }
   ready_to_close_conns_.clear();
 
