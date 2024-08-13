@@ -25,7 +25,8 @@ class PikaReplBgWorker {
   int StartThread();
   int StopThread();
   int TaskQueueSize() {
-    int pri_size, qu_size;
+    int pri_size = 0;
+    int qu_size = 0;
     bg_thread_.QueueSize(&pri_size, &qu_size);
     return pri_size + qu_size;
   }
