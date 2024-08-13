@@ -637,14 +637,25 @@ var _ = Describe("should replication ", func() {
 
 			for i := 1; i <= 5; i++ {
 				go func() {
-					clientMaster.BLPop(ctx, 0, lists...)
+							client := redis.NewClient(PikaOption(MASTERADDR))
+                    		defer client.Close()
+
+                    		client.BLPop(ctx, 0, lists...)
 				}()
 				go func() {
-					clientMaster.BRPop(ctx, 0, lists...)
+							client := redis.NewClient(PikaOption(MASTERADDR))
+                    		defer client.Close()
+
+                    		client.BRPop(ctx, 0, lists...)
 				}()
 			}
 			execute(&ctx, clientMaster, 5, issuePushPopFrequency)
 
+
+            time.Sleep(3 * time.Second);
+            //reconnect to avoid timeout-kill
+            clientSlave := redis.NewClient(PikaOption(SLAVEADDR))
+            // Fail("Stopping the test due to some condition");
 			for i := int64(0); i < clientMaster.LLen(ctx, "blist0").Val(); i++ {
 				Expect(clientMaster.LIndex(ctx, "blist0", i)).To(Equal(clientSlave.LIndex(ctx, "blist0", i)))
 			}
