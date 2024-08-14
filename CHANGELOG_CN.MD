@@ -1,3 +1,96 @@
+# v3.5.5
+
+## New features
+
+- Pika 线程整理，避免启动无用线程造成资源浪费[#2697](https://github.com/OpenAtomFoundation/pika/pull/2697)@[chejinge](https://github.com/chejinge)
+
+- 将管理命令移出主线程，防止因为管理命令调用频繁或者耗时过高，阻塞主线程[#2727](https://github.com/OpenAtomFoundation/pika/pull/2727)@[chejinge](https://github.com/chejinge)
+
+- 添加 pika benchark 工具，旨在提升压测效率，并输出可视化的统计图表[#2663](https://github.com/OpenAtomFoundation/pika/pull/2663)@[luky116](https://github.com/luky116)
+
+- 添加定时删除日志的任务，默认 7 天删除一次，可以根据自己需求在 config 文件中进行配置[#2829](https://github.com/OpenAtomFoundation/pika/pull/2829)@[XiaoLiang2333](https://github.com/XiaoLiang2333)
+
+- Incr、append 命令在传输 binlog 时，使用 pksetexat 命令，防止因为不正确的操作导致数据无法过期，出现脏数据[#2833](https://github.com/OpenAtomFoundation/pika/pull/2833)@[chejinge](https://github.com/chejinge)
+
+- 用 RTC 模型处理 Pika 访问缓存部分，提升 Pika 服务的读性能[#2837](https://github.com/OpenAtomFoundation/pika/pull/2837)@[cheniujh](https://github.com/cheniujh)
+
+- 给 RTC 模型增加处理开关，可以根据开关控制是否开启 RTC 模型[#2841](https://github.com/OpenAtomFoundation/pika/pull/2841)@[cheniujh](https://github.com/cheniujh)
+
+## Improvement
+
+- 更新 Pika Docker Readme, 可以按照 Readme 在 Docker 中部署 Pika 服务[#2743](https://github.com/OpenAtomFoundation/pika/pull/2743)@[luky116](https://github.com/luky116)
+
+- 支持对更多的 RocksDB 参数进行动态调整，用户根据不同的业务使用场景调整参数提升 Pika 的读写性能[#2728](https://github.com/OpenAtomFoundation/pika/pull/2728)@[cheniujh](https://github.com/cheniujh)
+
+- 重构主从复制模式 slave 节点的主从同步线程模型，尽可能减少 binlog 消费阻塞问题[#2638](https://github.com/OpenAtomFoundation/pika/pull/2638)@[cheniujh](https://github.com/cheniujh)
+
+- 新增 RocksDB Compaction 策略动态调整参数，用户可以根据业务调整 Compaction 策略，降低 Compaction 操作对服务性能的损耗[#2538](https://github.com/OpenAtomFoundation/pika/pull/2735)@[wangshao1](https://github.com/wangshao1)
+
+- Pkpatternmatchdel 命令支持删除 Redis Stream 数据类型[#2723](https://github.com/OpenAtomFoundation/pika/pull/2723)@[wangshao1](https://github.com/wangshao1)
+
+- 增加主从复制状态指标  repl_connect_status，方便运维人员清晰明确的判断当前的主从复制状态。[#2656](https://github.com/OpenAtomFoundation/pika/pull/2656)@[cheniujh](https://github.com/cheniujh)
+
+- 优化 Apply binlog时锁机制，减少不必要的锁竞争[#2638](https://github.com/OpenAtomFoundation/pika/pull/2638)@[cheniujh](https://github.com/cheniujh)
+
+- 优化主从复制，确保 Master 端的 SlaveNode 在提交 bgsave 任务前进入 DBSync 状态，防止bgsave执行时的 binlog 在极端情况下被清除[#2798](https://github.com/OpenAtomFoundation/pika/pull/2798)@[cheniujh](https://github.com/cheniujh)
+
+- 添加  Geo 数据类型的 TCL 测试，并修复测试过程中遇到的 bug[#2798](https://github.com/OpenAtomFoundation/pika/pull/2798)@[cheniujh](https://github.com/cheniujh)
+
+## Bugfix
+
+- 修复 ACL 认证可能会偶发性失败的问题[#2714](https://github.com/OpenAtomFoundation/pika/pull/2714)@[luky116](https://github.com/luky116)
+
+- 修复 RedisCache 层因为没有使用 storage 层解析的 ttl 可能会导致数据库、缓存不一致的问题[#2729](https://github.com/OpenAtomFoundation/pika/pull/2729)@[luky116](https://github.com/luky116)
+
+- 修复 Pika 不能批量扩容的问题[#2746](https://github.com/OpenAtomFoundation/pika/pull/2746)@[cheniujh](https://github.com/cheniujh)
+
+- 修复 `Pksetat` 命令更新 DB 的同时未更新缓存，可能会存在数据库、缓存不一致的问题[#2759](https://github.com/OpenAtomFoundation/pika/pull/2759)@[chejinge](https://github.com/chejinge)
+
+- 修复 `PKPatternMatchDel` 命令未删除迭代器可能会导致 RocksDB 删除数据不彻底的问题[#2786](https://github.com/OpenAtomFoundation/pika/pull/2786)@[wangshao1](https://github.com/wangshao1)
+
+- 修复 Stream 类型数据不能被 RocksDB compact 会导致过期数据一直存在的问题[#2724](https://github.com/OpenAtomFoundation/pika/pull/2724)@[wangshao1](https://github.com/wangshao1)
+
+- 修复 SlotMigrate 返回值错误，可能会导致数据迁移中断的问题[#2741](https://github.com/OpenAtomFoundation/pika/pull/2741)@[wangshao1](https://github.com/wangshao1)
+
+- 修复 `Zverank` 命令计算错误，导致返回值错误的问题[#2763](https://github.com/OpenAtomFoundation/pika/pull/2763)@[chejinge](https://github.com/chejinge)
+
+- 修复 min-blob-size 参数解析失败，导致 kv 分离使用出错的问题[#2767](https://github.com/OpenAtomFoundation/pika/pull/2767)@[wangshao1](https://github.com/wangshao1)
+
+- 修复 RsynClient 异常退出后，未做失败处理导致全量复制数据不完整的问题[#2756](https://github.com/OpenAtomFoundation/pika/pull/2756)@[cheniujh](https://github.com/cheniujh)
+
+- timerTaskThread_ 重命令为 timer_task_thread_[#2776](https://github.com/OpenAtomFoundation/pika/pull/2776)@[cheniujh](https://github.com/cheniujh)
+
+- 修复 sentinel 主从切换时，由于主节点和从节点数据量不一致导致
+
+- 优化读锁的范围，避免因为重复消费 binlog 导致主、从数据不一致的问题[#2818](https://github.com/OpenAtomFoundation/pika/pull/2818)@[cheniujh](https://github.com/cheniujh)
+
+- 修复执行 `slaveof no one` 时出现异常日志输出的问题[#2800](https://github.com/OpenAtomFoundation/pika/pull/2800)@[cheniujh](https://github.com/cheniujh)
+
+- 修改 Pika 自动化测试客户端链接 server 端的超时时间，避免因为长时间断开导致测试失败[#2863](https://github.com/OpenAtomFoundation/pika/pull/2863)@[cheniujh](https://github.com/cheniujh)
+
+- 修复 `blpop/brpop` 更新数据库的时候未更新缓存可能回导致数据库、缓存不一致的现象[#2858](https://github.com/OpenAtomFoundation/pika/pull/2858)@[cheniujh](https://github.com/cheniujh)
+
+- 修改 `flushall` 的逻辑避免统一处理时，多清理一次数据[#2846](https://github.com/OpenAtomFoundation/pika/pull/2846)@[cheniujh](https://github.com/cheniujh)
+
+- 修改 client watch 的 key，被任何人修改（包括自己的改动），都会失效的问题[#2815](https://github.com/OpenAtomFoundation/pika/pull/2815)@[luky116](https://github.com/luky116)
+
+- Multi 命令更新数据库的同时更新缓存，避免读取不到数据[#2810](https://github.com/OpenAtomFoundation/pika/pull/2810)@[luky116](https://github.com/luky116)
+
+- `PkPatternMatchDel` 命令在删除 DB 的同时删除 cache，避免出现数据库、缓存不一致的情况[#2839](https://github.com/OpenAtomFoundation/pika/pull/2839)@[chejinge](https://github.com/chejinge)
+
+- 修改主从复制过程中 flushdb binlog 的处理逻辑，确保按照顺序执行，避免出现主从不一致的情况[#2808](https://github.com/OpenAtomFoundation/pika/pull/2808)@[cheniujh](https://github.com/cheniujh)
+
+- 添加标志位、时间戳和返回值机制，确保Pika在执行flushdb且处理异步删除旧目录时冲突时正确处理[#2790](https://github.com/OpenAtomFoundation/pika/pull/2790)@[cheniujh](https://github.com/cheniujh)
+
+- 修改 slave_priority 的默认值，防止因为运维同学没有设置该值，导致主从切换失败[#2813](https://github.com/OpenAtomFoundation/pika/pull/2813)@[chejinge](https://github.com/chejinge)
+
+- 修复 Pika block-cache 信息计算不准确，内存使用计算不标准的问题[#2797](https://github.com/OpenAtomFoundation/pika/pull/2797)@[bigdaronlee163](https://github.com/bigdaronlee163)
+
+- 修复 Pika 不支持 Redis-Sentinel 的问题[#2854](https://github.com/OpenAtomFoundation/pika/pull/2854)@[cheniujh](https://github.com/cheniujh)
+
+- 修复 kill client 命令杀连接流程不正确的[#2862](https://github.com/OpenAtomFoundation/pika/pull/2862)@[cheniujh](https://github.com/cheniujh)
+
+
 # v4.0.0
 
 ## New features
