@@ -1971,4 +1971,9 @@ void Storage::DisableWal(const bool is_wal_disable) {
   }
 }
 
+Status Storage::PKZSetAt(const Slice& key, const Slice& member, double old_score, double incr_value) {
+  auto& inst = GetDBInstance(key);
+  return inst->PKZSetAt(key, member, old_score, incr_value);
+}
+
 }  //  namespace storage

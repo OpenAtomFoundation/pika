@@ -289,6 +289,10 @@ class Storage {
   // If the key does not exist, it is set to 0 before performing the operation
   Status Incrby(const Slice& key, int64_t value, int64_t* ret, int64_t* expired_timestamp_millsec);
 
+
+  Status PKZSetAt(const Slice& key, const Slice& member, double old_score, double incr_value);
+
+
   // Increment the string representing a floating point number
   // stored at key by the specified increment.
   Status Incrbyfloat(const Slice& key, const Slice& value, std::string* ret, int64_t* expired_timestamp_sec);

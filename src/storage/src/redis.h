@@ -318,6 +318,7 @@ class Redis {
                std::vector<ScoreMember>* score_members, int64_t* next_cursor);
   Status ZPopMax(const Slice& key, int64_t count, std::vector<ScoreMember>* score_members);
   Status ZPopMin(const Slice& key, int64_t count, std::vector<ScoreMember>* score_members);
+  Status PKZSetAt(const Slice& key, const Slice& member, double old_score, double incr_value);
 
   //===--------------------------------------------------------------------===//
   // Commands
