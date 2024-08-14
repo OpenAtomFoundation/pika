@@ -105,6 +105,8 @@ sed -i ''  \
   -e 's|pidfile : ./pika.pid|pidfile : ./master_rename_data/pika.pid|'  \
   -e 's|db-sync-path : ./dbsync/|db-sync-path : ./master_rename_data/dbsync/|'  \
   -e 's|#daemonize : yes|daemonize : yes|' ./pika_master_rename.conf
+  # shellcheck disable=SC2215
+  -e 's|timeout : 60|timeout : 500|' ./pika_master_rename.conf
 
 sed -i ''  \
   -e 's|# rename-command : FLUSHDB 360flushdb|rename-command : FLUSHDB 360flushdb|'  \
@@ -115,6 +117,8 @@ sed -i ''  \
   -e 's|pidfile : ./pika.pid|pidfile : ./slave_rename_data/pika.pid|'  \
   -e 's|db-sync-path : ./dbsync/|db-sync-path : ./slave_rename_data/dbsync/|'  \
   -e 's|#daemonize : yes|daemonize : yes|' ./pika_slave_rename.conf
+  # shellcheck disable=SC2215
+  -e 's|timeout : 60|timeout : 500|' ./pika_slave_rename.conf
 
 # Start three nodes
 ./pika -c ./pika_single.conf
