@@ -425,7 +425,7 @@ var _ = Describe("should replication ", func() {
 			Expect(infoRes.Val()).To(ContainSubstring("connected_slaves:1"))
 
 			slaveWrite := clientSlave.Set(ctx, "foo", "bar", 0)
-			Expect(slaveWrite.Err()).To(MatchError("ERR Server in read-only"))
+			Expect(slaveWrite.Err()).To(MatchError("ERR READONLY You can't write against a read only replica."))
 
 			log.Println("Replication test 1 start")
 			err1 := clientMaster.SetEx(ctx, "key", "hello", 60*time.Second).Err()
