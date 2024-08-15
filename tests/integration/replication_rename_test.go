@@ -63,7 +63,7 @@ var _ = Describe("should replication rename", func() {
 			Expect(infoRes.Val()).To(ContainSubstring("connected_slaves:1"))
 
 			slaveWrite := clientSlave.Set(ctx, "foo", "bar", 0)
-			Expect(slaveWrite.Err()).To(MatchError("ERR Server in read-only"))
+			Expect(slaveWrite.Err()).To(MatchError("ERR READONLY You can't write against a read only replica."))
 			log.Println("Replication rename test 1 start")
 			set := clientMaster.Set(ctx, "x", "y", 0)
 			Expect(set.Err()).NotTo(HaveOccurred())
