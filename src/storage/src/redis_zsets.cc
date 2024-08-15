@@ -2010,4 +2010,58 @@ void Redis::ScanZsets() {
   delete score_iter;
 }
 
+Status Redis::PKZSetAt(const Slice& key, const Slice& member, double old_score, double incr_value) {
+  uint32_t statistic = 0;
+  double score = old_score + incr_value;
+  char score_buf[8];
+  uint64_t version = 0;
+  std::string meta_value;
+  rocksdb::WriteBatch batch;
+  ScopeRecordLock l(lock_mgr_, key);
+
+  BaseMetaKey base_meta_key(key);
+  Status s = db_->Get(default_read_options_, handles_[kMetaCF], base_meta_key.Encode(), &meta_value);
+  if (s.ok() && !ExpectedMetaValue(DataType::kZSets, meta_value)) {
+    if (ExpectedStale(meta_value)) {
+      s = Status::NotFound();
+    } else {
+      return Status::InvalidArgument(
+          "WRONGTYPE, key: " + key.ToString() + ", expected type: " +
+          DataTypeStrings[static_cast<int>(DataType::kZSets)] + ", got type: " +
+          DataTypeStrings[static_cast<int>(GetMetaValueType(meta_value))]);
+    }
+  }
+  if (s.ok()) {
+    ParsedZSetsMetaValue parsed_zsets_meta_value(&meta_value);
+    if (parsed_zsets_meta_value.IsStale() || parsed_zsets_meta_value.Count() == 0) {
+      version = parsed_zsets_meta_value.InitialMetaValue();
+    } else {
+      version = parsed_zsets_meta_value.Version();
+    }
+    std::string data_value;
+
+    ZSetsScoreKey zsets_score_key(key, version, old_score, member);
+    batch.Delete(handles_[kZsetsScoreCF], zsets_score_key.Encode());
+
+    ZSetsMemberKey zsets_member_key(key, version, member);
+    const void* ptr_score = reinterpret_cast<const void*>(&score);
+    EncodeFixed64(score_buf, *reinterpret_cast<const uint64_t*>(ptr_score));
+    BaseDataValue zsets_member_i_val(Slice(score_buf, sizeof(uint64_t)));
+    batch.Put(handles_[kZsetsDataCF], zsets_member_key.Encode(), zsets_member_i_val.Encode());
+
+    ZSetsScoreKey zsets_score_key2(key, version, score, member);
+    BaseDataValue zsets_score_i_val(Slice{});
+    batch.Put(handles_[kZsetsScoreCF], zsets_score_key2.Encode(), zsets_score_i_val.Encode());
+//    *ret = score;
+    s = db_->Write(default_write_options_, &batch);
+    UpdateSpecificKeyStatistics(DataType::kZSets, key.ToString(), statistic);
+    return s;
+  } else if (s.IsNotFound()) {
+    return Status::NotFound();
+  } else {
+    return s;
+  }
+
+}
+
 }  // namespace storage
