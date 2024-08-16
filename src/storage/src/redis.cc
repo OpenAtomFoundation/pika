@@ -3,11 +3,16 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
+#include <memory>
 #include <sstream>
 
+#include "rocksdb/cache.h"
 #include "rocksdb/env.h"
 
 #include "src/redis.h"
+#include "rocksdb/options.h"
+#include "rocksdb/table.h"
+#include "src/base_value_format.h"
 #include "src/lists_filter.h"
 #include "src/base_filter.h"
 #include "src/zsets_filter.h"
@@ -138,6 +143,15 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
   }
   stream_data_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(stream_data_cf_table_ops));
 
+  // search column-family options
+  rocksdb::ColumnFamilyOptions search_data_cf_ops(storage_options.options);
+  search_data_cf_ops.compaction_filter_factory = std::make_shared<BaseDataFilterFactory>(&db_, &handles_, DataType::kSearch);
+  rocksdb::BlockBasedTableOptions search_data_cf_table_ops(table_ops);
+  if (!storage_options.share_block_cache && storage_options.block_cache_size > 0) {
+    search_data_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
+  }
+  search_data_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(search_data_cf_table_ops));
+
   std::vector<rocksdb::ColumnFamilyDescriptor> column_families;
   // meta & string cf
   column_families.emplace_back(rocksdb::kDefaultColumnFamilyName, meta_cf_ops);
@@ -152,6 +166,8 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
   column_families.emplace_back("zset_score_cf", zset_score_cf_ops);
   // stream CF
   column_families.emplace_back("stream_data_cf", stream_data_cf_ops);
+  // search CF
+  column_families.emplace_back("search_data_cf", search_data_cf_ops);
   return rocksdb::DB::Open(db_ops, db_path, column_families, &handles_, &db_);
 }
 

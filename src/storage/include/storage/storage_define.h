@@ -44,6 +44,7 @@ enum ColumnFamilyIndex {
   kZsetsDataCF = 4,
   kZsetsScoreCF = 5,
   kStreamsDataCF = 6,
+  kSearchDataCF = 7,
 };
 
 const static char kNeedTransformCharacter = '\u0000';

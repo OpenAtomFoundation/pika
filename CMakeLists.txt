@@ -659,6 +659,21 @@ ExternalProject_Add(rediscache
 set(REDISCACHE_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 set(REDISCACHE_LIBRARY ${INSTALL_LIBDIR}/librediscache.a)
 
+ExternalProject_Add(tsl_hat_trie
+  URL
+  https://github.com/Tessil/hat-trie/archive/refs/tags/v0.6.0.tar.gz
+  URL_HASH
+  SHA256=f3793fd46f07bdf3de67d719b602c84f66121d81aa02d9e6d53de03ae3444c80
+  CMAKE_ARGS
+  -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
+  -DCMAKE_INSTALL_INCLUDEDIR=${INSTALL_INCLUDEDIR}
+  -DCMAKE_INSTALL_LIBDIR=${INSTALL_LIBDIR}
+  -DCMAKE_BUILD_TYPE=Debug
+  BUILD_COMMAND ""
+  INSTALL_COMMAND ""
+)
+set(TSL_HAT_TRIE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${EP_BASE_SUFFIX}/Source/tsl_hat_trie/include)
+
 
 option(USE_PIKA_TOOLS "compile pika-tools" OFF)
 if (USE_PIKA_TOOLS)
@@ -804,6 +819,7 @@ add_dependencies(${PROJECT_NAME}
   pstd
   net
   rediscache
+  tsl_hat_trie
   storage
   cache
 )
@@ -812,6 +828,7 @@ target_include_directories(${PROJECT_NAME}
   PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
   PUBLIC ${PROJECT_SOURCE_DIR}
   ${INSTALL_INCLUDEDIR}
+  ${TSL_HAT_TRIE_INCLUDE_DIR}
 )
 
 target_link_libraries(${PROJECT_NAME}

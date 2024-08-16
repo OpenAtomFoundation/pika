@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "include/pika_search_encoding.h"
 #include "rocksdb/db.h"
 #include "rocksdb/slice.h"
 #include "rocksdb/status.h"
@@ -25,6 +26,7 @@
 #include "pstd/include/env.h"
 #include "src/redis_streams.h"
 #include "pstd/include/pika_codis_slot.h"
+#include "src/search_meta_value_format.h"
 
 #define SPOP_COMPACT_THRESHOLD_COUNT 500
 #define SPOP_COMPACT_THRESHOLD_DURATION (1000 * 1000)  // 1000ms
@@ -347,6 +349,25 @@ class Redis {
 
   Status TrimStream(int32_t& count, StreamMetaValue& stream_meta, const rocksdb::Slice& key, StreamAddTrimArgs& args,
                     rocksdb::ReadOptions& read_options);
+
+
+  // Search commands
+  // decode node metadata from search_key
+  // decode neighbors from search_key
+  // put node metadata of hnsw node
+  // add neighbour
+  // remove neighbour
+  Status PutHnswIndexMetaData(const rocksdb::Slice& index_key, SearchMetaValue& meta_value);
+  Status GetHnswIndexMetaData(const rocksdb::Slice& index_key, SearchMetaValue& meta_value);
+  Status PutHnswNode(std::string& node_key, search::HnswNodeFieldMetadata& node_meta);
+  Status GetHnswNode(std::string& node_key, search::HnswNodeFieldMetadata& node_meta);
+  // these two can be done through: first get node meta, update, and put back
+  // Status GetHnswNodeNeighbours(std::string& node_index_key);
+  // Status AddNeighbour(std::string& host_key, std::string& neighbour_key);
+  Status RemoveNeighbour(std::string& edge_key);
+  Status AddHnswEdge(std::string& edge_key);
+  Status RemoveHnswEdge(std::string& edge_key);
+
 
   void ScanDatabase();
   void ScanStrings();
