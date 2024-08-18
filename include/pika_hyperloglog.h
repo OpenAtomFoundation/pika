@@ -31,6 +31,30 @@ class PfAddCmd : public Cmd {
   void Clear() override { values_.clear(); }
 };
 
+class PKHyperloglogSetCmd : public Cmd {
+ public:
+  PKHyperloglogSetCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
+  std::vector<std::string> current_key() const override {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
+
+  void Do() override;
+  void Split(const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new PKHyperloglogSetCmd(*this); }
+
+ private:
+  std::string key_;
+  std::string value_;
+  void DoInitial() override;
+  void Clear() override {
+    key_.clear();
+    value_.clear();
+  }
+};
+
 class PfCountCmd : public Cmd {
  public:
   PfCountCmd(const std::string& name, int arity, uint32_t flag) : Cmd(name, arity, flag) {}
@@ -61,8 +85,7 @@ class PfMergeCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new PfMergeCmd(*this); }
-  void DoBinlog() override;
-
+  std::string ToRedisProtocol() override;
  private:
   std::vector<std::string> keys_;
   void DoInitial() override;

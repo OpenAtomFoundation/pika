@@ -77,15 +77,43 @@ void PfMergeCmd::Do() {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
-void PfMergeCmd::DoBinlog() {
-  PikaCmdArgsType set_args;
-  //used "set" instead of "SET" to distinguish the binlog of SetCmd
-  set_args.emplace_back("set");
-  set_args.emplace_back(keys_[0]);
-  set_args.emplace_back(value_to_dest_);
-  set_cmd_->Initial(set_args,  db_name_);
-  set_cmd_->SetConn(GetConn());
-  set_cmd_->SetResp(resp_.lock());
-  //value of this binlog might be strange, it's an string with size of 128KB
-  set_cmd_->DoBinlog();
+
+std::string PfMergeCmd::ToRedisProtocol() {
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 3, "*");
+
+  // to pkzsetat cmd
+  std::string pkzsetat_cmd(kCmdNamePKHyperloglogSet);
+  RedisAppendLenUint64(content,  pkzsetat_cmd.size(), "$");
+  RedisAppendContent(content,  pkzsetat_cmd);
+  // key
+  RedisAppendLenUint64(content, keys_[0].size(), "$");
+  RedisAppendContent(content, keys_[0]);
+  // member
+  RedisAppendLenUint64(content, value_to_dest_.size(), "$");
+  RedisAppendContent(content, value_to_dest_);
+
+  return content;
+}
+
+void PKHyperloglogSetCmd::Do() {
+  rocksdb::Status s = db_->storage()->HyperloglogSet(key_, value_);
+  if (s.ok()) {
+    res_.SetRes(CmdRes::kOk);
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+
+void PKHyperloglogSetCmd::DoInitial() {
+//  format: pkhyperloglogset key value
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNamePfMerge);
+    return;
+  }
+  key_ = argv_[1];
+  value_ = argv_[2];
 }
