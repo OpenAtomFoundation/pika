@@ -54,6 +54,8 @@
 
 - `PkPatternMatchDel` 命令在删除 DB 的同时删除 cache，避免出现数据库、缓存不一致的情况[#2839](https://github.com/OpenAtomFoundation/pika/pull/2839)@[chejinge](https://github.com/chejinge)
 
+- 用 rocky 环境替代 centos CI, 解决 CI 编译无法通过的事情[#2823](https://github.com/OpenAtomFoundation/pika/pull/2823)@[QlQlqiqi ](https://github.com/QlQlqiqi)
+
 - 优化读锁的范围，避免因为重复消费 binlog 导致主、从数据不一致的问题[#2818](https://github.com/OpenAtomFoundation/pika/pull/2818)@[cheniujh](https://github.com/cheniujh)
 
 - 修改 client watch 的 key，被任何人修改（包括自己的改动），都会失效的问题[#2815](https://github.com/OpenAtomFoundation/pika/pull/2815)@[luky116](https://github.com/luky116)
@@ -93,6 +95,8 @@
 - 修复参数未初始化导致 slotsscan 等命令不能和 bgsave 命令相互制衡的问题[#2745](https://github.com/OpenAtomFoundation/pika/pull/2745)@[chejinge](https://github.com/chejinge)
 
 - 修复 SlotMigrate 返回值错误，可能会导致数据迁移中断的问题[#2741](https://github.com/OpenAtomFoundation/pika/pull/2741)@[wangshao1](https://github.com/wangshao1)
+
+- Pksetexat 更新数据库的同时更新 cache，避免出现数据库、缓存不一致的问题[#2736](https://github.com/OpenAtomFoundation/pika/pull/2736)@[longfar-ncy](https://github.com/longfar-ncy)
 
 - 修复 RedisCache 层因为没有使用 storage 层解析的 ttl 可能会导致数据库、缓存不一致的问题[#2729](https://github.com/OpenAtomFoundation/pika/pull/2729)@[chejinge](https://github.com/chejinge)
 
