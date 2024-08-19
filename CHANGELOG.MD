@@ -78,6 +78,8 @@
 
 - Fix an issue where the min-blob-size parameter would fail to parse, causing errors in KV separation[#2767](https://github.com/OpenAtomFoundation/pika/pull/2767)@[wangshao1](https://github.com/wangshao1)
 
+- Fix the issue of incorrect state reversal during sentinel master-slave switch caused by data inconsistency between the master and slave nodes [#2766](https://github.com/OpenAtomFoundation/pika/pull/2766) @[cheniujh](https://github.com/cheniujh)
+
 - Fix an issue where the Zverank command would calculate incorrectly, leading to erroneous return values[#2763](https://github.com/OpenAtomFoundation/pika/pull/2763)@[chejinge](https://github.com/chejinge)
 
 - Fix an issue where the Pksetat command did not update the cache while updating the database, which could cause inconsistencies between the database and the cache[#2759](https://github.com/OpenAtomFoundation/pika/pull/2759)@[chejinge](https://github.com/chejinge)
@@ -91,6 +93,8 @@
 - Corrected uninitialized parameters in slotsscan and bgsave commands to ensure proper balancing.[#2745](https://github.com/OpenAtomFoundation/pika/pull/2745)@[chejinge](https://github.com/chejinge)
 
 - Fix an issue where incorrect return values from the SlotMigrate command could interrupt data migration[#2741](https://github.com/OpenAtomFoundation/pika/pull/2741)@[wangshao1](https://github.com/wangshao1)
+
+- Pksetexat updates the cache while updating the database to avoid inconsistencies between the database and cache [#2736](https://github.com/OpenAtomFoundation/pika/pull/2736) @[longfar-ncy](https://github.com/longfar-ncy)
 
 - Fix an issue where the RedisCache layer could cause inconsistencies between the database and the cache due to not using the TTL parsed by the storage layer[#2729](https://github.com/OpenAtomFoundation/pika/pull/2729)@[luky116](https://github.com/luky116)
 
