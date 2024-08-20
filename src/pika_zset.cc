@@ -167,9 +167,10 @@ void ZIncrbyCmd::DoInitial() {
   member_ = argv_[3];
 }
 
+
 void ZIncrbyCmd::Do() {
   double score = 0.0;
-  rocksdb::Status s = db_->storage()->ZIncrby(key_, member_, by_, &score);
+  rocksdb::Status s = db_->storage()->ZIncrby(key_, member_, by_, &score, ts_ms_, key_found_);
   if (s.ok()) {
     score_ = score;
     char buf[32];
@@ -193,9 +194,65 @@ void ZIncrbyCmd::DoUpdateCache() {
     db_->cache()->ZIncrbyIfKeyExist(key_, member_, by_, this, db_);
   }
 }
+std::string ZIncrbyCmd::ToRedisProtocol() {
+  std::string content;
+  if (key_found_ || ts_ms_ != 0) {
+    content.reserve(RAW_ARGS_LEN);
+    RedisAppendLen(content, 6, "*");
+
+    // to pkzsetat cmd
+    std::string pkzsetat_cmd("pkzsetat");
+    RedisAppendLenUint64(content,  pkzsetat_cmd.size(), "$");
+    RedisAppendContent(content,  pkzsetat_cmd);
+    // key
+    RedisAppendLenUint64(content, key_.size(), "$");
+    RedisAppendContent(content, key_);
+    // member
+    RedisAppendLenUint64(content, member_.size(), "$");
+    RedisAppendContent(content, member_);
+
+    std::string old_score = std::to_string(score_ - by_);
+    // old_score
+    RedisAppendLenUint64(content, old_score.size(), "$");
+    RedisAppendContent(content, old_score);
+
+    // incr value
+    std::string incr_value = std::to_string(by_);
+    RedisAppendLenUint64(content, incr_value.size(), "$");
+    RedisAppendContent(content, incr_value);
+
+    // time_stamp
+    std::string at = std::to_string(ts_ms_);
+    RedisAppendLenUint64(content, at.size(), "$");
+    RedisAppendContent(content, at);
+    return content;
+  } else {
+    content.reserve(RAW_ARGS_LEN);
+    RedisAppendLen(content, 4, "*");
+
+    // to zadd cmd
+    std::string pkzadd_cmd("zadd");
+    RedisAppendLenUint64(content, pkzadd_cmd.size(), "$");
+    RedisAppendContent(content, pkzadd_cmd);
+
+    // key
+    RedisAppendLenUint64(content, key_.size(), "$");
+    RedisAppendContent(content, key_);
+
+    std::string old_score = std::to_string(score_);
+    // new_score
+    RedisAppendLenUint64(content, old_score.size(), "$");
+    RedisAppendContent(content, old_score);
+
+    // member
+    RedisAppendLenUint64(content, member_.size(), "$");
+    RedisAppendContent(content, member_);
+  }
+  return content;
+}
 
 void PKZSetAtCmd::Do() {
-    if (ts_ms_ != 0 && ts_ms_ > pstd::NowMillis()) {
+    if (ts_ms_ != 0 && ts_ms_ < pstd::NowMillis()) {
       res_.SetRes(CmdRes::kErrOther, "abort expired operation");
     }
 

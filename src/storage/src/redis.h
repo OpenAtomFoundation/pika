@@ -247,7 +247,7 @@ class Redis {
   void GetRocksDBInfo(std::string &info, const char *prefix);
 
   // Sets Commands
-  Status SAdd(const Slice& key, const std::vector<std::string>& members, int32_t* ret);
+  Status SAdd(const Slice& key, const std::vector<std::string>& members, int32_t* ret, uint64_t& ts_ms);
   Status SCard(const Slice& key, int32_t* ret, std::string&& prefetch_meta = {});
   Status SDiff(const std::vector<std::string>& keys, std::vector<std::string>* members);
   Status SDiffstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret);
@@ -289,7 +289,8 @@ class Redis {
   Status ZAdd(const Slice& key, const std::vector<ScoreMember>& score_members, int32_t* ret);
   Status ZCard(const Slice& key, int32_t* card, std::string&& prefetch_meta = {});
   Status ZCount(const Slice& key, double min, double max, bool left_close, bool right_close, int32_t* ret);
-  Status ZIncrby(const Slice& key, const Slice& member, double increment, double* ret);
+  Status ZIncrby(const Slice& key, const Slice& member, double increment, double* ret, uint64_t& ts_ms_,
+                 bool& key_found);
   Status ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members);
   Status ZRangeWithTTL(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members, int64_t* ttl_millsec);
   Status ZRangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close, int64_t count,

@@ -128,11 +128,14 @@ class ZIncrbyCmd : public Cmd {
   void Merge() override{};
   Cmd* Clone() override { return new ZIncrbyCmd(*this); }
   double Score() { return score_; }
+  std::string ToRedisProtocol() override;
 
  private:
   std::string key_, member_;
   double by_ = .0f;
   double score_ = .0f;
+  uint64_t ts_ms_ = 0;
+  bool key_found_ = false;
   void DoInitial() override;
 };
 

@@ -720,7 +720,8 @@ void AddSlotKey(const std::string& type, const std::string& key, const std::shar
   std::string slot_key = GetSlotKey(slotID);
   std::vector<std::string> members;
   members.emplace_back(type + key);
-  s = db->storage()->SAdd(slot_key, members, &res);
+  uint64_t ts_ms;
+  s = db->storage()->SAdd(slot_key, members, &res, ts_ms);
   if (!s.ok()) {
     LOG(ERROR) << "sadd key[" << key << "] to slotKey[" << slot_key << "] failed, error: " << s.ToString();
     return;
@@ -730,7 +731,8 @@ void AddSlotKey(const std::string& type, const std::string& key, const std::shar
   // prevent write slot_key success, but write tag_key failed, so always write tag_key
   if (hastag) {
     std::string tag_key = GetSlotsTagKey(crc);
-    s = db->storage()->SAdd(tag_key, members, &res);
+    uint64_t ts_ms;
+    s = db->storage()->SAdd(tag_key, members, &res, ts_ms);
     if (!s.ok()) {
       LOG(ERROR) << "sadd key[" << key << "] to tagKey[" << tag_key << "] failed, error: " << s.ToString();
       return;

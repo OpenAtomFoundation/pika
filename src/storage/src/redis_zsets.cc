@@ -397,7 +397,10 @@ Status Redis::ZCount(const Slice& key, double min, double max, bool left_close, 
   return s;
 }
 
-Status Redis::ZIncrby(const Slice& key, const Slice& member, double increment, double* ret) {
+Status Redis::ZIncrby(const Slice& key, const Slice& member, double increment, double* ret, uint64_t& ts_ms_,
+                      bool& key_found) {
+  key_found = false;
+  ts_ms_ = 0;
   *ret = 0;
   uint32_t statistic = 0;
   double score = 0;
@@ -424,8 +427,10 @@ Status Redis::ZIncrby(const Slice& key, const Slice& member, double increment, d
     if (parsed_zsets_meta_value.IsStale() || parsed_zsets_meta_value.Count() == 0) {
       version = parsed_zsets_meta_value.InitialMetaValue();
     } else {
+      key_found = true;
       version = parsed_zsets_meta_value.Version();
     }
+    ts_ms_ = parsed_zsets_meta_value.Etime();
     std::string data_value;
     ZSetsMemberKey zsets_member_key(key, version, member);
     s = db_->Get(default_read_options_, handles_[kZsetsDataCF], zsets_member_key.Encode(), &data_value);

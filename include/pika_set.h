@@ -28,13 +28,40 @@ class SAddCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SAddCmd(*this); }
+  std::string ToRedisProtocol() override;
 
  private:
   std::string key_;
   std::vector<std::string> members_;
   rocksdb::Status s_;
+  uint64_t ts_ms_{0};
   void DoInitial() override;
 };
+
+class PKSAddCmd : public Cmd {
+ public:
+  std::vector<std::string> current_key() const override {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
+  void Do() override;
+//  void DoUpdateCache() override;
+  void DoThroughDB() override;
+  void Split(const HintKeys& hint_keys) override{};
+  void Merge() override{};
+  Cmd* Clone() override { return new PKSAddCmd(*this); }
+
+ private:
+  std::string key_;
+  std::vector<std::string> members_;
+  rocksdb::Status s_;
+  uint64_t ts_ms_{0};
+  void DoInitial() override;
+};
+
+
+
 
 class SRemCmd : public Cmd {
  public:
@@ -83,7 +110,7 @@ class SPopCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new SPopCmd(*this); }
-  void DoBinlog() override;
+  std::string ToRedisProtocol() override;
 
  private:
   void DoInitial() override;
@@ -196,8 +223,7 @@ class SetOperationCmd : public Cmd {
   }
 
   std::vector<std::string> current_key() const override { return {dest_key_}; }
-  void DoBinlog() override;
-
+  std::string ToRedisProtocol() override;
  protected:
   std::string dest_key_;
   std::vector<std::string> keys_;
