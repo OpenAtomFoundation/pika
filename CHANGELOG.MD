@@ -44,7 +44,7 @@
 
 - Fixed an incorrect process in the kill client command for terminating connections [#2862](https://github.com/OpenAtomFoundation/pika/pull/2862)@[cheniujh](https://github.com/cheniujh)
 
-- Fix an issue where blpop/brpop would not update the cache when updating the database, which could cause inconsistencies between the database and the cache[#2858](https://github.com/OpenAtomFoundation/pika/pull/2858)@[cheniujh](https://github.com/cheniujh)
+- Fix an issue where blpop/brpop would not update the RedisCache when updating the database, which could cause inconsistencies between the RocksDB and the RedisCache [#2858](https://github.com/OpenAtomFoundation/pika/pull/2858)@[cheniujh](https://github.com/cheniujh)
 
 - Fixed an issue where Pika did not support Redis-Sentinel.[#2854](https://github.com/OpenAtomFoundation/pika/pull/2854)@[cheniujh](https://github.com/cheniujh)
 
@@ -52,7 +52,7 @@
 
 - The GitHub CI (Continuous Integration) workflow will support three environments overall: macOS, Ubuntu, and Rocky[#2823](https://github.com/OpenAtomFoundation/pika/pull/2823)@[QlQlqiqi](https://github.com/QlQlqiqi)
 
-- The PkPatternMatchDel command now deletes cache entries along with the database entries, preventing inconsistencies between the database and cache. [#2839](https://github.com/OpenAtomFoundation/pika/pull/2839)@[chejinge](https://github.com/chejinge)
+- The PkPatternMatchDel command now deletes RedisCache entries along with the database entries, preventing inconsistencies between the RocksDB and the RedisCache. [#2839](https://github.com/OpenAtomFoundation/pika/pull/2839)@[chejinge](https://github.com/chejinge)
 
 - Optimize the scope of read locks to avoid inconsistencies between master and slave data due to repeated binlog consumption #2818 by[#2818](https://github.com/OpenAtomFoundation/pika/pull/2818)@[cheniujh](https://github.com/cheniujh)
 
@@ -84,7 +84,7 @@
 
 - Fix an issue where the Zverank command would calculate incorrectly, leading to erroneous return values[#2763](https://github.com/OpenAtomFoundation/pika/pull/2763)@[chejinge](https://github.com/chejinge)
 
-- Fix an issue where the Pksetat command did not update the cache while updating the database, which could cause inconsistencies between the database and the cache[#2759](https://github.com/OpenAtomFoundation/pika/pull/2759)@[chejinge](https://github.com/chejinge)
+- Fix an issue where the Pksetat command did not update the RedisCache while updating the database, which could cause inconsistencies between the RocksDB and the RedisCache.[#2759](https://github.com/OpenAtomFoundation/pika/pull/2759)@[chejinge](https://github.com/chejinge)
 
 - Fixed an error occurring during data migration with Pika-port.[#2758](https://github.com/OpenAtomFoundation/pika/pull/2758)@[guangkun123](https://github.com/guangkun123)
 
@@ -96,9 +96,10 @@
 
 - Fix an issue where incorrect return values from the SlotMigrate command could interrupt data migration[#2741](https://github.com/OpenAtomFoundation/pika/pull/2741)@[wangshao1](https://github.com/wangshao1)
 
-- Pksetexat updates the cache while updating the database to avoid inconsistencies between the database and cache [#2736](https://github.com/OpenAtomFoundation/pika/pull/2736) @[longfar-ncy](https://github.com/longfar-ncy)
+- Pksetexat updates the RedisCache while updating the database to avoid inconsistencies between the RocksDB and the RedisCache.[#2736](https://github.com/OpenAtomFoundation/pika/pull/2736) @[longfar-ncy](https://github.com/longfar-ncy)
 
-- Fix an issue where the RedisCache layer could cause inconsistencies between the database and the cache due to not using the TTL parsed by the storage layer[#2729](https://github.com/OpenAtomFoundation/pika/pull/2729)@[luky116](https://github.com/luky116)
+- Fix an issue where the RedisCache layer could cause inconsistencies between
+  the RocksDB and the RedisCache due to not using the TTL parsed by the storage layer[#2729](https://github.com/OpenAtomFoundation/pika/pull/2729)@[luky116](https://github.com/luky116)
 
 - Fix an issue where Stream-type data could not be compacted by RocksDB, causing expired data to persist[#2724](https://github.com/OpenAtomFoundation/pika/pull/2724)@[wangshao1](https://github.com/wangshao1)
 
