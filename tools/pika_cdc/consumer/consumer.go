@@ -18,8 +18,10 @@ func GenerateConsumers(config conf.PikaCdcConfig, msgChanns map[string]chan []by
 	var consumers []Consumer
 
 	// kafka
-	kafka, _ := NewKafka(config.KafkaServers, config.Topic, config.Retries, msgChanns)
-	consumers = append(consumers, kafka)
+	for _, k := range config.KafkaServers {
+		kafka, _ := NewKafka(k, config.Retries, msgChanns)
+		consumers = append(consumers, kafka)
+	}
 
 	// redis
 	for _, r := range config.RedisServers {

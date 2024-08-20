@@ -1,14 +1,13 @@
 # pika_server
 pika_server : 127.0.0.1:11221
+# For data from one DB of one pika, a separate MQ topic is created,
+# and the name of the topic is the dbname of the pika
 kafka_servers:
   - 127.0.0.1:9092
 redis_servers:
   - 127.0.0.1:6379
 pulsar_servers:
   - 127.0.0.1:6650
-# will create this topic, if this topic not exist
-# and all servers will use same name topic
-topic : test
 # retry times while send message failed
 retries : 0
 # retry interval while send message failed(ms)

@@ -1,35 +1,25 @@
 package consumer
 
 import (
+	"context"
 	"github.com/segmentio/kafka-go"
 	"sync"
 )
 
 type Kafka struct {
-	servers   []string
-	topic     string
-	retries   int
-	conns     []*kafka.Conn
-	wg        sync.WaitGroup
-	msgChanns map[string]chan []byte
-	stopChan  chan bool
-	once      sync.Once
-	protocol  Protocol
+	servers    string
+	topics     []string
+	retries    int
+	kafkaConns map[string]*kafka.Conn
+	wg         sync.WaitGroup
+	msgChanns  map[string]chan []byte
+	stopChan   chan bool
+	once       sync.Once
+	protocol   KafkaProtocol
 }
 
 func (k *Kafka) SendCmdMessage(dbName string, msg []byte) error {
-	//retries := k.retries
-	//select {
-	//case *k.messageChan <- k.protocol.ToConsumer(msg):
-	//	return nil
-	//case <-time.After(2 * time.Second):
-	//	e := errors.New("send pika cmd timeout and retry send pika cmd")
-	//	logrus.Warn("{}", e)
-	//	retries--
-	//	if retries <= 0 {
-	//		break
-	//	}
-	//}
+	k.kafkaConns[dbName].Write(k.protocol.ToConsumer(msg))
 	return nil
 }
 
@@ -37,21 +27,22 @@ func (k *Kafka) Name() string {
 	return "Kafka"
 }
 
-func NewKafka(servers []string, topic string, retries int, msgChanns map[string]chan []byte) (*Kafka, error) {
+func NewKafka(server string, retries int, msgChanns map[string]chan []byte) (*Kafka, error) {
 	k := &Kafka{}
-	//k.protocol = &KafkaProtocol{}
-	//for _, server := range servers {
-	//	conn, err := kafka.DialLeader(context.Background(), "tcp", server, topic, 0)
-	//	if err != nil {
-	//		return k, err
-	//	} else {
-	//		conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
-	//		k.conns = append(k.conns, conn)
-	//	}
-	//}
-	//k.messageChan = msgChanns
-	//k.stopChan = make(chan bool)
-	//k.retries = retries
+	k.protocol = KafkaProtocol{}
+	k.kafkaConns = make(map[string]*kafka.Conn)
+	k.msgChanns = make(map[string]chan []byte)
+	for dbname, chann := range msgChanns {
+		conn, err := kafka.DialLeader(context.Background(), "tcp", server, dbname, 0)
+		if err != nil {
+			return k, err
+		} else {
+			k.kafkaConns[dbname] = conn
+		}
+		k.msgChanns[dbname] = chann
+	}
+	k.stopChan = make(chan bool)
+	k.retries = retries
 	return k, nil
 }
 
@@ -59,7 +50,7 @@ func (k *Kafka) close() error {
 	//k.stopChan <- true
 	//close(k.stopChan)
 	//close(*k.messageChan)
-	//for _, conn := range k.conns {
+	//for _, conn := range k.kafkaConns {
 	//	err := conn.Close()
 	//	if err != nil {
 	//		logrus.Warn(err)
@@ -78,12 +69,22 @@ func (k *Kafka) Close() error {
 	return nil
 }
 func (k *Kafka) Run() {
-	//select {
-	//case msg := <-*k.messageChan:
-	//	k.SendCmdMessage(msg)
-	//case <-k.stopChan:
-	//	return
-	//}
+	var wg sync.WaitGroup
+	for dbName, chann := range k.msgChanns {
+		wg.Add(1)
+		go func(dbName string, ch chan []byte) {
+			defer wg.Done()
+			for {
+				select {
+				case msg := <-ch:
+					k.SendCmdMessage(dbName, msg)
+				case <-k.stopChan:
+					return
+				}
+			}
+		}(dbName, chann)
+	}
+	wg.Wait()
 }
 func (k *Kafka) Stop() {
 	k.stopChan <- true

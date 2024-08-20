@@ -19,5 +19,6 @@ make
 ## Todo:
 
 Consumer side:
-- [x] redis 
-- [ ] kafka
+- [x] **redis** 
+- [x] **kafka** Create a topic of the same name for each pika's DB
+- [ ] **bifrost** 
