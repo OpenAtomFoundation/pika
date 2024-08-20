@@ -52,7 +52,7 @@
 
 - 修改 `flushall` 的逻辑避免统一处理时，多清理一次数据[#2846](https://github.com/OpenAtomFoundation/pika/pull/2846)@[cheniujh](https://github.com/cheniujh)
 
-- `PkPatternMatchDel` 命令在删除 DB 的同时删除 RedisCache，避免出现RocksDb 数据库与 RedisCache 缓存数据不一致的情况[#2839](https://github.com/OpenAtomFoundation/pika/pull/2839)@[chejinge](https://github.com/chejinge)
+- `PkPatternMatchDel` 命令在删除 DB 的同时删除 RedisCache，避免出现 RocksDB 数据库与 RedisCache 缓存数据不一致的情况[#2839](https://github.com/OpenAtomFoundation/pika/pull/2839)@[chejinge](https://github.com/chejinge)
 
 - 用 Rocky 环境替代 CentOS, github CI 流程总体支持 MacOS/Ubuntu/Rocky 三个环境[#2823](https://github.com/OpenAtomFoundation/pika/pull/2823)@[QlQlqiqi ](https://github.com/QlQlqiqi)
 
