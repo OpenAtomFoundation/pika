@@ -50,7 +50,7 @@
 
 - Modify the flushall logic to avoid multiple data cleanups during unified processing[#2846](https://github.com/OpenAtomFoundation/pika/pull/2846)@[cheniujh](https://github.com/cheniujh)
 
-- Replace CentOS CI with Rocky environment to resolve the CI compilation failure issue[#2823](https://github.com/OpenAtomFoundation/pika/pull/2823)@[QlQlqiqi](https://github.com/QlQlqiqi)
+- The GitHub CI (Continuous Integration) workflow will support three environments overall: macOS, Ubuntu, and Rocky[#2823](https://github.com/OpenAtomFoundation/pika/pull/2823)@[QlQlqiqi](https://github.com/QlQlqiqi)
 
 - The PkPatternMatchDel command now deletes cache entries along with the database entries, preventing inconsistencies between the database and cache. [#2839](https://github.com/OpenAtomFoundation/pika/pull/2839)@[chejinge](https://github.com/chejinge)
 
