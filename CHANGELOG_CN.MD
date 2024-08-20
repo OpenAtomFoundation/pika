@@ -46,13 +46,13 @@
 
 - 修复 kill client 命令杀连接流程不正确的[#2862](https://github.com/OpenAtomFoundation/pika/pull/2862)@[cheniujh](https://github.com/cheniujh)
 
-- 修复 `blpop/brpop` 更新数据库的时候未更新缓存可能回导致数据库、缓存不一致的现象[#2858](https://github.com/OpenAtomFoundation/pika/pull/2858)@[cheniujh](https://github.com/cheniujh)
+- 修复 `blpop/brpop` 更新数据库的时候未更新缓存可能回导致 RocksDB 数据库与 RedisCache 缓存不一致的现象[#2858](https://github.com/OpenAtomFoundation/pika/pull/2858)@[cheniujh](https://github.com/cheniujh)
 
 - 修复 Pika 不支持 Redis-Sentinel 的问题[#2854](https://github.com/OpenAtomFoundation/pika/pull/2854)@[cheniujh](https://github.com/cheniujh)
 
 - 修改 `flushall` 的逻辑避免统一处理时，多清理一次数据[#2846](https://github.com/OpenAtomFoundation/pika/pull/2846)@[cheniujh](https://github.com/cheniujh)
 
-- `PkPatternMatchDel` 命令在删除 DB 的同时删除 cache，避免出现数据库、缓存不一致的情况[#2839](https://github.com/OpenAtomFoundation/pika/pull/2839)@[chejinge](https://github.com/chejinge)
+- `PkPatternMatchDel` 命令在删除 DB 的同时删除 RedisCache，避免出现RocksDb 数据库与 RedisCache 缓存数据不一致的情况[#2839](https://github.com/OpenAtomFoundation/pika/pull/2839)@[chejinge](https://github.com/chejinge)
 
 - 用 Rocky 环境替代 CentOS, github CI 流程总体支持 MacOS/Ubuntu/Rocky 三个环境[#2823](https://github.com/OpenAtomFoundation/pika/pull/2823)@[QlQlqiqi ](https://github.com/QlQlqiqi)
 
