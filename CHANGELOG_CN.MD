@@ -6,7 +6,7 @@
 
 - 用 RTC 模型处理 Pika 访问缓存部分，提升 Pika 服务的读性能[#2837](https://github.com/OpenAtomFoundation/pika/pull/2837)@[cheniujh](https://github.com/cheniujh)
 
-- Incr、append 命令在传输 binlog 时，使用 pksetexat 命令，防止因为不正确的操作导致数据无法过期，出现脏数据[#2833](https://github.com/OpenAtomFoundation/pika/pull/2833)@[chejinge](https://github.com/chejinge)
+- incr、append 命令在传输 binlog 时，使用 pksetexat 命令，防止因为不正确的操作导致数据无法过期，出现脏数据[#2833](https://github.com/OpenAtomFoundation/pika/pull/2833)@[chejinge](https://github.com/chejinge)
 
 - 添加定时删除日志的任务，默认 7 天删除一次，可以根据自己需求在 config 文件中进行配置[#2829](https://github.com/OpenAtomFoundation/pika/pull/2829)@[XiaoLiang2333](https://github.com/XiaoLiang2333)
 
@@ -84,7 +84,7 @@
 
 - 修复 `Zverank` 命令计算错误，导致返回值错误的问题[#2763](https://github.com/OpenAtomFoundation/pika/pull/2763)@[chejinge](https://github.com/chejinge)
 
-- 修复 `Pksetat` 命令更新 DB 的同时未更新缓存，可能会存在数据库、缓存不一致的问题[#2759](https://github.com/OpenAtomFoundation/pika/pull/2759)@[chejinge](https://github.com/chejinge)
+- 修复 `Pksetat` 命令更新 DB 的同时未更新 RedisCache 缓存，可能会存在 RocksDB 数据库与 RedisCache 缓存不一致的问题[#2759](https://github.com/OpenAtomFoundation/pika/pull/2759)@[chejinge](https://github.com/chejinge)
 
 - 修复 Pika-port 传输数据过程中报错的问题[#2758](https://github.com/OpenAtomFoundation/pika/pull/2758)@[guangkun123](https://github.com/guangkun123)
 
@@ -96,11 +96,11 @@
 
 - 修复 SlotMigrate 返回值错误，可能会导致数据迁移中断的问题[#2741](https://github.com/OpenAtomFoundation/pika/pull/2741)@[wangshao1](https://github.com/wangshao1)
 
-- Pksetexat 更新数据库的同时更新 cache，避免出现数据库、缓存不一致的问题[#2736](https://github.com/OpenAtomFoundation/pika/pull/2736)@[longfar-ncy](https://github.com/longfar-ncy)
+- Pksetexat 更新数据库的同时更新 RedisCache，避免出现RocksDB 数据库与 RedisCache 缓存不一致的问题[#2736](https://github.com/OpenAtomFoundation/pika/pull/2736)@[longfar-ncy](https://github.com/longfar-ncy)
 
-- 修复 RedisCache 层因为没有使用 storage 层解析的 ttl 可能会导致数据库、缓存不一致的问题[#2729](https://github.com/OpenAtomFoundation/pika/pull/2729)@[chejinge](https://github.com/chejinge)
+- 修复 RedisCache 层因为没有使用 storage 层解析的 ttl 可能会导致 RocksDB 数据库与 RedisCache 缓存不一致的问题[#2729](https://github.com/OpenAtomFoundation/pika/pull/2729)@[chejinge](https://github.com/chejinge)
 
-- 修复 Stream 类型数据不能被 RocksDB compact 会导致过期数据一直存在的问题[#2724](https://github.com/OpenAtomFoundation/pika/pull/2724)@[wangshao1](https://github.com/wangshao1)
+- 修复 Stream 类型数据不能被 RocksDB compaction 会导致过期数据一直存在的问题[#2724](https://github.com/OpenAtomFoundation/pika/pull/2724)@[wangshao1](https://github.com/wangshao1)
 
 - 修复 ACL 认证可能会偶发性失败的问题[#2714](https://github.com/OpenAtomFoundation/pika/pull/2714)@[luky116](https://github.com/luky116)
 
