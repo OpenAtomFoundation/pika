@@ -54,7 +54,7 @@
 
 - `PkPatternMatchDel` 命令在删除 DB 的同时删除 cache，避免出现数据库、缓存不一致的情况[#2839](https://github.com/OpenAtomFoundation/pika/pull/2839)@[chejinge](https://github.com/chejinge)
 
-- 用 rocky 环境替代 centos CI, 解决 CI 编译无法通过的事情[#2823](https://github.com/OpenAtomFoundation/pika/pull/2823)@[QlQlqiqi ](https://github.com/QlQlqiqi)
+- 用 rocky 环境替代 centos, github CI 流程总体支持 MacOS/Ubuntu/Rocky 三个环境[#2823](https://github.com/OpenAtomFoundation/pika/pull/2823)@[QlQlqiqi ](https://github.com/QlQlqiqi)
 
 - 优化读锁的范围，避免因为重复消费 binlog 导致主、从数据不一致的问题[#2818](https://github.com/OpenAtomFoundation/pika/pull/2818)@[cheniujh](https://github.com/cheniujh)
 
