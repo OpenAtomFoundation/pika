@@ -421,7 +421,7 @@ int PikaConf::Load() {
   }
 
   // target_file_size_base
-  GetConfIntHuman("target-file-size-base", &target_file_size_base_);
+  GetConfInt64Human("target-file-size-base", &target_file_size_base_);
   if (target_file_size_base_ <= 0) {
     target_file_size_base_ = 1048576;  // 10Mb
   }
