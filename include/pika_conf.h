@@ -270,7 +270,7 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return compression_;
   }
-  int target_file_size_base() {
+  int64_t target_file_size_base() {
     std::shared_lock l(rwlock_);
     return target_file_size_base_;
   }
@@ -1027,7 +1027,7 @@ class PikaConf : public pstd::BaseConf {
   // Critical configure items
   //
   bool write_binlog_ = false;
-  int target_file_size_base_ = 0;
+  int64_t target_file_size_base_ = 0;
   int64_t max_compaction_bytes_ = 0;
   int binlog_file_size_ = 0;
 
