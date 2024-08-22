@@ -13,13 +13,14 @@
 #include "glog/logging.h"
 #include "rocksdb/compaction_filter.h"
 #include "src/base_data_key_format.h"
-#include "src/base_value_format.h"
+#include "src/base_key_format.h"
 #include "src/base_meta_value_format.h"
+#include "src/base_value_format.h"
+#include "src/debug.h"
 #include "src/lists_meta_value_format.h"
 #include "src/pika_stream_meta_value.h"
 #include "src/strings_value_format.h"
 #include "src/zsets_data_key_format.h"
-#include "src/debug.h"
 
 namespace storage {
 
@@ -56,14 +57,13 @@ class BaseMetaFilter : public rocksdb::CompactionFilter {
       DEBUG("[stream meta type], key: %s, entries_added = %llu, first_id: %s, last_id: %s, version: %llu",
             parsed_key.Key().ToString().c_str(), parsed_stream_meta_value.entries_added(),
             parsed_stream_meta_value.first_id().ToString().c_str(),
-            parsed_stream_meta_value.last_id().ToString().c_str(),
-            parsed_stream_meta_value.version());
+            parsed_stream_meta_value.last_id().ToString().c_str(), parsed_stream_meta_value.version());
       return false;
     } else if (type == DataType::kLists) {
       ParsedListsMetaValue parsed_lists_meta_value(value);
-      DEBUG("[list meta type], key: %s, count = %d, timestamp: %llu, cur_time: %llu, version: %llu", parsed_key.Key().ToString().c_str(),
-            parsed_lists_meta_value.Count(), parsed_lists_meta_value.Etime(), cur_time,
-            parsed_lists_meta_value.Version());
+      DEBUG("[list meta type], key: %s, count = %d, timestamp: %llu, cur_time: %llu, version: %llu",
+            parsed_key.Key().ToString().c_str(), parsed_lists_meta_value.Count(), parsed_lists_meta_value.Etime(),
+            cur_time, parsed_lists_meta_value.Version());
 
       if (parsed_lists_meta_value.Etime() != 0 && parsed_lists_meta_value.Etime() < cur_time &&
           parsed_lists_meta_value.Version() < cur_time) {
@@ -112,10 +112,7 @@ class BaseMetaFilterFactory : public rocksdb::CompactionFilterFactory {
 class BaseDataFilter : public rocksdb::CompactionFilter {
  public:
   BaseDataFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr, enum DataType type)
-      : db_(db),
-        cf_handles_ptr_(cf_handles_ptr),
-        type_(type)
-        {}
+      : db_(db), cf_handles_ptr_(cf_handles_ptr), type_(type) {}
 
   bool Filter(int level, const Slice& key, const rocksdb::Slice& value, std::string* new_value,
               bool* value_changed) const override {
@@ -158,8 +155,9 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
           ParsedStreamMetaValue parsed_stream_meta_value(meta_value);
           meta_not_found_ = false;
           cur_meta_version_ = parsed_stream_meta_value.version();
-          cur_meta_etime_ = 0; // stream do not support ttl
-        } else if (type == DataType::kHashes || type == DataType::kSets || type == DataType::kZSets) {
+          cur_meta_etime_ = 0;  // stream do not support ttl
+        } else if (type == DataType::kHashes || type == DataType::kSets || type == DataType::kZSets ||
+                   type == DataType::kPKHashes) {
           ParsedBaseMetaValue parsed_base_meta_value(&meta_value);
           meta_not_found_ = false;
           cur_meta_version_ = parsed_base_meta_value.Version();
@@ -229,7 +227,8 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
 
 class BaseDataFilterFactory : public rocksdb::CompactionFilterFactory {
  public:
-  BaseDataFilterFactory(rocksdb::DB** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr, enum DataType type)
+  BaseDataFilterFactory(rocksdb::DB** db_ptr, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr,
+                        enum DataType type)
       : db_ptr_(db_ptr), cf_handles_ptr_(handles_ptr), type_(type) {}
   std::unique_ptr<rocksdb::CompactionFilter> CreateCompactionFilter(
       const rocksdb::CompactionFilter::Context& context) override {
@@ -247,6 +246,11 @@ using HashesMetaFilter = BaseMetaFilter;
 using HashesMetaFilterFactory = BaseMetaFilterFactory;
 using HashesDataFilter = BaseDataFilter;
 using HashesDataFilterFactory = BaseDataFilterFactory;
+
+using PKHashesMetaFilter = BaseMetaFilter;
+using PKHashesMetaFilterFactory = BaseMetaFilterFactory;
+using PKHashesDataFilter = BaseDataFilter;
+using PKHashesDataFilterFactory = BaseDataFilterFactory;
 
 using SetsMetaFilter = BaseMetaFilter;
 using SetsMetaFilterFactory = BaseMetaFilterFactory;

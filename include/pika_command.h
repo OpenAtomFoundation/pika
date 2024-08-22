@@ -137,6 +137,28 @@ const std::string kCmdNameHScanx = "hscanx";
 const std::string kCmdNamePKHScanRange = "pkhscanrange";
 const std::string kCmdNamePKHRScanRange = "pkhrscanrange";
 
+// PKHash
+const std::string kCmdNamePKHSet = "pkhset";
+const std::string kCmdNamePKHSetex = "pkhsetex";
+const std::string kCmdNamePKHExpire = "pkhexpire";
+const std::string kCmdNamePKHExpireat = "pkhexpireat";
+const std::string kCmdNamePKHExpiretime = "pkhexpiretime";
+const std::string kCmdNamePKHTTL = "pkhttl";
+const std::string kCmdNamePKHPersist = "pkhpersist";
+const std::string kCmdNamePKHGet = "pkhget";
+const std::string kCmdNamePKHExists = "pkhexists";
+const std::string kCmdNamePKHDel = "pkhdel";
+const std::string kCmdNamePKHLen = "pkhlen";
+const std::string kCmdNamePKHStrlen = "pkhstrlen";
+const std::string kCmdNamePKHIncrby = "pkhincrby";
+const std::string kCmdNamePKHMSet = "pkhmset";
+const std::string kCmdNamePKHSetex = "pkhsetex";
+const std::string kCmdNamePKHMGet = "pkhmget";
+const std::string kCmdNamePKHKeys = "pkhkeys";
+const std::string kCmdNamePKHVals = "pkhvals";
+const std::string kCmdNamePKHGetall = "pkhgetall";
+const std::string kCmdNamePKHScan = "pkhscan";
+
 // List
 const std::string kCmdNameLIndex = "lindex";
 const std::string kCmdNameLInsert = "linsert";
@@ -247,7 +269,6 @@ const std::string kCmdNameXInfo = "xinfo";
 
 const std::string kClusterPrefix = "pkcluster";
 
-
 /*
  * If a type holds a key, a new data structure
  * that uses the key will use this error
@@ -290,7 +311,8 @@ enum CmdFlags {
   kCmdFlagsOperateKey = (1 << 19),  // redis keySpace
   kCmdFlagsStream = (1 << 20),
   kCmdFlagsFast = (1 << 21),
-  kCmdFlagsSlow = (1 << 22)
+  kCmdFlagsSlow = (1 << 22),
+  kCmdFlagsPKHash = (1 << 23),  // TODO(DDD)
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
@@ -480,7 +502,7 @@ class CmdRes {
 struct UnblockTaskArgs {
   std::string key;
   std::shared_ptr<DB> db;
-  net::DispatchThread* dispatchThread{ nullptr };
+  net::DispatchThread* dispatchThread{nullptr};
   UnblockTaskArgs(std::string key_, std::shared_ptr<DB> db_, net::DispatchThread* dispatchThread_)
       : key(std::move(key_)), db(db_), dispatchThread(dispatchThread_) {}
 };
@@ -568,7 +590,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   std::shared_ptr<std::string> GetResp();
 
   void SetStage(CmdStage stage);
-  void SetCmdId(uint32_t cmdId){cmdId_ = cmdId;}
+  void SetCmdId(uint32_t cmdId) { cmdId_ = cmdId; }
 
   virtual void DoBinlog();
 
@@ -610,7 +632,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
  private:
   virtual void DoInitial() = 0;
-  virtual void Clear(){};
+  virtual void Clear() {};
 
   Cmd& operator=(const Cmd&);
 };

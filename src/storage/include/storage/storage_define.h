@@ -44,6 +44,7 @@ enum ColumnFamilyIndex {
   kZsetsDataCF = 4,
   kZsetsScoreCF = 5,
   kStreamsDataCF = 6,
+  kPKHashDataCF = 7,
 };
 
 const static char kNeedTransformCharacter = '\u0000';
@@ -120,16 +121,16 @@ inline const char* DecodeUserKey(const char* ptr, int length, std::string* user_
 }
 
 inline const char* SeekUserkeyDelim(const char* ptr, int length) {
-    bool zero_ahead = false;
-    for (int i = 0; i < length; i++) {
-        if (ptr[i] == kNeedTransformCharacter && zero_ahead) {
-            return ptr + i + 1;
-        }
-        zero_ahead = ptr[i] == kNeedTransformCharacter;
+  bool zero_ahead = false;
+  for (int i = 0; i < length; i++) {
+    if (ptr[i] == kNeedTransformCharacter && zero_ahead) {
+      return ptr + i + 1;
     }
-    //TODO: handle invalid format
-    return ptr;
+    zero_ahead = ptr[i] == kNeedTransformCharacter;
+  }
+  // TODO: handle invalid format
+  return ptr;
 }
 
-} // end namespace storage
+}  // end namespace storage
 #endif

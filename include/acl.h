@@ -52,6 +52,7 @@ enum class AclCategory {
   CONNECTION = (1ULL << 18),
   TRANSACTION = (1ULL << 19),
   SCRIPTING = (1ULL << 20),
+  PKHASH = (1ULL << 21),
 };
 
 enum class AclUserFlag {
