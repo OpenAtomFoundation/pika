@@ -507,8 +507,7 @@ void InitCmdTable(CmdTable* cmd_table) {
       std::make_unique<RPushCmd>(kCmdNameRPush, -3, kCmdFlagsWrite | kCmdFlagsList | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameRPush, std::move(rpushptr)));
   std::unique_ptr<Cmd> rpushxptr =
-      std::make_unique<RPushxCmd>(kCmdNameRPushx, -3, kCmdFlagsWrite |  kCmdFlagsList);
-  std::make_unique<RPushxCmd>(kCmdNameRPushx, 3, kCmdFlagsWrite |  kCmdFlagsList | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+      std::make_unique<RPushxCmd>(kCmdNameRPushx, -3, kCmdFlagsWrite |  kCmdFlagsList | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameRPushx, std::move(rpushxptr)));
 
   // Zset
