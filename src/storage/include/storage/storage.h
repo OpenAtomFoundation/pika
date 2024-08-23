@@ -415,7 +415,7 @@ class Storage {
   // Add the specified members to the set stored at key. Specified members that
   // are already a member of this set are ignored. If key does not exist, a new
   // set is created before adding the specified members.
-  Status SAdd(const Slice& key, const std::vector<std::string>& members, int32_t* ret);
+  Status SAdd(const Slice& key, const std::vector<std::string>& members, int32_t* ret, uint64_t& ts_ms);
 
   // Returns the set cardinality (number of elements) of the set stored at key.
   Status SCard(const Slice& key, int32_t* ret);
@@ -679,7 +679,8 @@ class Storage {
   // The score value should be the string representation of a numeric value, and
   // accepts double precision floating point numbers. It is possible to provide
   // a negative value to decrement the score.
-  Status ZIncrby(const Slice& key, const Slice& member, double increment, double* ret);
+  Status ZIncrby(const Slice& key, const Slice& member, double increment, double* ret, uint64_t& ts_ms,
+                 bool& key_found);
 
   // Returns the specified range of elements in the sorted set stored at key.
   // The elements are considered to be ordered from the lowest to the highest
@@ -1063,6 +1064,8 @@ class Storage {
   // Adds all the element arguments to the HyperLogLog data structure stored
   // at the variable name specified as first argument.
   Status PfAdd(const Slice& key, const std::vector<std::string>& values, bool* update);
+
+  Status HyperloglogSet(const Slice& key, std::string& value);
 
   // When called with a single key, returns the approximated cardinality
   // computed by the HyperLogLog data structure stored at the specified
