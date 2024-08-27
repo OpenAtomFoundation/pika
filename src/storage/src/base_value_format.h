@@ -18,11 +18,21 @@
 
 namespace storage {
 
-enum class DataType : uint8_t { kStrings = 0, kHashes = 1, kSets = 2, kLists = 3, kZSets = 4, kStreams = 5, kNones = 6, kAll = 7 };
+enum class DataType : uint8_t {
+  kStrings = 0,
+  kHashes = 1,
+  kSets = 2,
+  kLists = 3,
+  kZSets = 4,
+  kStreams = 5,
+  kPKHashes = 6,
+  kNones = 7,
+  kAll = 8,
+};
 constexpr int DataTypeNum = int(DataType::kNones);
 
-constexpr char DataTypeTag[] = { 'k', 'h', 's', 'l', 'z', 'x', 'n', 'a'};
-constexpr char* DataTypeStrings[] = { "string", "hash", "set", "list", "zset", "streams", "none", "all"};
+constexpr char DataTypeTag[] = {'k', 'h', 's', 'l', 'z', 'x', 'n', 'a'};
+constexpr char* DataTypeStrings[] = {"string", "hash", "set", "list", "zset", "streams", "pkhash","none", "all"};
 
 constexpr char* DataTypeToString(DataType type) {
   if (type < DataType::kStrings || type > DataType::kNones) {
@@ -39,12 +49,12 @@ constexpr char DataTypeToTag(DataType type) {
 }
 
 class InternalValue {
-public:
- explicit InternalValue(DataType type, const rocksdb::Slice& user_value) : type_(type), user_value_(user_value) {
-   ctime_ = pstd::NowMicros() / 1e6;
- }
+ public:
+  explicit InternalValue(DataType type, const rocksdb::Slice& user_value) : type_(type), user_value_(user_value) {
+    ctime_ = pstd::NowMicros() / 1e6;
+  }
 
- virtual ~InternalValue() {
+  virtual ~InternalValue() {
     if (start_ != space_) {
       delete[] start_;
     }
@@ -75,7 +85,7 @@ public:
 
   virtual rocksdb::Slice Encode() = 0;
 
-protected:
+ protected:
   char space_[200];
   char* start_ = nullptr;
   rocksdb::Slice user_value_;
@@ -87,7 +97,7 @@ protected:
 };
 
 class ParsedInternalValue {
-public:
+ public:
   // Use this constructor after rocksdb::DB::Get(), since we use this in
   // the implement of user interfaces and may need to modify the
   // original value suffix, so the value_ must point to the string
@@ -140,23 +150,21 @@ public:
     return etime_ < unix_time;
   }
 
-  virtual bool IsValid() {
-    return !IsStale();
-  }
+  virtual bool IsValid() { return !IsStale(); }
 
   virtual void StripSuffix() = 0;
 
-protected:
+ protected:
   virtual void SetVersionToValue() = 0;
   virtual void SetEtimeToValue() = 0;
   virtual void SetCtimeToValue() = 0;
   std::string* value_ = nullptr;
   rocksdb::Slice user_value_;
-  uint64_t version_ = 0 ;
+  uint64_t version_ = 0;
   uint64_t ctime_ = 0;
   uint64_t etime_ = 0;
   DataType type_;
-  char reserve_[16] = {0}; //unused
+  char reserve_[16] = {0};  // unused
 };
 
 }  //  namespace storage
