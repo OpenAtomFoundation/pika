@@ -24,7 +24,7 @@ void SAddCmd::DoInitial() {
 
 void SAddCmd::Do() {
   int32_t count = 0;
-  s_ = db_->storage()->SAdd(key_, members_, &count, ts_ms_);
+  s_ = db_->storage()->SAdd(key_, members_, &count, nullptr);
   if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
@@ -725,7 +725,7 @@ void PKSAddCmd::Do() {
 
   int32_t count = 0;
   uint64_t ts_ms;
-  s_ = db_->storage()->SAdd(key_, members_, &count, ts_ms);
+  s_ = db_->storage()->SAdd(key_, members_, &count, &ts_ms_);
   if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
     return;

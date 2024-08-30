@@ -948,15 +948,15 @@ TEST_F(ZSetsTest, ZIncrbyTest) {  // NOLINT
   ASSERT_TRUE(size_match(&db, "GP1_ZINCRBY_KEY", 2));
   ASSERT_TRUE(score_members_match(&db, "GP1_ZINCRBY_KEY", {{101010.0101010, "MM2"}, {101010.1010101, "MM1"}}));
 
-  s = db.ZIncrby("GP1_ZINCRBY_KEY", "MM1", -0.1010101, &score, <#initializer #>, <#initializer #>);
+  s = db.ZIncrby("GP1_ZINCRBY_KEY", "MM1", -0.1010101, &score, nullptr, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_DOUBLE_EQ(score, 101010);
 
-  s = db.ZIncrby("GP1_ZINCRBY_KEY", "MM2", -0.0101010, &score, <#initializer #>, <#initializer #>);
+  s = db.ZIncrby("GP1_ZINCRBY_KEY", "MM2", -0.0101010, &score, nullptr, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_DOUBLE_EQ(score, 101010);
 
-  s = db.ZIncrby("GP1_ZINCRBY_KEY", "MM3", 101010, &score, <#initializer #>, <#initializer #>);
+  s = db.ZIncrby("GP1_ZINCRBY_KEY", "MM3", 101010, &score, nullptr, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_DOUBLE_EQ(score, 101010);
 
@@ -971,19 +971,19 @@ TEST_F(ZSetsTest, ZIncrbyTest) {  // NOLINT
   ASSERT_TRUE(size_match(&db, "GP2_ZINCRBY_KEY", 1));
   ASSERT_TRUE(score_members_match(&db, "GP2_ZINCRBY_KEY", {{101010.1010101010, "MM1"}}));
 
-  s = db.ZIncrby("GP2_ZINCRBY_KEY", "MM1", 0.0101010101, &score, <#initializer #>, <#initializer #>);
+  s = db.ZIncrby("GP2_ZINCRBY_KEY", "MM1", 0.0101010101, &score, nullptr, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_DOUBLE_EQ(score, 101010.1111111111);
 
-  s = db.ZIncrby("GP2_ZINCRBY_KEY", "MM1", -0.11111, &score, <#initializer #>, <#initializer #>);
+  s = db.ZIncrby("GP2_ZINCRBY_KEY", "MM1", -0.11111, &score, nullptr, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_DOUBLE_EQ(score, 101010.0000011111);
 
-  s = db.ZIncrby("GP2_ZINCRBY_KEY", "MM1", -0.0000011111, &score, <#initializer #>, <#initializer #>);
+  s = db.ZIncrby("GP2_ZINCRBY_KEY", "MM1", -0.0000011111, &score, nullptr, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_DOUBLE_EQ(score, 101010);
 
-  s = db.ZIncrby("GP2_ZINCRBY_KEY", "MM1", 101010, &score, <#initializer #>, <#initializer #>);
+  s = db.ZIncrby("GP2_ZINCRBY_KEY", "MM1", 101010, &score, nullptr, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_DOUBLE_EQ(score, 202020);
 
@@ -1002,26 +1002,26 @@ TEST_F(ZSetsTest, ZIncrbyTest) {  // NOLINT
   ASSERT_TRUE(size_match(&db, "GP3_ZINCRBY_KEY", 0));
   ASSERT_TRUE(score_members_match(&db, "GP3_ZINCRBY_KEY", {}));
 
-  s = db.ZIncrby("GP3_ZINCRBY_KEY", "MM1", 101010.010101, &score, <#initializer #>, <#initializer #>);
+  s = db.ZIncrby("GP3_ZINCRBY_KEY", "MM1", 101010.010101, &score, nullptr, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_DOUBLE_EQ(score, 101010.010101);
   ASSERT_TRUE(size_match(&db, "GP3_ZINCRBY_KEY", 1));
   ASSERT_TRUE(score_members_match(&db, "GP3_ZINCRBY_KEY", {{101010.010101, "MM1"}}));
 
-  s = db.ZIncrby("GP3_ZINCRBY_KEY", "MM2", 202020.020202, &score, <#initializer #>, <#initializer #>);
+  s = db.ZIncrby("GP3_ZINCRBY_KEY", "MM2", 202020.020202, &score, nullptr, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_DOUBLE_EQ(score, 202020.020202);
   ASSERT_TRUE(size_match(&db, "GP3_ZINCRBY_KEY", 2));
   ASSERT_TRUE(score_members_match(&db, "GP3_ZINCRBY_KEY", {{101010.010101, "MM1"}, {202020.020202, "MM2"}}));
 
-  s = db.ZIncrby("GP3_ZINCRBY_KEY", "MM3", 303030.030303, &score, <#initializer #>, <#initializer #>);
+  s = db.ZIncrby("GP3_ZINCRBY_KEY", "MM3", 303030.030303, &score, nullptr, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_DOUBLE_EQ(score, 303030.030303);
   ASSERT_TRUE(size_match(&db, "GP3_ZINCRBY_KEY", 3));
   ASSERT_TRUE(score_members_match(&db, "GP3_ZINCRBY_KEY",
                                   {{101010.010101, "MM1"}, {202020.020202, "MM2"}, {303030.030303, "MM3"}}));
 
-  s = db.ZIncrby("GP3_ZINCRBY_KEY", "MM1", 303030.030303, &score, <#initializer #>, <#initializer #>);
+  s = db.ZIncrby("GP3_ZINCRBY_KEY", "MM1", 303030.030303, &score, nullptr, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_DOUBLE_EQ(score, 404040.040404);
   ASSERT_TRUE(size_match(&db, "GP3_ZINCRBY_KEY", 3));
@@ -1029,13 +1029,13 @@ TEST_F(ZSetsTest, ZIncrbyTest) {  // NOLINT
                                   {{202020.020202, "MM2"}, {303030.030303, "MM3"}, {404040.040404, "MM1"}}));
 
   // ***************** Group 4 Test *****************
-  s = db.ZIncrby("GP4_ZINCRBY_KEY", "MM1", -101010.010101, &score, <#initializer #>, <#initializer #>);
+  s = db.ZIncrby("GP4_ZINCRBY_KEY", "MM1", -101010.010101, &score, nullptr, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_DOUBLE_EQ(score, -101010.010101);
   ASSERT_TRUE(size_match(&db, "GP4_ZINCRBY_KEY", 1));
   ASSERT_TRUE(score_members_match(&db, "GP4_ZINCRBY_KEY", {{-101010.010101, "MM1"}}));
 
-  s = db.ZIncrby("GP4_ZINCRBY_KEY", "MM2", 101010.010101, &score, <#initializer #>, <#initializer #>);
+  s = db.ZIncrby("GP4_ZINCRBY_KEY", "MM2", 101010.010101, &score, nullptr, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_DOUBLE_EQ(score, 101010.010101);
   ASSERT_TRUE(size_match(&db, "GP4_ZINCRBY_KEY", 2));
@@ -1047,7 +1047,7 @@ TEST_F(ZSetsTest, ZIncrbyTest) {  // NOLINT
   ASSERT_EQ(ret, 1);
   ASSERT_TRUE(make_expired(&db, "GP5_ZINCRBY_KEY"));
 
-  s = db.ZIncrby("GP5_ZINCRBY_KEY", "MM2", 2, &score, <#initializer #>, <#initializer #>);
+  s = db.ZIncrby("GP5_ZINCRBY_KEY", "MM2", 2, &score, nullptr, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_DOUBLE_EQ(score, 2);
   ASSERT_TRUE(size_match(&db, "GP5_ZINCRBY_KEY", 1));
@@ -1072,7 +1072,7 @@ TEST_F(ZSetsTest, ZIncrbyTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 1);
 
-  s = db.ZIncrby("GP6_ZINCRBY_KEY", "MM1", 1, &score, <#initializer #>, <#initializer #>);
+  s = db.ZIncrby("GP6_ZINCRBY_KEY", "MM1", 1, &score, nullptr, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_DOUBLE_EQ(score, 1);
   ASSERT_TRUE(size_match(&db, "GP6_ZINCRBY_KEY", 1));

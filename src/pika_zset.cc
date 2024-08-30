@@ -170,7 +170,7 @@ void ZIncrbyCmd::DoInitial() {
 
 void ZIncrbyCmd::Do() {
   double score = 0.0;
-  rocksdb::Status s = db_->storage()->ZIncrby(key_, member_, by_, &score, ts_ms_, key_found_);
+  rocksdb::Status s = db_->storage()->ZIncrby(key_, member_, by_, &score, &ts_ms_, &key_found_);
   if (s.ok()) {
     score_ = score;
     char buf[32];

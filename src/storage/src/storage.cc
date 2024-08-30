@@ -484,9 +484,13 @@ Status Storage::PKHRScanRange(const Slice& key, const Slice& field_start, const 
 }
 
 // Sets Commands
-Status Storage::SAdd(const Slice& key, const std::vector<std::string>& members, int32_t* ret, uint64_t& ts_ms) {
+Status Storage::SAdd(const Slice& key, const std::vector<std::string>& members, int32_t* ret, uint64_t* ts_ms) {
   auto& inst = GetDBInstance(key);
-  return inst->SAdd(key, members, ret, ts_ms);
+  uint64_t tmp_ts;
+  if (!ts_ms) {
+    ts_ms = &tmp_ts;
+  }
+  return inst->SAdd(key, members, ret, *ts_ms);
 }
 
 Status Storage::SCard(const Slice& key, int32_t* ret) {
@@ -885,10 +889,21 @@ Status Storage::ZCount(const Slice& key, double min, double max, bool left_close
   return inst->ZCount(key, min, max, left_close, right_close, ret);
 }
 
-Status Storage::ZIncrby(const Slice& key, const Slice& member, double increment, double* ret, uint64_t& ts_ms,
-                        bool& key_found) {
+Status Storage::ZIncrby(const Slice& key, const Slice& member, double increment, double* ret, uint64_t* ts_ms,
+                        bool* key_found) {
   auto& inst = GetDBInstance(key);
-  return inst->ZIncrby(key, member, increment, ret, ts_ms, key_found);
+
+  uint64_t tmp_ts;
+  if (!ts_ms) {
+    ts_ms = &tmp_ts;
+  }
+
+  bool tmp_key_found;
+  if (!key_found) {
+    key_found = &tmp_key_found;
+  }
+
+  return inst->ZIncrby(key, member, increment, ret, *ts_ms, *key_found);
 }
 
 Status Storage::ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members) {
