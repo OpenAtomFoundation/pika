@@ -90,6 +90,12 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   friend class PkClusterInfoCmd;
   friend class PikaServer;
 
+  /**
+   * When it is the first time for upgrading version from 4.0.0 to 4.0.1, you should call
+   * this function to wash data.  false if successful, false otherwise.
+  */
+  bool WashData();
+
   std::string GetDBName();
   std::shared_ptr<storage::Storage> storage() const;
   void GetBgSaveMetaData(std::vector<std::string>* fileNames, std::string* snapshot_uuid);

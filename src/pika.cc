@@ -232,6 +232,16 @@ int main(int argc, char* argv[]) {
     g_pika_conf.reset();
   };
 
+  // wash data if necessary
+  if (g_pika_conf->wash_data()) {
+    auto dbs = g_pika_server->GetDB();
+    for (auto& kv : dbs) {
+      if (!kv.second->WashData()) {
+        return 1;
+      }
+    }
+  }
+
   g_pika_rm->Start();
   g_pika_server->Start();
 

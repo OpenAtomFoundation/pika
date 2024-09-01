@@ -54,6 +54,37 @@ DB::~DB() {
   StopKeyScan();
 }
 
+bool DB::WashData() {
+  rocksdb::ReadOptions read_options;
+  rocksdb::Status s;
+  for (int i = 0; i < g_pika_conf->db_instance_num(); i++) {
+    rocksdb::WriteBatch batch;
+    auto handle = storage_->GetHashCFHandles(i)[1];
+    auto db = storage_->GetDBByIndex(i);
+    std::unique_ptr<rocksdb::Iterator> it(db->NewIterator(read_options, handle));
+    for (it->SeekToFirst(); it->Valid(); it->Next()) {
+      std::string key = it->key().ToString();
+      std::string value = it->value().ToString();
+      auto suffix_len = storage::ParsedBaseDataValue::GetkBaseDataValueSuffixLength();
+      if (value.size() >= suffix_len &&
+          std::all_of(value.end() - static_cast<int>(suffix_len), value.end() - storage::kTimestampLength,
+                      [](char c) { return c == 0; })) {
+        // right data, no wash
+      } else {
+        storage::BaseDataValue internal_value(value);
+        batch.Delete(handle, key);
+        batch.Put(handle, key, internal_value.Encode());
+      }
+    }
+    s = db->Write(storage_->GetDefaultWriteOptions(i), &batch);
+    if (!s.ok()) {
+      LOG(ERROR) << "write batch error in WashData";
+      return false;
+    }
+  }
+  return true;
+}
+
 std::string DB::GetDBName() { return db_name_; }
 
 void DB::BgSaveDB() {

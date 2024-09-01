@@ -98,11 +98,13 @@ public:
     }
   }
 
+  static size_t GetkBaseDataValueSuffixLength() { return kBaseDataValueSuffixLength; }
+
 protected:
   virtual void SetVersionToValue() override {};
 
 private:
-  const size_t kBaseDataValueSuffixLength = kSuffixReserveLength + kTimestampLength;
+  static const size_t kBaseDataValueSuffixLength = kSuffixReserveLength + kTimestampLength;
 };
 
 }  //  namespace storage

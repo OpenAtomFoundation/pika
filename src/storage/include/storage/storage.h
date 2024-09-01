@@ -1096,6 +1096,11 @@ class Storage {
                     const std::string& db_type, const std::unordered_map<std::string, std::string>& options);
   void GetRocksDBInfo(std::string& info);
 
+  // get hash cf handle in insts_[idx]
+  std::vector<rocksdb::ColumnFamilyHandle*> GetHashCFHandles(const int idx);
+  // get DefaultWriteOptions in insts_[idx]
+  rocksdb::WriteOptions GetDefaultWriteOptions(const int idx) const;
+
  private:
   std::vector<std::unique_ptr<Redis>> insts_;
   std::unique_ptr<SlotIndexer> slot_indexer_;
