@@ -93,6 +93,7 @@ class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
   /**
    * When it is the first time for upgrading version from 4.0.0 to 4.0.1, you should call
    * this function to wash data.  false if successful, false otherwise.
+   * @see https://github.com/OpenAtomFoundation/pika/issues/2886
   */
   bool WashData();
 

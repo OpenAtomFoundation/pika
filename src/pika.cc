@@ -237,6 +237,7 @@ int main(int argc, char* argv[]) {
     auto dbs = g_pika_server->GetDB();
     for (auto& kv : dbs) {
       if (!kv.second->WashData()) {
+        LOG(FATAL) << "write batch error in WashData";
         return 1;
       }
     }
