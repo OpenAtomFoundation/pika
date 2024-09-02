@@ -120,6 +120,7 @@ const std::string kCmdNamePKRScanRange = "pkrscanrange";
 // Hash
 const std::string kCmdNameHDel = "hdel";
 const std::string kCmdNameHSet = "hset";
+const std::string kCmdNamePKHSetAt = "pkhsetat";
 const std::string kCmdNameHGet = "hget";
 const std::string kCmdNameHGetall = "hgetall";
 const std::string kCmdNameHExists = "hexists";

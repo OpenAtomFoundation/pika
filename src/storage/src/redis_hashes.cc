@@ -272,7 +272,7 @@ Status Redis::HGetallWithTTL(const Slice& key, std::vector<FieldValue>* fvs, int
   return s;
 }
 
-Status Redis::HIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret) {
+Status Redis::HIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret, uint64_t* ts_ms) {
   *ret = 0;
   rocksdb::WriteBatch batch;
   ScopeRecordLock l(lock_mgr_, key);
@@ -361,7 +361,9 @@ Status Redis::HIncrby(const Slice& key, const Slice& field, int64_t value, int64
   return s;
 }
 
-Status Redis::HIncrbyfloat(const Slice& key, const Slice& field, const Slice& by, std::string* new_value) {
+Status Redis::HIncrbyfloat(const Slice& key, const Slice& field, const Slice& by, std::string* new_value,
+                           uint64_t* ts_ms) {
+  *ts_ms = 0;
   new_value->clear();
   rocksdb::WriteBatch batch;
   ScopeRecordLock l(lock_mgr_, key);
@@ -404,6 +406,7 @@ Status Redis::HIncrbyfloat(const Slice& key, const Slice& field, const Slice& by
       batch.Put(handles_[kHashesDataCF], hashes_data_key.Encode(), inter_value.Encode());
     } else {
       version = parsed_hashes_meta_value.Version();
+      *ts_ms = parsed_hashes_meta_value.Etime();
       HashesDataKey hashes_data_key(key, version, field);
       s = db_->Get(default_read_options_, handles_[kHashesDataCF], hashes_data_key.Encode(), &old_value_str);
       if (s.ok()) {
