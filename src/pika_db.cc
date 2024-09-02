@@ -72,6 +72,7 @@ bool DB::WashData() {
         batch.Put(handle, key, internal_value.Encode());
       }
     }
+    delete it;
     s = db->Write(storage_->GetDefaultWriteOptions(i), &batch);
     if (!s.ok()) {
       return false;
