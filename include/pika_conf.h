@@ -332,6 +332,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return share_block_cache_;
   }
+  bool wash_data() {
+    std::shared_lock l(rwlock_);
+    return wash_data_;
+  }
   bool enable_partitioned_index_filters() {
     std::shared_lock l(rwlock_);
     return enable_partitioned_index_filters_;
@@ -1069,6 +1073,9 @@ class PikaConf : public pstd::BaseConf {
 
   //Internal used metrics Persisted by pika.conf
   std::unordered_set<std::string> internal_used_unfinished_full_sync_;
+
+  // for wash data from 4.0.0 to 4.0.1
+  bool wash_data_;
 };
 
 #endif

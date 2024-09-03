@@ -464,6 +464,8 @@ private:
   inline Status SetFirstOrLastID(const rocksdb::Slice& key, StreamMetaValue& stream_meta, bool is_set_first,
                                  rocksdb::ReadOptions& read_options);
 
+public:
+ inline rocksdb::WriteOptions GetDefaultWriteOptions() const { return default_write_options_; }
 
 private:
   int32_t index_ = 0;

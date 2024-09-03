@@ -89,6 +89,14 @@ static std::string AppendSubDirectory(const std::string& db_path, int index) {
   }
 }
 
+std::vector<rocksdb::ColumnFamilyHandle*> Storage::GetHashCFHandles(const int idx) {
+  return insts_[idx]->GetHashCFHandles();
+}
+
+rocksdb::WriteOptions Storage::GetDefaultWriteOptions(const int idx) const {
+  return insts_[idx]->GetDefaultWriteOptions();
+}
+
 Status Storage::Open(const StorageOptions& storage_options, const std::string& db_path) {
   mkpath(db_path.c_str(), 0755);
 

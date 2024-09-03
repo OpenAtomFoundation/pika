@@ -730,6 +730,8 @@ int PikaConf::Load() {
     rsync_timeout_ms_.store(tmp_rsync_timeout_ms);
   }
 
+  GetConfBool("wash-data", &wash_data_);
+
   return ret;
 }
 
