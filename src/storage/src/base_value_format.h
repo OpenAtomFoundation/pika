@@ -41,7 +41,7 @@ constexpr char DataTypeToTag(DataType type) {
 class InternalValue {
 public:
  explicit InternalValue(DataType type, const rocksdb::Slice& user_value) : type_(type), user_value_(user_value) {
-   ctime_ = pstd::NowMicros() / 1e6;
+   ctime_ = pstd::NowMillis();
  }
 
  virtual ~InternalValue() {
@@ -51,10 +51,9 @@ public:
   }
   void SetEtime(uint64_t etime = 0) { etime_ = etime; }
   void setCtime(uint64_t ctime) { ctime_ = ctime; }
-  rocksdb::Status SetRelativeTimestamp(int64_t ttl) {
-    int64_t unix_time;
-    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-    etime_ = uint64_t(unix_time + ttl);
+  rocksdb::Status SetRelativeTimeInMillsec(int64_t ttl_millsec) {
+    pstd::TimeType unix_time = pstd::NowMillis();
+    etime_ = unix_time + ttl_millsec;
     return rocksdb::Status::OK();
   }
   void SetVersion(uint64_t version = 0) { version_ = version; }
@@ -122,10 +121,9 @@ public:
     SetCtimeToValue();
   }
 
-  void SetRelativeTimestamp(int64_t ttl) {
-    int64_t unix_time;
-    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-    etime_ = unix_time + ttl;
+  void SetRelativeTimestamp(int64_t ttl_millsec) {
+    pstd::TimeType unix_time = pstd::NowMillis();
+    etime_ = unix_time + ttl_millsec;
     SetEtimeToValue();
   }
 
@@ -135,8 +133,7 @@ public:
     if (etime_ == 0) {
       return false;
     }
-    int64_t unix_time;
-    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
+    pstd::TimeType unix_time = pstd::NowMillis();
     return etime_ < unix_time;
   }
 

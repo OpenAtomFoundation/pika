@@ -184,7 +184,7 @@ int PikaConf::Load() {
 
   std::string admin_cmd_list;
   GetConfStr("admin-cmd-list", &admin_cmd_list);
-  if (admin_cmd_list == ""){
+  if (admin_cmd_list == "") {
     admin_cmd_list = "info, monitor, ping";
     SetAdminCmd(admin_cmd_list);
   }
@@ -724,7 +724,7 @@ int PikaConf::Load() {
 
   int64_t tmp_rsync_timeout_ms = -1;
   GetConfInt64("rsync-timeout-ms", &tmp_rsync_timeout_ms);
-  if(tmp_rsync_timeout_ms <= 0){
+  if (tmp_rsync_timeout_ms <= 0) {
     rsync_timeout_ms_.store(1000);
   } else {
     rsync_timeout_ms_.store(tmp_rsync_timeout_ms);

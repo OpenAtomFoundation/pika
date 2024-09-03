@@ -102,7 +102,7 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   EncodeFixed64(str, 1);
   ListsMetaValue lists_meta_value2(Slice(str, sizeof(uint64_t)));
   version = lists_meta_value2.UpdateVersion();
-  lists_meta_value2.SetRelativeTimestamp(1);
+  lists_meta_value2.SetRelativeTimeInMillsec(1);
   s = meta_db->Put(rocksdb::WriteOptions(), handles[0], bmk.Encode(), lists_meta_value2.Encode());
   ASSERT_TRUE(s.ok());
   ListsDataKey lists_data_key2("FILTER_TEST_KEY", version, 1);
@@ -119,7 +119,7 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   EncodeFixed64(str, 1);
   ListsMetaValue lists_meta_value3(Slice(str, sizeof(uint64_t)));
   version = lists_meta_value3.UpdateVersion();
-  lists_meta_value3.SetRelativeTimestamp(1);
+  lists_meta_value3.SetRelativeTimeInMillsec(1);
   s = meta_db->Put(rocksdb::WriteOptions(), handles[0], bmk.Encode(), lists_meta_value3.Encode());
   ASSERT_TRUE(s.ok());
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));

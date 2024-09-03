@@ -2841,8 +2841,8 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
                    "The rsync rate limit now is "
                 << new_throughput_limit << "(Which Is Around " << (new_throughput_limit >> 20) << " MB/s)";
     res_.AppendStringRaw("+OK\r\n");
-  } else if(set_item == "rsync-timeout-ms"){
-    if(pstd::string2int(value.data(), value.size(), &ival) == 0 || ival <= 0){
+  } else if (set_item == "rsync-timeout-ms") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0 || ival <= 0) {
       res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'rsync-timeout-ms'\r\n");
       return;
     }
@@ -3037,9 +3037,9 @@ void DbsizeCmd::Do() {
   if (!dbs) {
     res_.SetRes(CmdRes::kInvalidDB);
   } else {
-    if (g_pika_conf->slotmigrate()){
+    if (g_pika_conf->slotmigrate()) {
       int64_t dbsize = 0;
-      for (int i = 0; i < g_pika_conf->default_slot_num(); ++i){
+      for (int i = 0; i < g_pika_conf->default_slot_num(); ++i) {
         int32_t card = 0;
         rocksdb::Status s = dbs->storage()->SCard(SlotKeyPrefix+std::to_string(i), &card);
         if (s.ok() && card >= 0) {
