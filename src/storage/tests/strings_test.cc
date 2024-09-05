@@ -214,20 +214,20 @@ TEST_F(StringsTest, DecrbyTest) {
 
   // ***************** Group 1 Test *****************
   // If the key is not exist
-  s = db.Decrby("GP1_DECRBY_KEY", 5, &ret);
+  s = db.Decrby("GP1_DECRBY_KEY", 5, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, -5);
 
   // If the key contains a string that can not be represented as integer
   s = db.Set("GP1_DECRBY_KEY", "DECRBY_VALUE");
   ASSERT_TRUE(s.ok());
-  s = db.Decrby("GP1_DECRBY_KEY", 5, &ret);
+  s = db.Decrby("GP1_DECRBY_KEY", 5, &ret, nullptr);
   ASSERT_TRUE(s.IsCorruption());
 
   // Less than the minimum number -9223372036854775808
   s = db.Set("GP1_DECRBY_KEY", "-2");
   ASSERT_TRUE(s.ok());
-  s = db.Decrby("GP1_DECRBY_KEY", 9223372036854775807, &ret);
+  s = db.Decrby("GP1_DECRBY_KEY", 9223372036854775807, &ret, nullptr);
   ASSERT_TRUE(s.IsInvalidArgument());
 
   // ***************** Group 2 Test *****************
@@ -240,7 +240,7 @@ TEST_F(StringsTest, DecrbyTest) {
   ASSERT_LE(type_ttl, 100);
   ASSERT_GE(type_ttl, 0);
 
-  s = db.Decrby("GP2_DECRBY_KEY", 5, &ret);
+  s = db.Decrby("GP2_DECRBY_KEY", 5, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 5);
   s = db.Get("GP2_DECRBY_KEY", &value);
@@ -255,7 +255,7 @@ TEST_F(StringsTest, DecrbyTest) {
   ASSERT_TRUE(s.ok());
   make_expired(&db, "GP3_DECRBY_KEY");
 
-  s = db.Decrby("GP3_DECRBY_KEY", 5, &ret);
+  s = db.Decrby("GP3_DECRBY_KEY", 5, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, -5);
   s = db.Get("GP3_DECRBY_KEY", &value);
@@ -269,7 +269,7 @@ TEST_F(StringsTest, DecrbyTest) {
   s = db.Set("GP4_DECRBY_KEY", "100000");
   ASSERT_TRUE(s.ok());
 
-  s = db.Decrby("GP4_DECRBY_KEY", 50000, &ret);
+  s = db.Decrby("GP4_DECRBY_KEY", 50000, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 50000);
   s = db.Get("GP4_DECRBY_KEY", &value);

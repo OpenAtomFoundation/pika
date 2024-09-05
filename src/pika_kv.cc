@@ -450,7 +450,7 @@ void DecrCmd::DoInitial() {
 }
 
 void DecrCmd::Do() {
-  s_= db_->storage()->Decrby(key_, 1, &new_value_);
+  s_= db_->storage()->Decrby(key_, 1, &new_value_, &ts_ms_);
   if (s_.ok()) {
     res_.AppendContent(":" + std::to_string(new_value_));
   } else if (s_.IsCorruption() && s_.ToString() == "Corruption: Value is not a integer") {
@@ -473,6 +473,30 @@ void DecrCmd::DoUpdateCache() {
     db_->cache()->Decrxx(key_);
   }
 }
+std::string DecrCmd::ToRedisProtocol() {
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 4, "*");
+
+  // to pksetexat cmd
+  std::string pksetexat_cmd("pksetexat");
+  RedisAppendLenUint64(content, pksetexat_cmd.size(), "$");
+  RedisAppendContent(content, pksetexat_cmd);
+  // key
+  RedisAppendLenUint64(content, key_.size(), "$");
+  RedisAppendContent(content, key_);
+  // time_stamp
+  char buf[100];
+  auto time_stamp = ts_ms_ > 0 ? ts_ms_ / 1000 : ts_ms_;
+  std::string at(std::to_string(time_stamp));
+  RedisAppendLenUint64(content, at.size(), "$");
+  RedisAppendContent(content, at);
+  // value
+  auto new_value_str = std::to_string(new_value_);
+  RedisAppendLenUint64(content, new_value_str.size(), "$");
+  RedisAppendContent(content, new_value_str);
+  return content;
+}
 
 void DecrbyCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -487,7 +511,7 @@ void DecrbyCmd::DoInitial() {
 }
 
 void DecrbyCmd::Do() {
-  s_ = db_->storage()->Decrby(key_, by_, &new_value_);
+  s_ = db_->storage()->Decrby(key_, by_, &new_value_, &ts_ms_);
   if (s_.ok()) {
     AddSlotKey("k", key_, db_);
     res_.AppendContent(":" + std::to_string(new_value_));
@@ -510,6 +534,30 @@ void DecrbyCmd::DoUpdateCache() {
   if (s_.ok()) {
     db_->cache()->DecrByxx(key_, by_);
   }
+}
+std::string DecrbyCmd::ToRedisProtocol() {
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 4, "*");
+
+  // to pksetexat cmd
+  std::string pksetexat_cmd("pksetexat");
+  RedisAppendLenUint64(content, pksetexat_cmd.size(), "$");
+  RedisAppendContent(content, pksetexat_cmd);
+  // key
+  RedisAppendLenUint64(content, key_.size(), "$");
+  RedisAppendContent(content, key_);
+  // time_stamp
+  char buf[100];
+  auto time_stamp = ts_ms_ > 0 ? ts_ms_ / 1000 : ts_ms_;
+  std::string at(std::to_string(time_stamp));
+  RedisAppendLenUint64(content, at.size(), "$");
+  RedisAppendContent(content, at);
+  // value
+  auto new_value_str = std::to_string(new_value_);
+  RedisAppendLenUint64(content, new_value_str.size(), "$");
+  RedisAppendContent(content, new_value_str);
+  return content;
 }
 
 void GetsetCmd::DoInitial() {
