@@ -492,6 +492,7 @@ void SelectCmd::Do() {
 }
 
 void FlushallCmd::DoInitial() {
+  flushall_succeed_ = false;
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameFlushall);
     return;
@@ -510,13 +511,20 @@ void FlushallCmd::Do() {
   for (const auto& db_item : g_pika_server->GetDB()) {
     db_item.second->DBLock();
   }
-  FlushAllWithoutLock();
+  flushall_succeed_ = FlushAllWithoutLock();
   for (const auto& db_item : g_pika_server->GetDB()) {
     db_item.second->DBUnlock();
   }
   g_pika_rm->DBUnlock();
-  if (res_.ok()) {
+  if (flushall_succeed_) {
     res_.SetRes(CmdRes::kOk);
+  } else if (res_.ret() == CmdRes::kErrOther){
+    //flushdb failed and the res_ was set
+  } else {
+    //flushall failed, but res_ was not set
+    res_.SetRes(CmdRes::kErrOther,
+                "Flushall failed, maybe only some of the dbs successfully flushed while some not, check WARNING/ERROR log to know "
+                "more, you can try again moment later");
   }
 }
 
@@ -524,38 +532,96 @@ void FlushallCmd::DoThroughDB() {
   Do();
 }
 
-void FlushallCmd::DoUpdateCache(std::shared_ptr<DB> db) {
+void FlushallCmd::DoFlushCache(std::shared_ptr<DB> db) {
   // clear cache
   if (PIKA_CACHE_NONE != g_pika_conf->cache_mode()) {
-    g_pika_server->ClearCacheDbAsync(db);
+    g_pika_server->ClearCacheDbAsync(std::move(db));
   }
 }
 
-void FlushallCmd::FlushAllWithoutLock() {
+bool FlushallCmd::FlushAllWithoutLock() {
   for (const auto& db_item : g_pika_server->GetDB()) {
     std::shared_ptr<DB> db = db_item.second;
     DBInfo p_info(db->GetDBName());
     if (g_pika_rm->GetSyncMasterDBs().find(p_info) == g_pika_rm->GetSyncMasterDBs().end()) {
-      res_.SetRes(CmdRes::kErrOther, "DB not found");
+      LOG(ERROR) << p_info.db_name_ + " not found when flushall db";
+      res_.SetRes(CmdRes::kErrOther,p_info.db_name_ + " not found when flushall db");
+      return false;
+    }
+    bool success = DoWithoutLock(db);
+    if (!success) { return false; }
+  }
+  return true;
+}
+
+bool FlushallCmd::DoWithoutLock(std::shared_ptr<DB> db) {
+  if (!db) {
+    LOG(ERROR) << "Flushall, but DB not found";
+    res_.SetRes(CmdRes::kErrOther,db->GetDBName() + " not found when flushall db");
+    return false;
+  }
+  bool success = db->FlushDBWithoutLock();
+  if (!success) {
+    // if the db is not flushed, return before clear the cache
+    res_.SetRes(CmdRes::kErrOther,db->GetDBName() + " flushall failed due to other Errors, please check Error/Warning log to know more");
+    return false;
+  }
+  DoFlushCache(db);
+  return true;
+}
+
+
+void FlushallCmd::DoBinlogByDB(const std::shared_ptr<SyncMasterDB>& sync_db) {
+  if (res().ok() && is_write() && g_pika_conf->write_binlog()) {
+    std::shared_ptr<net::NetConn> conn_ptr = GetConn();
+    std::shared_ptr<std::string> resp_ptr = GetResp();
+    // Consider that dummy cmd appended by system, both conn and resp are null.
+    if ((!conn_ptr || !resp_ptr) && (name_ != kCmdDummy)) {
+      if (!conn_ptr) {
+        LOG(WARNING) << sync_db->SyncDBInfo().ToString() << " conn empty.";
+      }
+      if (!resp_ptr) {
+        LOG(WARNING) << sync_db->SyncDBInfo().ToString() << " resp empty.";
+      }
+      res().SetRes(CmdRes::kErrOther);
       return;
     }
-    DoWithoutLock(db);
-  }
-  if (res_.ok()) {
-    res_.SetRes(CmdRes::kOk);
+
+    Status s = sync_db->ConsensusProposeLog(shared_from_this());
+    if (!s.ok()) {
+      LOG(WARNING) << sync_db->SyncDBInfo().ToString() << " Writing binlog failed, maybe no space left on device "
+                   << s.ToString();
+      res().SetRes(CmdRes::kErrOther, s.ToString());
+      return;
+    }
   }
 }
 
-void FlushallCmd::DoWithoutLock(std::shared_ptr<DB> db) {
-  if (!db) {
-    LOG(INFO) << "Flushall, but DB not found";
-  } else {
-    db->FlushDBWithoutLock();
-    DoUpdateCache(db);
+
+void FlushallCmd::DoBinlog() {
+  if (flushall_succeed_) {
+    for (auto& db : g_pika_server->GetDB()) {
+      DBInfo info(db.second->GetDBName());
+      DoBinlogByDB(g_pika_rm->GetSyncMasterDBByName(info));
+    }
   }
+}
+
+//let flushall use
+std::string FlushallCmd::ToRedisProtocol() {
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 1, "*");
+
+  // to flushdb cmd
+  std::string flushdb_cmd("flushdb");
+  RedisAppendLenUint64(content, flushdb_cmd.size(), "$");
+  RedisAppendContent(content, flushdb_cmd);
+  return content;
 }
 
 void FlushdbCmd::DoInitial() {
+  flush_succeed_ = false;
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameFlushdb);
     return;
@@ -570,16 +636,22 @@ void FlushdbCmd::DoInitial() {
 
 void FlushdbCmd::Do() {
   if (!db_) {
-    res_.SetRes(CmdRes::kInvalidDB);
+    res_.SetRes(CmdRes::kInvalidDB, "DB not found while flushdb");
+    return;
+  }
+  if (db_->IsKeyScaning()) {
+    res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
+    return;
+  }
+  std::lock_guard s_prw(g_pika_rm->GetDBLock());
+  std::lock_guard l_prw(db_->GetDBLock());
+  flush_succeed_ = DoWithoutLock();
+  if (flush_succeed_) {
+    res_.SetRes(CmdRes::kOk);
+  } else if (res_.ret() == CmdRes::kErrOther || res_.ret() == CmdRes::kInvalidParameter) {
+    //flushdb failed and res_ was set
   } else {
-    if (db_->IsKeyScaning()) {
-      res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
-    } else {
-      std::lock_guard s_prw(g_pika_rm->GetDBLock());
-      std::lock_guard l_prw(db_->GetDBLock());
-      FlushAllDBsWithoutLock();
-      res_.SetRes(CmdRes::kOk);
-    }
+    res_.SetRes(CmdRes::kErrOther, "flushdb failed, maybe you cna try again later(check WARNING/ERROR log to know more)");
   }
 }
 
@@ -588,31 +660,34 @@ void FlushdbCmd::DoThroughDB() {
 }
 
 void FlushdbCmd::DoUpdateCache() {
+  if (!flush_succeed_) {
+    //if flushdb failed, also do not clear the cache
+    return;
+  }
   // clear cache
   if (g_pika_conf->cache_mode() != PIKA_CACHE_NONE) {
     g_pika_server->ClearCacheDbAsync(db_);
   }
 }
 
-void FlushdbCmd::FlushAllDBsWithoutLock() {
+bool FlushdbCmd::DoWithoutLock() {
+  if (!db_) {
+    LOG(ERROR) << db_name_ << " Flushdb, but DB not found";
+    res_.SetRes(CmdRes::kErrOther, db_name_ + " Flushdb, but DB not found");
+    return false;
+  }
   DBInfo p_info(db_->GetDBName());
   if (g_pika_rm->GetSyncMasterDBs().find(p_info) == g_pika_rm->GetSyncMasterDBs().end()) {
-    res_.SetRes(CmdRes::kErrOther, "DB not found");
-    return;
+    LOG(ERROR) << "DB not found when flushing " << db_->GetDBName();
+    res_.SetRes(CmdRes::kErrOther, db_->GetDBName() + " Flushdb, but DB not found");
+    return false;
   }
-  DoWithoutLock();
+  return db_->FlushDBWithoutLock();
 }
 
-void FlushdbCmd::DoWithoutLock() {
-  if (!db_) {
-    LOG(INFO) << "Flushdb, but DB not found";
-  } else {
-    if (db_name_ == "all") {
-      db_->FlushDBWithoutLock();
-    } else {
-      //Floyd does not support flushdb by type
-      LOG(ERROR) << "cannot flushdb by type in floyd";
-    }
+void FlushdbCmd::DoBinlog() {
+  if (flush_succeed_) {
+    Cmd::DoBinlog();
   }
 }
 
@@ -647,8 +722,15 @@ void ClientCmd::DoInitial() {
       res_.SetRes(CmdRes::kErrOther, "Syntax error, try CLIENT (LIST [order by [addr|idle])");
       return;
     }
-  } else if ((strcasecmp(argv_[1].data(), "kill") == 0) && argv_.size() == 3) {
+  } else if (argv_.size() == 3 && (strcasecmp(argv_[1].data(), "kill") == 0)) {
     info_ = argv_[2];
+  } else if (argv_.size() == 4 &&
+             (strcasecmp(argv_[1].data(), "kill") == 0) &&
+             (strcasecmp(argv_[2].data(), "type") == 0) &&
+             ((strcasecmp(argv_[3].data(), KILLTYPE_NORMAL.data()) == 0) || (strcasecmp(argv_[3].data(), KILLTYPE_PUBSUB.data()) == 0))) {
+    //kill all if user wanna kill a type
+    info_ = "type";
+    kill_type_ = argv_[3];
   } else {
     res_.SetRes(CmdRes::kErrOther, "Syntax error, try CLIENT (LIST [order by [addr|idle]| KILL ip:port)");
     return;
@@ -698,6 +780,16 @@ void ClientCmd::Do() {
   } else if ((strcasecmp(operation_.data(), "kill") == 0) && (strcasecmp(info_.data(), "all") == 0)) {
     g_pika_server->ClientKillAll();
     res_.SetRes(CmdRes::kOk);
+  } else if ((strcasecmp(operation_.data(), "kill") == 0) && (strcasecmp(info_.data(), "type") == 0)) {
+    if (kill_type_ == KILLTYPE_NORMAL) {
+      g_pika_server->ClientKillAllNormal();
+      res_.SetRes(CmdRes::kOk);
+    } else if (kill_type_ == KILLTYPE_PUBSUB) {
+      g_pika_server->ClientKillPubSub();
+      res_.SetRes(CmdRes::kOk);
+    } else {
+      res_.SetRes(CmdRes::kErrOther, "kill type is unknown");
+    }
   } else if (g_pika_server->ClientKill(info_) == 1) {
     res_.SetRes(CmdRes::kOk);
   } else {
@@ -751,6 +843,10 @@ const std::string InfoCmd::kRocksDBSection = "rocksdb";
 const std::string InfoCmd::kDebugSection = "debug";
 const std::string InfoCmd::kCommandStatsSection = "commandstats";
 const std::string InfoCmd::kCacheSection = "cache";
+
+
+const std::string ClientCmd::KILLTYPE_NORMAL = "normal";
+const std::string ClientCmd::KILLTYPE_PUBSUB = "pubsub";
 
 void InfoCmd::Execute() {
   std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
@@ -1163,6 +1259,7 @@ void InfoCmd::InfoReplication(std::string& info) {
   Status s;
   uint32_t filenum = 0;
   uint64_t offset = 0;
+  uint64_t slave_repl_offset = 0;
   std::string safety_purge;
   std::shared_ptr<SyncMasterDB> master_db = nullptr;
   for (const auto& t_item : g_pika_server->dbs_) {
@@ -1174,11 +1271,13 @@ void InfoCmd::InfoReplication(std::string& info) {
       continue;
     }
     master_db->Logger()->GetProducerStatus(&filenum, &offset);
+    slave_repl_offset += static_cast<uint64_t>(filenum) * static_cast<uint64_t>(g_pika_conf->binlog_file_size());
+    slave_repl_offset += offset;
     tmp_stream << db_name << ":binlog_offset=" << filenum << " " << offset;
     s = master_db->GetSafetyPurgeBinlog(&safety_purge);
     tmp_stream << ",safety_purge=" << (s.ok() ? safety_purge : "error") << "\r\n";
   }
-
+  tmp_stream << "slave_repl_offset:" << slave_repl_offset << "\r\n";
   info.append(tmp_stream.str());
 }
 
@@ -1267,8 +1366,12 @@ void InfoCmd::InfoData(std::string& info) {
   uint64_t total_background_errors = 0;
   uint64_t total_memtable_usage = 0;
   uint64_t total_table_reader_usage = 0;
+  uint64_t total_redis_cache_usage = 0;
+  uint64_t total_block_cache_usage = 0;
   uint64_t memtable_usage = 0;
   uint64_t table_reader_usage = 0;
+  uint64_t redis_cache_usage  = 0;
+  uint64_t block_cache_usage = 0;
   std::shared_lock db_rwl(g_pika_server->dbs_rw_);
   for (const auto& db_item : g_pika_server->dbs_) {
     if (!db_item.second) {
@@ -1279,10 +1382,14 @@ void InfoCmd::InfoData(std::string& info) {
     db_item.second->DBLockShared();
     db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_CUR_SIZE_ALL_MEM_TABLES, &memtable_usage);
     db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_ESTIMATE_TABLE_READER_MEM, &table_reader_usage);
+    db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BlOCK_CACHE_USAGE, &block_cache_usage);
     db_item.second->storage()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &background_errors);
+    redis_cache_usage = db_item.second->GetCacheInfo().used_memory;
     db_item.second->DBUnlockShared();
     total_memtable_usage += memtable_usage;
     total_table_reader_usage += table_reader_usage;
+    total_block_cache_usage += block_cache_usage;
+    total_redis_cache_usage += redis_cache_usage;
     for (const auto& item : background_errors) {
       if (item.second != 0) {
         db_fatal_msg_stream << (total_background_errors != 0 ? "," : "");
@@ -1292,10 +1399,12 @@ void InfoCmd::InfoData(std::string& info) {
     }
   }
 
-  tmp_stream << "used_memory:" << (total_memtable_usage + total_table_reader_usage) << "\r\n";
-  tmp_stream << "used_memory_human:" << ((total_memtable_usage + total_table_reader_usage) >> 20) << "M\r\n";
+  tmp_stream << "used_memory:" << (total_memtable_usage + total_table_reader_usage + total_redis_cache_usage + total_block_cache_usage) << "\r\n";
+  tmp_stream << "used_memory_human:" << ((total_memtable_usage + total_table_reader_usage + total_redis_cache_usage + total_block_cache_usage) >> 20) << "M\r\n";
   tmp_stream << "db_memtable_usage:" << total_memtable_usage << "\r\n";
   tmp_stream << "db_tablereader_usage:" << total_table_reader_usage << "\r\n";
+  tmp_stream << "db_block_cache_usage:" << total_block_cache_usage << "\r\n";
+  tmp_stream << "db_redis_cache_usage:" << total_redis_cache_usage << "\r\n";
   tmp_stream << "db_fatal:" << (total_background_errors != 0 ? "1" : "0") << "\r\n";
   tmp_stream << "db_fatal_msg:" << (total_background_errors != 0 ? db_fatal_msg_stream.str() : "nullptr") << "\r\n";
 
@@ -2156,6 +2265,18 @@ void ConfigCmd::ConfigGet(std::string& ret) {
                                       : EncodeString(&config_body, "resetchannels");
   }
 
+  if (pstd::stringmatch(pattern.data(), "enable-db-statistics", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "enable-db-statistics");
+    EncodeString(&config_body, g_pika_conf->enable_db_statistics() ? "yes" : "no");
+  }
+
+  if (pstd::stringmatch(pattern.data(), "db-statistics-level", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "db-statistics-level");
+    EncodeNumber(&config_body, g_pika_conf->db_statistics_level());
+  }
+
   std::stringstream resp;
   resp << "*" << std::to_string(elements) << "\r\n" << config_body;
   ret = resp.str();
@@ -2720,8 +2841,8 @@ void ConfigCmd::ConfigSet(std::shared_ptr<DB> db) {
                    "The rsync rate limit now is "
                 << new_throughput_limit << "(Which Is Around " << (new_throughput_limit >> 20) << " MB/s)";
     res_.AppendStringRaw("+OK\r\n");
-  } else if(set_item == "rsync-timeout-ms"){
-    if(pstd::string2int(value.data(), value.size(), &ival) == 0 || ival <= 0){
+  } else if (set_item == "rsync-timeout-ms") {
+    if (pstd::string2int(value.data(), value.size(), &ival) == 0 || ival <= 0) {
       res_.AppendStringRaw("-ERR Invalid argument \'" + value + "\' for CONFIG SET 'rsync-timeout-ms'\r\n");
       return;
     }
@@ -2916,9 +3037,9 @@ void DbsizeCmd::Do() {
   if (!dbs) {
     res_.SetRes(CmdRes::kInvalidDB);
   } else {
-    if (g_pika_conf->slotmigrate()){
+    if (g_pika_conf->slotmigrate()) {
       int64_t dbsize = 0;
-      for (int i = 0; i < g_pika_conf->default_slot_num(); ++i){
+      for (int i = 0; i < g_pika_conf->default_slot_num(); ++i) {
         int32_t card = 0;
         rocksdb::Status s = dbs->storage()->SCard(SlotKeyPrefix+std::to_string(i), &card);
         if (s.ok() && card >= 0) {
@@ -3136,16 +3257,53 @@ void PKPatternMatchDelCmd::DoInitial() {
     return;
   }
   pattern_ = argv_[1];
+  max_count_ = storage::BATCH_DELETE_LIMIT;
+  if (argv_.size() > 2) {
+    if (pstd::string2int(argv_[2].data(), argv_[2].size(), &max_count_) == 0 ||  max_count_ < 1 || max_count_ > storage::BATCH_DELETE_LIMIT) {
+      res_.SetRes(CmdRes::kInvalidInt);
+      return;
+    }
+  }
 }
 
-//TODO: may lead to inconsistent between rediscache and db, because currently it only cleans db
 void PKPatternMatchDelCmd::Do() {
-  int ret = 0;
-  rocksdb::Status s = db_->storage()->PKPatternMatchDel(type_, pattern_, &ret);
-  if (s.ok()) {
-    res_.AppendInteger(ret);
+  int64_t count = 0;
+  rocksdb::Status s = db_->storage()->PKPatternMatchDelWithRemoveKeys(pattern_, &count, &remove_keys_, max_count_);
+
+  if(s.ok()) {
+    res_.AppendInteger(count);
+    s_ = rocksdb::Status::OK();
+    for (const auto& key : remove_keys_) {
+      RemSlotKey(key, db_);
+    }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
+    if (count >= 0) {
+      s_ = rocksdb::Status::OK();
+      for (const auto& key : remove_keys_) {
+        RemSlotKey(key, db_);
+      }
+    }
+  }
+}
+
+void PKPatternMatchDelCmd::DoThroughDB() {
+  Do();
+}
+
+void PKPatternMatchDelCmd::DoUpdateCache() {
+  if(s_.ok()) {
+    db_->cache()->Del(remove_keys_);
+  }
+}
+
+void PKPatternMatchDelCmd::DoBinlog() {
+  std::string opt = "del";
+  for(auto& key: remove_keys_) {
+    argv_.clear();
+    argv_.emplace_back(opt);
+    argv_.emplace_back(key);
+    Cmd::DoBinlog();
   }
 }
 

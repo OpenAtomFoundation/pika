@@ -26,7 +26,7 @@ Pika 力求在完全兼容 Redis 协议、 继承 Redis 便捷运维设计的前
 
 ## Pika架构之存储引擎
 
-* 支持多平台 CentOS、Ubuntu、macOS
+* 支持多平台 CentOS、Ubuntu、macOS、Rocky Linux
 * 多线程模型
 * 基于 RocksDB 的存储引擎
 * 多粒度数据缓存模型

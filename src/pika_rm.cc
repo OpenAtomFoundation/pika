@@ -683,9 +683,8 @@ void PikaReplicaManager::ScheduleWriteBinlogTask(const std::string& db,
   pika_repl_client_->ScheduleWriteBinlogTask(db, res, conn, res_private_data);
 }
 
-void PikaReplicaManager::ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset,
-                                             const std::string& db_name) {
-  pika_repl_client_->ScheduleWriteDBTask(cmd_ptr, offset, db_name);
+void PikaReplicaManager::ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const std::string& db_name) {
+  pika_repl_client_->ScheduleWriteDBTask(cmd_ptr, db_name);
 }
 
 void PikaReplicaManager::ReplServerRemoveClientConn(int fd) { pika_repl_server_->RemoveClientConn(fd); }
@@ -724,6 +723,17 @@ bool PikaReplicaManager::CheckSlaveDBState(const std::string& ip, const int port
     }
   }
   return true;
+}
+
+Status PikaReplicaManager::DeactivateSyncSlaveDB(const std::string& ip, int port) {
+  std::shared_lock l(dbs_rw_);
+  for (auto& iter : sync_slave_dbs_) {
+    std::shared_ptr<SyncSlaveDB> db = iter.second;
+    if (db->MasterIp() == ip && db->MasterPort() == port) {
+      db->Deactivate();
+    }
+  }
+  return Status::OK();
 }
 
 Status PikaReplicaManager::LostConnection(const std::string& ip, int port) {

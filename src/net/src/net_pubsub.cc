@@ -151,11 +151,31 @@ void PubSubThread::RemoveConn(const std::shared_ptr<NetConn>& conn) {
 }
 
 void PubSubThread::CloseConn(const std::shared_ptr<NetConn>& conn) {
-  CloseFd(conn);
   net_multiplexer_->NetDelEvent(conn->fd(), 0);
+  CloseFd(conn);
   {
     std::lock_guard l(rwlock_);
     conns_.erase(conn->fd());
+  }
+}
+
+void PubSubThread::CloseAllConns() {
+  {
+    std::lock_guard l(channel_mutex_);
+    pubsub_channel_.clear();
+  }
+  {
+    std::lock_guard l(pattern_mutex_);
+    pubsub_pattern_.clear();
+  }
+  {
+    std::lock_guard l(rwlock_);
+    for (auto& pair : conns_) {
+      net_multiplexer_->NetDelEvent(pair.second->conn->fd(), 0);
+      CloseFd(pair.second->conn);
+    }
+    std::map<int, std::shared_ptr<ConnHandle>> tmp;
+    conns_.swap(tmp);
   }
 }
 
@@ -414,6 +434,12 @@ void* PubSubThread::ThreadMain() {
   char triger[1];
 
   while (!should_stop()) {
+
+    if (close_all_conn_sig_.load()) {
+      close_all_conn_sig_.store(false);
+      CloseAllConns();
+    }
+
     nfds = net_multiplexer_->NetPoll(NET_CRON_INTERVAL);
     for (int i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
@@ -584,5 +610,8 @@ void PubSubThread::Cleanup() {
     CloseFd(iter.second->conn);
   }
   conns_.clear();
+}
+void PubSubThread::NotifyCloseAllConns() {
+  close_all_conn_sig_.store(true);
 }
 };  // namespace net

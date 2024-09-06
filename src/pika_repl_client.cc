@@ -24,7 +24,10 @@ using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
-PikaReplClient::PikaReplClient(int cron_interval, int keepalive_timeout)  {
+PikaReplClient::PikaReplClient(int cron_interval, int keepalive_timeout) {
+  for (int i = 0; i < MAX_DB_NUM; i++) {
+    async_write_db_task_counts_[i].store(0, std::memory_order::memory_order_seq_cst);
+  }
   client_thread_ = std::make_unique<PikaReplClientThread>(cron_interval, keepalive_timeout);
   client_thread_->set_thread_name("PikaReplClient");
   for (int i = 0; i < g_pika_conf->sync_binlog_thread_num(); i++) {
@@ -74,6 +77,23 @@ int PikaReplClient::Stop() {
   for (auto & binlog_worker : write_binlog_workers_) {
     binlog_worker->StopThread();
   }
+
+  // write DB task is async task, we must wait all writeDB task done and then to exit
+  // or some data will be loss
+  bool all_write_db_task_done = true;
+  do {
+    for (auto &db_worker: write_db_workers_) {
+      if (db_worker->TaskQueueSize() != 0) {
+        all_write_db_task_done = false;
+        std::this_thread::sleep_for(std::chrono::microseconds(300));
+        break;
+      } else {
+        all_write_db_task_done = true;
+      }
+    }
+    //if there are unfinished async write db task, just continue to wait
+  } while (!all_write_db_task_done);
+
   for (auto &db_worker: write_db_workers_) {
     db_worker->StopThread();
   }
@@ -98,13 +118,17 @@ void PikaReplClient::ScheduleWriteBinlogTask(const std::string& db_name,
   write_binlog_workers_[index]->Schedule(&PikaReplBgWorker::HandleBGWorkerWriteBinlog, static_cast<void*>(task_arg));
 }
 
-void PikaReplClient::ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset,
-                                         const std::string& db_name) {
+void PikaReplClient::ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const std::string& db_name) {
   const PikaCmdArgsType& argv = cmd_ptr->argv();
   std::string dispatch_key = argv.size() >= 2 ? argv[1] : argv[0];
   size_t index = GetHashIndexByKey(dispatch_key);
-  auto task_arg = new ReplClientWriteDBTaskArg(cmd_ptr, offset, db_name);
-  write_db_workers_[index]->Schedule(&PikaReplBgWorker::HandleBGWorkerWriteDB, static_cast<void*>(task_arg));
+  auto task_arg = new ReplClientWriteDBTaskArg(cmd_ptr);
+
+  IncrAsyncWriteDBTaskCount(db_name, 1);
+  std::function<void()> task_finish_call_back = [this, db_name]() { this->DecrAsyncWriteDBTaskCount(db_name, 1); };
+
+  write_db_workers_[index]->Schedule(&PikaReplBgWorker::HandleBGWorkerWriteDB, static_cast<void*>(task_arg),
+                                     task_finish_call_back);
 }
 
 size_t PikaReplClient::GetBinlogWorkerIndexByDBName(const std::string &db_name) {

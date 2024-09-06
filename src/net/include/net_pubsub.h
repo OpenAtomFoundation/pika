@@ -77,11 +77,12 @@ class PubSubThread : public Thread {
   bool IsReady(int fd);
   int ClientPubSubChannelSize(const std::shared_ptr<NetConn>& conn);
   int ClientPubSubChannelPatternSize(const std::shared_ptr<NetConn>& conn);
+  void NotifyCloseAllConns();
 
  private:
   void RemoveConn(const std::shared_ptr<NetConn>& conn);
   void CloseConn(const std::shared_ptr<NetConn>& conn);
-
+  void CloseAllConns();
   int ClientChannelSize(const std::shared_ptr<NetConn>& conn);
 
   int msg_pfd_[2];
@@ -89,6 +90,7 @@ class PubSubThread : public Thread {
 
   mutable pstd::RWMutex rwlock_; /* For external statistics */
   std::map<int, std::shared_ptr<ConnHandle>> conns_;
+  std::atomic<bool> close_all_conn_sig_{false};
 
   pstd::Mutex pub_mutex_;
   pstd::CondVar receiver_rsignal_;

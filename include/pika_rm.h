@@ -166,6 +166,7 @@ class PikaReplicaManager {
   void RmStatus(std::string* debug_info);
   pstd::Status CheckDBRole(const std::string& table, int* role);
   pstd::Status LostConnection(const std::string& ip, int port);
+  pstd::Status DeactivateSyncSlaveDB(const std::string& ip, int port);
 
   // Update binlog win and try to send next binlog
   pstd::Status UpdateSyncBinlogStatus(const RmNode& slave, const LogOffset& offset_start, const LogOffset& offset_end);
@@ -183,7 +184,7 @@ class PikaReplicaManager {
   void ScheduleWriteBinlogTask(const std::string& db_name,
                                const std::shared_ptr<InnerMessage::InnerResponse>& res,
                                const std::shared_ptr<net::PbConn>& conn, void* res_private_data);
-  void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset, const std::string& db_name);
+  void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const std::string& db_name);
   void ScheduleReplClientBGTaskByDBName(net::TaskFunc , void* arg, const std::string &db_name);
   void ReplServerRemoveClientConn(int fd);
   void ReplServerUpdateClientConnMap(const std::string& ip_port, int fd);
@@ -202,6 +203,10 @@ class PikaReplicaManager {
   }
   std::unordered_map<DBInfo, std::shared_ptr<SyncSlaveDB>, hash_db_info>& GetSyncSlaveDBs() {
     return sync_slave_dbs_;
+  }
+
+  int32_t GetUnfinishedAsyncWriteDBTaskCount(const std::string& db_name) {
+    return pika_repl_client_->GetUnfinishedAsyncWriteDBTaskCount(db_name);
   }
 
  private:

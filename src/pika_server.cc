@@ -41,6 +41,7 @@ void DoPurgeDir(void* arg) {
   LOG(INFO) << "Delete dir: " << *path << " done";
 }
 
+
 PikaServer::PikaServer()
     : exit_(false),
       slow_cmd_thread_pool_flag_(g_pika_conf->slow_cmd_pool()),
@@ -103,12 +104,18 @@ PikaServer::PikaServer()
 
   acl_ = std::make_unique<::Acl>();
   SetSlowCmdThreadPoolFlag(g_pika_conf->slow_cmd_pool());
+  bgsave_thread_.set_thread_name("PikaServer::bgsave_thread_");
+  purge_thread_.set_thread_name("PikaServer::purge_thread_");
+  bgslots_cleanup_thread_.set_thread_name("PikaServer::bgslots_cleanup_thread_");
+  common_bg_thread_.set_thread_name("PikaServer::common_bg_thread_");
+  key_scan_thread_.set_thread_name("PikaServer::key_scan_thread_");
 }
 
 PikaServer::~PikaServer() {
   rsync_server_->Stop();
-  // DispatchThread will use queue of worker thread,
-  // so we need to delete dispatch before worker.
+  // DispatchThread will use queue of worker thread
+  // so we need to Stop dispatch before worker.
+  pika_dispatch_thread_->StopThread();
   pika_client_processor_->Stop();
   pika_slow_cmd_thread_pool_->stop_thread_pool();
   pika_admin_cmd_thread_pool_->stop_thread_pool();
@@ -604,7 +611,7 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
               master_boffset.offset - sent_slave_boffset.offset;
           tmp_stream << "(" << db->DBName() << ":" << lag << ")";
         }
-      } else if (s.ok() && slave_state == SlaveState::kSlaveDbSync){
+      } else if (s.ok() && slave_state == SlaveState::kSlaveDbSync) {
         tmp_stream << "(" << db->DBName() << ":full syncing)";
       } else {
         tmp_stream << "(" << db->DBName() << ":not syncing)";
@@ -659,7 +666,7 @@ void PikaServer::RemoveMaster() {
 
     if (!master_ip_.empty() && master_port_ != -1) {
       g_pika_rm->CloseReplClientConn(master_ip_, master_port_ + kPortShiftReplServer);
-      g_pika_rm->LostConnection(master_ip_, master_port_);
+      g_pika_rm->DeactivateSyncSlaveDB(master_ip_, master_port_);
       UpdateMetaSyncTimestampWithoutLock();
       LOG(INFO) << "Remove Master Success, ip_port: " << master_ip_ << ":" << master_port_;
     }
@@ -778,13 +785,11 @@ size_t PikaServer::SlowCmdThreadPoolMaxQueueSize() {
 }
 
 void PikaServer::BGSaveTaskSchedule(net::TaskFunc func, void* arg) {
-  bgsave_thread_.set_thread_name("BGSaveTask");
   bgsave_thread_.StartThread();
   bgsave_thread_.Schedule(func, arg);
 }
 
 void PikaServer::PurgelogsTaskSchedule(net::TaskFunc func, void* arg) {
-  purge_thread_.set_thread_name("PurgelogsTask");
   purge_thread_.StartThread();
   purge_thread_.Schedule(func, arg);
 }
@@ -794,8 +799,8 @@ void PikaServer::PurgeDir(const std::string& path) {
   PurgeDirTaskSchedule(&DoPurgeDir, static_cast<void*>(dir_path));
 }
 
+
 void PikaServer::PurgeDirTaskSchedule(void (*function)(void*), void* arg) {
-  purge_thread_.set_thread_name("PurgeDirTask");
   purge_thread_.StartThread();
   purge_thread_.Schedule(function, arg);
 }
@@ -847,12 +852,21 @@ void PikaServer::TryDBSync(const std::string& ip, int port, const std::string& d
 }
 
 void PikaServer::KeyScanTaskSchedule(net::TaskFunc func, void* arg) {
-  key_scan_thread_.set_thread_name("KeyScanTask");
   key_scan_thread_.StartThread();
   key_scan_thread_.Schedule(func, arg);
 }
 
-void PikaServer::ClientKillAll() { pika_dispatch_thread_->ClientKillAll(); }
+void PikaServer::ClientKillAll() {
+  pika_dispatch_thread_->ClientKillAll();
+  pika_pubsub_thread_->NotifyCloseAllConns();
+}
+
+void PikaServer::ClientKillPubSub() { pika_pubsub_thread_->NotifyCloseAllConns();
+}
+
+void PikaServer::ClientKillAllNormal() {
+  pika_dispatch_thread_->ClientKillAll();
+}
 
 int PikaServer::ClientKill(const std::string& ip_port) {
   if (pika_dispatch_thread_->ClientKill(ip_port)) {
@@ -1085,8 +1099,10 @@ int PikaServer::ClientPubSubChannelPatternSize(const std::shared_ptr<NetConn>& c
 void PikaServer::DoTimingTask() {
   // Maybe schedule compactrange
   AutoCompactRange();
-  // Purge log
-  AutoPurge();
+  // Purge serverlog
+  AutoServerlogPurge();
+  // Purge binlog
+  AutoBinlogPurge();
   // Delete expired dump
   AutoDeleteExpiredDump();
   // Cheek Rsync Status
@@ -1206,7 +1222,88 @@ void PikaServer::AutoCompactRange() {
   }
 }
 
-void PikaServer::AutoPurge() { DoSameThingEveryDB(TaskType::kPurgeLog); }
+void PikaServer::AutoBinlogPurge() { DoSameThingEveryDB(TaskType::kPurgeLog); }
+
+void PikaServer::AutoServerlogPurge() {
+  std::string log_path = g_pika_conf->log_path();
+  int retention_time = g_pika_conf->log_retention_time();
+  if (retention_time < 0) {
+    return;
+  }
+  std::vector<std::string> log_files;
+
+  if (!pstd::FileExists(log_path)) {
+    return;
+  }
+
+  if (pstd::GetChildren(log_path, log_files) != 0) {
+    return;
+  }
+  //Get the current time of system
+  time_t t = time(nullptr);
+  struct tm* now_time = localtime(&t);
+  now_time->tm_hour = 0;
+  now_time->tm_min = 0;
+  now_time->tm_sec = 0;
+  time_t now_timestamp = mktime(now_time);
+
+  std::map<std::string, std::vector<std::pair<std::string, int64_t>>> log_files_by_level;
+
+  //Serverlogformat: pika.[hostname].[user name].log.[severity level].[date].[time].[pid]
+  for (const auto& file : log_files) {
+    std::vector<std::string> file_parts;
+    pstd::StringSplit(file, '.', file_parts);
+    if (file_parts.size() < 7) {
+      continue;
+    }
+
+    std::string severity_level = file_parts[4];
+    if (severity_level != "WARNING" && severity_level != "INFO" && severity_level != "ERROR") {
+      continue;
+    }
+
+    int log_year, log_month, log_day;
+    if (sscanf(file_parts[5].c_str(), "%4d%2d%2d", &log_year, &log_month, &log_day) != 3) {
+      continue;
+    }
+
+    //Get the time when the server log file was originally created
+    struct tm log_time;
+    log_time.tm_year = log_year - 1900;
+    log_time.tm_mon = log_month - 1;
+    log_time.tm_mday = log_day;
+    log_time.tm_hour = 0;
+    log_time.tm_min = 0;
+    log_time.tm_sec = 0;
+    log_time.tm_isdst = -1;
+    time_t log_timestamp = mktime(&log_time);
+    log_files_by_level[severity_level].push_back({file, log_timestamp});
+}
+
+  // Process files for each log level
+  for (auto& [level, files] : log_files_by_level) {
+    // Sort by time in descending order
+    std::sort(files.begin(), files.end(),
+              [](const auto& a, const auto& b) { return a.second > b.second; });
+
+    bool has_recent_file = false;
+    for (const auto& [file, log_timestamp] : files) {
+      double diff_seconds = difftime(now_timestamp, log_timestamp);
+      int64_t interval_days = static_cast<int64_t>(diff_seconds / 86400);
+      if (interval_days <= retention_time) {
+        has_recent_file = true;
+        continue;
+      }
+      if (!has_recent_file) {
+        has_recent_file = true;
+        continue;
+      }
+      std::string log_file = log_path + "/" + file;
+      LOG(INFO) << "Deleting out of date log file: " << log_file;
+      if(!pstd::DeleteFile(log_file)) LOG(ERROR) << "Failed to delete log file: " << log_file;
+    }
+  }
+}
 
 void PikaServer::AutoDeleteExpiredDump() {
   std::string db_sync_prefix = g_pika_conf->bgsave_prefix();
@@ -1416,6 +1513,9 @@ void PikaServer::InitStorageOptions() {
     storage_options_.table_options.pin_top_level_index_and_filter = true; 
     storage_options_.table_options.optimize_filters_for_memory = true;
   }
+  // For statistics
+  storage_options_.enable_db_statistics = g_pika_conf->enable_db_statistics();
+  storage_options_.db_statistics_level = g_pika_conf->db_statistics_level();
 }
 
 storage::Status PikaServer::RewriteStorageOptions(const storage::OptionType& option_type,
@@ -1487,7 +1587,6 @@ void PikaServer::Bgslotsreload(const std::shared_ptr<DB>& db) {
   LOG(INFO) << "Start slot reloading";
 
   // Start new thread if needed
-  bgsave_thread_.set_thread_name("SlotsReload");
   bgsave_thread_.StartThread();
   bgsave_thread_.Schedule(&DoBgslotsreload, static_cast<void*>(this));
 }
@@ -1500,7 +1599,7 @@ void DoBgslotsreload(void* arg) {
   rocksdb::Status s;
   std::vector<std::string> keys;
   int64_t cursor_ret = -1;
-  while(cursor_ret != 0 && p->GetSlotsreloading()){
+  while(cursor_ret != 0 && p->GetSlotsreloading()) {
     cursor_ret = reload.db->storage()->Scan(storage::DataType::kAll, reload.cursor, reload.pattern, reload.count, &keys);
 
     std::vector<std::string>::const_iterator iter;
@@ -1508,8 +1607,8 @@ void DoBgslotsreload(void* arg) {
       std::string key_type;
       int s = GetKeyType(*iter, key_type, reload.db);
       //if key is slotkey, can't add to SlotKey
-      if (s > 0){
-        if (key_type == "s" && ((*iter).find(SlotKeyPrefix) != std::string::npos || (*iter).find(SlotTagPrefix) != std::string::npos)){
+      if (s > 0) {
+        if (key_type == "s" && ((*iter).find(SlotKeyPrefix) != std::string::npos || (*iter).find(SlotTagPrefix) != std::string::npos)) {
           continue;
         }
 
@@ -1555,7 +1654,6 @@ void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots, const std::shared
   LOG(INFO) << "Start slot cleanup, slots: " << slotsStr << std::endl;
 
   // Start new thread if needed
-  bgslots_cleanup_thread_.set_thread_name("SlotsCleanup");
   bgslots_cleanup_thread_.StartThread();
   bgslots_cleanup_thread_.Schedule(&DoBgslotscleanup, static_cast<void*>(this));
 }
@@ -1618,7 +1716,7 @@ void DoBgslotscleanup(void* arg) {
   std::vector<std::string> keys;
   int64_t cursor_ret = -1;
   std::vector<int> cleanupSlots(cleanup.cleanup_slots);
-  while (cursor_ret != 0 && p->GetSlotscleaningup()){
+  while (cursor_ret != 0 && p->GetSlotscleaningup()) {
     cursor_ret = g_pika_server->bgslots_cleanup_.db->storage()->Scan(storage::DataType::kAll, cleanup.cursor, cleanup.pattern, cleanup.count, &keys);
 
     std::string key_type;
@@ -1627,12 +1725,12 @@ void DoBgslotscleanup(void* arg) {
       if ((*iter).find(SlotKeyPrefix) != std::string::npos || (*iter).find(SlotTagPrefix) != std::string::npos) {
         continue;
       }
-      if (std::find(cleanupSlots.begin(), cleanupSlots.end(), GetSlotID(g_pika_conf->default_slot_num(), *iter)) != cleanupSlots.end()){
+      if (std::find(cleanupSlots.begin(), cleanupSlots.end(), GetSlotID(g_pika_conf->default_slot_num(), *iter)) != cleanupSlots.end()) {
         if (GetKeyType(*iter, key_type, g_pika_server->bgslots_cleanup_.db) <= 0) {
           LOG(WARNING) << "slots clean get key type for slot " << GetSlotID(g_pika_conf->default_slot_num(), *iter) << " key " << *iter << " error";
           continue;
         }
-        if (DeleteKey(*iter, key_type[0], g_pika_server->bgslots_cleanup_.db) <= 0){
+        if (DeleteKey(*iter, key_type[0], g_pika_server->bgslots_cleanup_.db) <= 0) {
           LOG(WARNING) << "slots clean del for slot " << GetSlotID(g_pika_conf->default_slot_num(), *iter) << " key "<< *iter << " error";
         }
       }
@@ -1643,7 +1741,7 @@ void DoBgslotscleanup(void* arg) {
     keys.clear();
   }
 
-  for (int cleanupSlot : cleanupSlots){
+  for (int cleanupSlot : cleanupSlots) {
     WriteDelKeyToBinlog(GetSlotKey(cleanupSlot), g_pika_server->bgslots_cleanup_.db);
     WriteDelKeyToBinlog(GetSlotsTagKey(cleanupSlot), g_pika_server->bgslots_cleanup_.db);
   }
@@ -1660,7 +1758,6 @@ void DoBgslotscleanup(void* arg) {
 void PikaServer::ResetCacheAsync(uint32_t cache_num, std::shared_ptr<DB> db, cache::CacheConfig *cache_cfg) {
   if (PIKA_CACHE_STATUS_OK == db->cache()->CacheStatus()
       || PIKA_CACHE_STATUS_NONE == db->cache()->CacheStatus()) {
-    common_bg_thread_.set_thread_name("ResetCacheTask");
     common_bg_thread_.StartThread();
     BGCacheTaskArg *arg = new BGCacheTaskArg();
     arg->db = db;
@@ -1684,7 +1781,6 @@ void PikaServer::ClearCacheDbAsync(std::shared_ptr<DB> db) {
     LOG(WARNING) << "can not clear cache in status: " << db->cache()->CacheStatus();
     return;
   }
-  common_bg_thread_.set_thread_name("CacheClearThread");
   common_bg_thread_.StartThread();
   BGCacheTaskArg *arg = new BGCacheTaskArg();
   arg->db = db;
@@ -1752,7 +1848,6 @@ void PikaServer::ClearCacheDbAsyncV2(std::shared_ptr<DB> db) {
     LOG(WARNING) << "can not clear cache in status: " << db->cache()->CacheStatus();
     return;
   }
-  common_bg_thread_.set_thread_name("V2CacheClearThread");
   common_bg_thread_.StartThread();
   BGCacheTaskArg *arg = new BGCacheTaskArg();
   arg->db = db;

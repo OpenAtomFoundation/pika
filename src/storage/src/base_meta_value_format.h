@@ -39,18 +39,22 @@ class BaseMetaValue : public InternalValue {
     dst += sizeof(version_);
     memcpy(dst, reserve_, sizeof(reserve_));
     dst += sizeof(reserve_);
-    EncodeFixed64(dst, ctime_);
+    // The most significant bit is 1 for milliseconds and 0 for seconds.
+    // The previous data was stored in seconds, but the subsequent data was stored in milliseconds
+    uint64_t ctime = ctime_ > 0 ? (ctime_ | (1ULL << 63)) : 0;
+    EncodeFixed64(dst, ctime);
     dst += sizeof(ctime_);
-    EncodeFixed64(dst, etime_);
+    uint64_t etime = etime_ > 0 ? (etime_ | (1ULL << 63)) : 0;
+    EncodeFixed64(dst, etime);
     return {start_, needed};
   }
 
   uint64_t UpdateVersion() {
-    int64_t unix_time = pstd::NowMicros() / 1000000;
+    pstd::TimeType unix_time = pstd::NowMillis();
     if (version_ >= unix_time) {
       version_++;
     } else {
-      version_ = uint64_t(unix_time);
+      version_ = unix_time;
     }
     return version_;
   }
@@ -71,9 +75,20 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
       offset += sizeof(version_);
       memcpy(reserve_, internal_value_str->data() + offset, sizeof(reserve_));
       offset += sizeof(reserve_);
-      ctime_ = DecodeFixed64(internal_value_str->data() + offset);
+      uint64_t ctime = DecodeFixed64(internal_value_str->data() + offset);
       offset += sizeof(ctime_);
-      etime_ = DecodeFixed64(internal_value_str->data() + offset);
+      uint64_t etime = DecodeFixed64(internal_value_str->data() + offset);
+
+      ctime_ = (ctime & ~(1ULL << 63));
+      // if ctime_==ctime, means ctime_ storaged in seconds
+      if (ctime_ == ctime) {
+        ctime_ *= 1000;
+      }
+      etime_ = (etime & ~(1ULL << 63));
+      // if etime_==etime, means etime_ storaged in seconds
+      if (etime == etime_) {
+        etime_ *= 1000;
+      }
     }
     count_ = DecodeFixed32(internal_value_str->data() + kTypeLength);
   }
@@ -91,9 +106,20 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
       offset += sizeof(uint64_t);
       memcpy(reserve_, internal_value_slice.data() + offset, sizeof(reserve_));
       offset += sizeof(reserve_);
-      ctime_ = DecodeFixed64(internal_value_slice.data() + offset);
+      uint64_t ctime = DecodeFixed64(internal_value_slice.data() + offset);
       offset += sizeof(ctime_);
-      etime_ = DecodeFixed64(internal_value_slice.data() + offset);
+      uint64_t etime = DecodeFixed64(internal_value_slice.data() + offset);
+
+      ctime_ = (ctime & ~(1ULL << 63));
+      // if ctime_!=ctime, means ctime_ storaged in seconds
+      if (ctime_ == ctime) {
+        ctime_ *= 1000;
+      }
+      etime_ = (etime & ~(1ULL << 63));
+      // if etime_!=etime, means etime_ storaged in seconds
+      if (etime == etime_) {
+        etime_ *= 1000;
+      }
     }
     count_ = DecodeFixed32(internal_value_slice.data() + kTypeLength);
   }
@@ -114,14 +140,16 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
   void SetCtimeToValue() override {
     if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() - 2 * kTimestampLength;
-      EncodeFixed64(dst, ctime_);
+      uint64_t ctime = ctime_ > 0 ? (ctime_ | (1ULL << 63)) : 0;
+      EncodeFixed64(dst, ctime);
     }
   }
 
   void SetEtimeToValue() override {
     if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() - kTimestampLength;
-      EncodeFixed64(dst, etime_);
+      uint64_t etime = etime_ > 0 ? (etime_ | (1ULL << 63)) : 0;
+      EncodeFixed64(dst, etime);
     }
   }
 
@@ -171,12 +199,11 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
   }
 
   uint64_t UpdateVersion() {
-    int64_t unix_time;
-    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-    if (version_ >= static_cast<uint64_t>(unix_time)) {
+    pstd::TimeType unix_time = pstd::NowMillis();
+    if (version_ >= unix_time) {
       version_++;
     } else {
-      version_ = static_cast<uint64_t>(unix_time);
+      version_ = unix_time;
     }
     SetVersionToValue();
     return version_;

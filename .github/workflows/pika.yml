@@ -45,6 +45,11 @@ jobs:
         # Build your program with the given configuration
         run: cmake --build build --config ${{ env.BUILD_TYPE }}
 
+      - name: Cleanup
+        run: |
+          rm -rf  ./deps
+          rm -rf ./buildtrees
+
       - uses: actions/upload-artifact@v3
         with:
           name: ${{ env.ARTIFACT_PIKA_NAME }}
@@ -54,13 +59,85 @@ jobs:
         working-directory: ${{ github.workspace }}/build
         # Execute tests defined by the CMake configuration.
         # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+        run: ctest -C ${{ env.BUILD_TYPE }} --verbose
+
+      - name: Unit Test
+        working-directory: ${{ github.workspace }}
+        run: ./pikatests.sh all clean
+
+        # master on port 9221, slave on port 9231, all with 2 db
+      - name: Start codis, pika master and pika slave
+        working-directory: ${{ github.workspace }}/build
+        run: |
+          echo "hello"
+          chmod +x ../tests/integration/start_master_and_slave.sh
+          ../tests/integration/start_master_and_slave.sh
+          chmod +x ../tests/integration/start_codis.sh
+          ../tests/integration/start_codis.sh
+
+      - name: Run Go E2E Tests
+        working-directory: ${{ github.workspace }}/build
+        run: |
+          cd ../tools/pika_keys_analysis/
+          go test -v ./...
+          cd ../../tests/integration/
+          chmod +x integrate_test.sh
+          sh integrate_test.sh
+
+  build_on_rocky:
+    runs-on: ubuntu-latest
+    container:
+      image: rockylinux:9
+
+    steps:
+      - name: Install deps
+        run: |
+          dnf update -y
+          dnf install -y bash cmake wget git autoconf gcc perl-Digest-SHA tcl which tar g++ tar epel-release gcc-c++ libstdc++-devel gcc-toolset-13
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Configure CMake
+        run: |
+          source /opt/rh/gcc-toolset-13/enable
+          cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address .
+
+      - uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/deps
+          key: ${{ runner.os }}-rocky-deps-${{ hashFiles('**/CMakeLists.txt') }}
+
+      - uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/buildtrees
+          key: ${{ runner.os }}-rocky-buildtrees-${{ hashFiles('**/CMakeLists.txt') }}
+
+      - name: Build
+        run: |
+          source /opt/rh/gcc-toolset-13/enable
+          cmake --build build --config ${{ env.BUILD_TYPE }}
+
+      - name: Cleanup
+        run: |
+          rm -rf  ./deps
+          rm -rf ./buildtrees
+
+      - name: Test
+        working-directory: ${{ github.workspace }}/build
         run: ctest -C ${{ env.BUILD_TYPE }}
 
       - name: Unit Test
         working-directory: ${{ github.workspace }}
-        run: ./pikatests.sh all
+        run: ./pikatests.sh all clean
 
-        # master on port 9221, slave on port 9231, all with 2 db
       - name: Start codis, pika master and pika slave
         working-directory: ${{ github.workspace }}/build
         run: |
@@ -109,14 +186,19 @@ jobs:
         run: |
           cmake --build build --config ${{ env.BUILD_TYPE }}
 
+      - name: Cleanup
+        run: |
+          rm -rf  ./deps
+          rm -rf ./buildtrees
+
       - name: Test
         working-directory: ${{ github.workspace }}/build
-        run: ctest --rerun-failed --output-on-failure -C ${{ env.BUILD_TYPE }}
+        run: ctest -C ${{ env.BUILD_TYPE }} --verbose
 
       - name: Unit Test
         working-directory: ${{ github.workspace }}
         run: |
-          ./pikatests.sh all
+          ./pikatests.sh all clean
 
       - name: Start codis, pika master and pika slave
         working-directory: ${{ github.workspace }}/build

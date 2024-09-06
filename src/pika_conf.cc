@@ -128,6 +128,10 @@ int PikaConf::Load() {
   if (log_path_[log_path_.length() - 1] != '/') {
     log_path_ += "/";
   }
+  GetConfInt("log-retention-time",&log_retention_time_);
+  if(log_retention_time_ < 0){
+    LOG(FATAL) << "log-retention-time invalid";
+  }
   GetConfStr("loglevel", &log_level_);
   GetConfStr("db-path", &db_path_);
   GetConfInt("db-instance-num", &db_instance_num_);
@@ -180,7 +184,7 @@ int PikaConf::Load() {
 
   std::string admin_cmd_list;
   GetConfStr("admin-cmd-list", &admin_cmd_list);
-  if (admin_cmd_list == ""){
+  if (admin_cmd_list == "") {
     admin_cmd_list = "info, monitor, ping";
     SetAdminCmd(admin_cmd_list);
   }
@@ -417,7 +421,7 @@ int PikaConf::Load() {
   }
 
   // target_file_size_base
-  GetConfIntHuman("target-file-size-base", &target_file_size_base_);
+  GetConfInt64Human("target-file-size-base", &target_file_size_base_);
   if (target_file_size_base_ <= 0) {
     target_file_size_base_ = 1048576;  // 10Mb
   }
@@ -540,6 +544,11 @@ int PikaConf::Load() {
   std::string dmz;
   GetConfStr("daemonize", &dmz);
   daemonize_ = dmz == "yes";
+
+  // read redis cache in Net worker threads
+  std::string rtc_enabled;
+  GetConfStr("rtc-cache-read", &rtc_enabled);
+  rtc_cache_read_enabled_ = rtc_enabled != "no";
 
   // binlog
   std::string wb;
@@ -702,13 +711,26 @@ int PikaConf::Load() {
     max_rsync_parallel_num_ = kMaxRsyncParallelNum;
   }
 
+  // rocksdb_statistics_tickers
+  std::string open_tickers;
+  GetConfStr("enable-db-statistics", &open_tickers);
+  enable_db_statistics_ = open_tickers == "yes";
+
+  db_statistics_level_ = 0;
+  GetConfInt("db-statistics-level", &db_statistics_level_);
+  if (db_statistics_level_ < 0) {
+    db_statistics_level_ = 0;
+  }
+
   int64_t tmp_rsync_timeout_ms = -1;
   GetConfInt64("rsync-timeout-ms", &tmp_rsync_timeout_ms);
-  if(tmp_rsync_timeout_ms <= 0){
+  if (tmp_rsync_timeout_ms <= 0) {
     rsync_timeout_ms_.store(1000);
   } else {
     rsync_timeout_ms_.store(tmp_rsync_timeout_ms);
   }
+
+  GetConfBool("wash-data", &wash_data_);
 
   return ret;
 }
@@ -807,6 +829,8 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("slotmigrate", slotmigrate_.load() ? "yes" : "no");
   SetConfInt64("slotmigrate-thread-num", slotmigrate_thread_num_);
   SetConfInt64("thread-migrate-keys-num", thread_migrate_keys_num_);
+  SetConfStr("enable-db-statistics", enable_db_statistics_ ? "yes" : "no");
+  SetConfInt("db-statistics-level", db_statistics_level_);
   // slaveof config item is special
   SetConfStr("slaveof", slaveof_);
   // cache config

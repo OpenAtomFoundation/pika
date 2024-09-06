@@ -54,6 +54,33 @@ DB::~DB() {
   StopKeyScan();
 }
 
+bool DB::WashData() {
+  rocksdb::ReadOptions read_options;
+  rocksdb::Status s;
+  auto suffix_len = storage::ParsedBaseDataValue::GetkBaseDataValueSuffixLength();
+  for (int i = 0; i < g_pika_conf->db_instance_num(); i++) {
+    rocksdb::WriteBatch batch;
+    auto handle = storage_->GetHashCFHandles(i)[1];
+    auto db = storage_->GetDBByIndex(i);
+    auto it(db->NewIterator(read_options, handle));
+    for (it->SeekToFirst(); it->Valid(); it->Next()) {
+      std::string key = it->key().ToString();
+      std::string value = it->value().ToString();
+      if (value.size() < suffix_len) {
+        // need to wash
+        storage::BaseDataValue internal_value(value);
+        batch.Put(handle, key, internal_value.Encode());
+      }
+    }
+    delete it;
+    s = db->Write(storage_->GetDefaultWriteOptions(i), &batch);
+    if (!s.ok()) {
+      return false;
+    }
+  }
+  return true;
+}
+
 std::string DB::GetDBName() { return db_name_; }
 
 void DB::BgSaveDB() {
@@ -204,15 +231,23 @@ bool DB::FlushDBWithoutLock() {
   if (dbpath[dbpath.length() - 1] == '/') {
     dbpath.erase(dbpath.length() - 1);
   }
-  dbpath.append("_deleting/");
-  pstd::RenameFile(db_path_, dbpath);
-
+  std::string delete_suffix("_deleting_");
+  delete_suffix.append(std::to_string(NowMicros()));
+  delete_suffix.append("/");
+  dbpath.append(delete_suffix);
+  auto rename_success = pstd::RenameFile(db_path_, dbpath);
   storage_ = std::make_shared<storage::Storage>(g_pika_conf->db_instance_num(),
       g_pika_conf->default_slot_num(), g_pika_conf->classic_mode());
   rocksdb::Status s = storage_->Open(g_pika_server->storage_options(), db_path_);
   assert(storage_);
   assert(s.ok());
+  if (rename_success == -1) {
+    //the storage_->Open actually opened old RocksDB instance, so flushdb failed
+    LOG(WARNING)  << db_name_ << " FlushDB failed due to rename old db_path_ failed";
+    return false;
+  }
   LOG(INFO) << db_name_ << " Open new db success";
+
   g_pika_server->PurgeDir(dbpath);
   return true;
 }

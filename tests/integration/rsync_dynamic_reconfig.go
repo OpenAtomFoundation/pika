@@ -35,10 +35,10 @@ func RefillMaster(masterAddr string, dataVolumeMB int64, ctx context.Context) {
 			cli.Set(ctx, rKey, rValue, 0)
 		}
 	}
-	keySize := 1024
-	valueSize := 1024
+	keySize := 64
+	valueSize := 64
 	dataVolumeBytes := dataVolumeMB << 20
-	threadNum := 10
+	threadNum := 5
 	reqNumForEachThead := dataVolumeBytes / int64((keySize + valueSize)) / int64(threadNum)
 	//fmt.Printf("reqNumForEach:%d\n", reqNumForEachThead)
 	startTime := time.Now()
@@ -136,7 +136,7 @@ var _ = Describe("Rsync Reconfig Test", func() {
 		slave1.FlushDB(ctx)
 		master1.FlushDB(ctx)
 		time.Sleep(3 * time.Second)
-		RefillMaster(MASTERADDR, 64, ctx)
+		RefillMaster(MASTERADDR, 2, ctx)
 		key1 := "45vs45f4s5d6"
 		value1 := "afd54g5s4f545"
 		//set key before sync happened, slave is supposed to fetch it when sync done

@@ -338,9 +338,6 @@ Status Redis::ScanStreamsKeyNum(KeyInfo* key_info) {
   iterator_options.snapshot = snapshot;
   iterator_options.fill_cache = false;
 
-  int64_t curtime;
-  rocksdb::Env::Default()->GetCurrentTime(&curtime);
-
   rocksdb::Iterator* iter = db_->NewIterator(iterator_options, handles_[kMetaCF]);
   for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
     if (!ExpectedMetaValue(DataType::kStreams, iter->value().ToString())) {
