@@ -13,7 +13,7 @@ fullnameOverride: ""
 
 groupCount: 2
 
-slaveCount: 1
+slaveCount: 2
 
 etcdReplicaCount: 3
 

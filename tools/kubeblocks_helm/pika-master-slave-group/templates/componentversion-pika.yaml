@@ -1,0 +1,18 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentVersion
+metadata:
+  name: pika
+  labels:
+    {{- include "pika.labels" . | nindent 4 }}
+spec:
+  compatibilityRules:
+    - compDefs: 
+      - pika
+      releases: 
+        - {{ .Chart.AppVersion }}
+  releases:
+    - name: {{ .Chart.AppVersion }}
+      changes:
+      serviceVersion: {{ .Chart.AppVersion }}
+      images:
+        codis-dashboard: {{ include "pika.image" . }}

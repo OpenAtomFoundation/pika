@@ -1,0 +1,68 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentDefinition
+metadata:
+  name: pika
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "pika.labels" . | nindent 4 }}
+spec:
+  provider: pika
+  description: Pika component definition
+  serviceKind: pika
+  serviceVersion: {{ .Chart.AppVersion }}
+  services:
+    - name: pika
+      spec:
+        ports:
+          - name: pika
+            port: 9221
+            targetPort: pika
+  updateStrategy: Serial
+  configs:
+    - name: pika-config
+      templateRef: pika-conf-template
+      namespace: {{ .Release.Namespace }}
+      volumeName: config
+  scripts:
+    - name: pika-script
+      templateRef: pika-script-template
+      namespace: {{ .Release.Namespace }}
+      volumeName: script
+      defaultMode: 0555
+  volumes:
+    - name: data
+  Vars:
+  runtime:
+    initContainers:
+      - name: init-config
+        image: busybox:1.28
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sh
+          - -ec
+          - |
+            if [ ! -f "/data/pika.conf" ];then cp /etc/pika/pika.conf /data/pika.conf; fi
+        volumeMounts:
+          - name: config
+            mountPath: /etc/pika
+          - name: data
+            mountPath: /data  
+    containers:
+      - name: pika
+        image: {{ include "pika.image" . }}
+        imagePullPolicy: {{ include "pika.imagePullPolicy" . }}
+        ports:
+          - name: pika
+            containerPort: 9221
+        volumeMounts:
+          - name: config
+            mountPath: /etc/pika
+          - name: data
+            mountPath: /data
+          - name: script
+            mountPath: /script
+        command:  
+          - "/bin/bash"
+        args:  
+          - "-c"
+          - "sh /script/admin.sh"

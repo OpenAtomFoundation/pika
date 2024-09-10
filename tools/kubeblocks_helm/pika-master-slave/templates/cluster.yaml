@@ -1,0 +1,43 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: Cluster
+metadata:
+  name: {{ include "clustername" . }}
+  namespace: {{ .Release.Namespace }}
+  labels: {{ include "pika-cluster.labels" . | nindent 4 }}
+spec:
+  terminationPolicy: {{ .Values.terminationPolicy }}
+  affinity:
+    {{- with .Values.topologyKeys }}
+    topologyKeys: {{ . | toYaml | nindent 6 }}
+    {{- end }}
+  {{- with $.Values.tolerations }}
+  tolerations: {{ . | toYaml | nindent 4 }}
+  {{- end }}
+  componentSpecs:
+    - name: pika
+      componentDef: pika # Ref componentdefinition.name
+      enabledLogs: {{ $.Values.enabledLogs | toJson | indent 4 }}
+      replicas: {{ add (int $.Values.slaveCount) 1 | default 2 }}
+      serviceAccountName: {{ include "pika-cluster.serviceAccountName" $ }}
+      {{- with  $.Values.resources.pikaGroup }}
+      resources:
+        limits:
+          cpu: {{ .limits.cpu | quote }}
+          memory: {{ .limits.memory | quote }}
+        requests:
+          cpu: {{ .requests.cpu | quote }}
+          memory: {{ .requests.memory | quote }}
+      {{- end }}
+      {{- if $.Values.persistence.enabled }}
+      volumeClaimTemplates:
+        {{- with  $.Values.persistence.pikaData }}
+        - name: data # ref componentDefinition.containers.volumeMounts.name
+          spec:
+            storageClassName: {{ .storageClassName }}
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: {{ .size }}
+        {{- end }}
+      {{- end }}
