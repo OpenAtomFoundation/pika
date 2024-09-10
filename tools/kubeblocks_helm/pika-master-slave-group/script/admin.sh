@@ -4,7 +4,7 @@ set -x
 # 获取当前Pod的索引
 INDEX=${HOSTNAME##*-}
 echo "index:${INDEX}"
-# Redis配置文件路径
+# PIKA配置文件路径
 PIKA_CONF="../data/pika.conf"
 
 # 确保配置文件存在
@@ -15,6 +15,6 @@ if [ "$INDEX" = "0" ]; then
     ../pika/bin/pika -c ../data/pika.conf
 else
     # 如果不是pika-0，配置为从节点
-    sed -i "s/#slaveof : master-ip:master-port/slaveof : ${KB_POD_FQDN}:9221/" $PIKA_CONF
+    sed -i "s/#slaveof : master-ip:master-port/slaveof : pika-master-slave-pika-0.pika-master-slave-pika-headless.default.svc.cluster.local:9221/" $PIKA_CONF
     ../pika/bin/pika -c ../data/pika.conf
 fi

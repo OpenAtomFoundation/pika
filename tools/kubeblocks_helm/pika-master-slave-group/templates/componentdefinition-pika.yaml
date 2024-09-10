@@ -31,7 +31,6 @@ spec:
       defaultMode: 0555
   volumes:
     - name: data
-  Vars:
   runtime:
     initContainers:
       - name: init-config
