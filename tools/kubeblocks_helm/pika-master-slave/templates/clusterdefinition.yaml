@@ -1,0 +1,6 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ClusterDefinition
+metadata:
+  name: pika
+  labels:
+    {{- include "pika.labels" . | nindent 4 }}

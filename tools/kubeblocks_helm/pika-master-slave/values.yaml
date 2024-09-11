@@ -1,0 +1,16 @@
+pika:
+  version: v3.5.3
+image:
+  pika:
+    registry: docker.io
+    repository: pikadb/pika
+    tag: 3.5.3
+    pullPolicy: IfNotPresent
+roleProbe:
+  pika:
+    failureThreshold: 2
+    periodSeconds: 1
+    timeoutSeconds: 1
+nameOverride: ""
+fullnameOverride: ""
+clusterDomain: ".cluster.local"
