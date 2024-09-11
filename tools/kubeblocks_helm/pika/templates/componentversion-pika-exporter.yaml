@@ -15,4 +15,4 @@ spec:
       changes:
       serviceVersion: {{ .Chart.AppVersion }}
       images:
-        codis-dashboard: {{ include "pikaExporter.image" . }}
+        pika-exporter: {{ include "pikaExporter.image" . }}

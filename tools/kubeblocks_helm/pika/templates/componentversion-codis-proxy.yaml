@@ -15,4 +15,4 @@ spec:
       changes:
       serviceVersion: {{ .Chart.AppVersion }}
       images:
-        codis-dashboard: {{ include "codis.image" . }}
+        codis-proxy: {{ include "codis.image" . }}

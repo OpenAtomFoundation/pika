@@ -15,4 +15,4 @@ spec:
       changes:
       serviceVersion: {{ .Chart.AppVersion }}
       images:
-        codis-dashboard: {{ include "etcd.image" . }}
+        pika-etcd: {{ include "etcd.image" . }}
