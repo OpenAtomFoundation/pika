@@ -1848,7 +1848,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(size_match(&db, "GP1_ZREMMRANGEBYRANK_KEY", 1));
   ASSERT_TRUE(score_members_match(&db, "GP1_ZREMMRANGEBYRANK_KEY", {{0, "MM1"}}));
 
-  s = db.ZRemrangebyrank("GP1_ZREMMRANGEBYRANK_KEY", 0, -1, &ret);
+  s = db.ZRemrangebyrank("GP1_ZREMMRANGEBYRANK_KEY", 0, -1, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(1, ret);
   ASSERT_TRUE(score_members_match(score_members, {}));
@@ -1868,7 +1868,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
       &db, "GP2_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
 
-  s = db.ZRemrangebyrank("GP2_ZREMRANGEBYRANK_KEY", 0, 8, &ret);
+  s = db.ZRemrangebyrank("GP2_ZREMRANGEBYRANK_KEY", 0, 8, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(9, ret);
   ASSERT_TRUE(size_match(&db, "GP2_ZREMRANGEBYRANK_KEY", 0));
@@ -1889,7 +1889,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
       &db, "GP3_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
 
-  s = db.ZRemrangebyrank("GP3_ZREMRANGEBYRANK_KEY", -9, -1, &ret);
+  s = db.ZRemrangebyrank("GP3_ZREMRANGEBYRANK_KEY", -9, -1, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(9, ret);
   ASSERT_TRUE(size_match(&db, "GP3_ZREMRANGEBYRANK_KEY", 0));
@@ -1909,7 +1909,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP4_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP4_ZREMRANGEBYRANK_KEY", 0, -1, &ret);
+  s = db.ZRemrangebyrank("GP4_ZREMRANGEBYRANK_KEY", 0, -1, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(9, ret);
   ASSERT_TRUE(size_match(&db, "GP4_ZREMRANGEBYRANK_KEY", 0));
@@ -1929,7 +1929,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP5_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP5_ZREMRANGEBYRANK_KEY", -9, 8, &ret);
+  s = db.ZRemrangebyrank("GP5_ZREMRANGEBYRANK_KEY", -9, 8, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(9, ret);
   ASSERT_TRUE(size_match(&db, "GP5_ZREMRANGEBYRANK_KEY", 0));
@@ -1949,7 +1949,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP6_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP6_ZREMRANGEBYRANK_KEY", -100, 8, &ret);
+  s = db.ZRemrangebyrank("GP6_ZREMRANGEBYRANK_KEY", -100, 8, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(9, ret);
   ASSERT_TRUE(size_match(&db, "GP6_ZREMRANGEBYRANK_KEY", 0));
@@ -1969,7 +1969,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP7_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP7_ZREMRANGEBYRANK_KEY", 0, 100, &ret);
+  s = db.ZRemrangebyrank("GP7_ZREMRANGEBYRANK_KEY", 0, 100, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(9, ret);
   ASSERT_TRUE(size_match(&db, "GP7_ZREMRANGEBYRANK_KEY", 0));
@@ -1989,7 +1989,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP8_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP8_ZREMRANGEBYRANK_KEY", -100, 100, &ret);
+  s = db.ZRemrangebyrank("GP8_ZREMRANGEBYRANK_KEY", -100, 100, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(9, ret);
   ASSERT_TRUE(size_match(&db, "GP8_ZREMRANGEBYRANK_KEY", 0));
@@ -2009,7 +2009,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP9_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP9_ZREMRANGEBYRANK_KEY", 0, 0, &ret);
+  s = db.ZRemrangebyrank("GP9_ZREMRANGEBYRANK_KEY", 0, 0, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(1, ret);
   ASSERT_TRUE(size_match(&db, "GP9_ZREMRANGEBYRANK_KEY", 8));
@@ -2031,7 +2031,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP10_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP10_ZREMRANGEBYRANK_KEY", -9, -9, &ret);
+  s = db.ZRemrangebyrank("GP10_ZREMRANGEBYRANK_KEY", -9, -9, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(1, ret);
   ASSERT_TRUE(size_match(&db, "GP10_ZREMRANGEBYRANK_KEY", 8));
@@ -2053,7 +2053,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP11_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP11_ZREMRANGEBYRANK_KEY", 8, 8, &ret);
+  s = db.ZRemrangebyrank("GP11_ZREMRANGEBYRANK_KEY", 8, 8, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(1, ret);
   ASSERT_TRUE(size_match(&db, "GP11_ZREMRANGEBYRANK_KEY", 8));
@@ -2075,7 +2075,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP12_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP12_ZREMRANGEBYRANK_KEY", -1, -1, &ret);
+  s = db.ZRemrangebyrank("GP12_ZREMRANGEBYRANK_KEY", -1, -1, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(1, ret);
   ASSERT_TRUE(size_match(&db, "GP12_ZREMRANGEBYRANK_KEY", 8));
@@ -2097,7 +2097,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP13_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP13_ZREMRANGEBYRANK_KEY", 0, 5, &ret);
+  s = db.ZRemrangebyrank("GP13_ZREMRANGEBYRANK_KEY", 0, 5, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(6, ret);
   ASSERT_TRUE(size_match(&db, "GP13_ZREMRANGEBYRANK_KEY", 3));
@@ -2117,7 +2117,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP14_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP14_ZREMRANGEBYRANK_KEY", 0, -4, &ret);
+  s = db.ZRemrangebyrank("GP14_ZREMRANGEBYRANK_KEY", 0, -4, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(6, ret);
   ASSERT_TRUE(size_match(&db, "GP14_ZREMRANGEBYRANK_KEY", 3));
@@ -2137,7 +2137,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP15_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP15_ZREMRANGEBYRANK_KEY", -9, -4, &ret);
+  s = db.ZRemrangebyrank("GP15_ZREMRANGEBYRANK_KEY", -9, -4, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(6, ret);
   ASSERT_TRUE(size_match(&db, "GP15_ZREMRANGEBYRANK_KEY", 3));
@@ -2157,7 +2157,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP16_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP16_ZREMRANGEBYRANK_KEY", -9, 5, &ret);
+  s = db.ZRemrangebyrank("GP16_ZREMRANGEBYRANK_KEY", -9, 5, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(6, ret);
   ASSERT_TRUE(size_match(&db, "GP16_ZREMRANGEBYRANK_KEY", 3));
@@ -2177,7 +2177,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP17_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP17_ZREMRANGEBYRANK_KEY", -100, 5, &ret);
+  s = db.ZRemrangebyrank("GP17_ZREMRANGEBYRANK_KEY", -100, 5, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(6, ret);
   ASSERT_TRUE(size_match(&db, "GP17_ZREMRANGEBYRANK_KEY", 3));
@@ -2197,7 +2197,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP18_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP18_ZREMRANGEBYRANK_KEY", -100, -4, &ret);
+  s = db.ZRemrangebyrank("GP18_ZREMRANGEBYRANK_KEY", -100, -4, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(6, ret);
   ASSERT_TRUE(size_match(&db, "GP18_ZREMRANGEBYRANK_KEY", 3));
@@ -2217,7 +2217,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP19_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP19_ZREMRANGEBYRANK_KEY", 3, 5, &ret);
+  s = db.ZRemrangebyrank("GP19_ZREMRANGEBYRANK_KEY", 3, 5, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(3, ret);
   ASSERT_TRUE(size_match(&db, "GP19_ZREMRANGEBYRANK_KEY", 6));
@@ -2238,7 +2238,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP20_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP20_ZREMRANGEBYRANK_KEY", -6, -4, &ret);
+  s = db.ZRemrangebyrank("GP20_ZREMRANGEBYRANK_KEY", -6, -4, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(3, ret);
   ASSERT_TRUE(size_match(&db, "GP20_ZREMRANGEBYRANK_KEY", 6));
@@ -2259,7 +2259,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP21_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP21_ZREMRANGEBYRANK_KEY", 3, -4, &ret);
+  s = db.ZRemrangebyrank("GP21_ZREMRANGEBYRANK_KEY", 3, -4, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(3, ret);
   ASSERT_TRUE(size_match(&db, "GP21_ZREMRANGEBYRANK_KEY", 6));
@@ -2280,7 +2280,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP22_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP22_ZREMRANGEBYRANK_KEY", -6, 5, &ret);
+  s = db.ZRemrangebyrank("GP22_ZREMRANGEBYRANK_KEY", -6, 5, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(3, ret);
   ASSERT_TRUE(size_match(&db, "GP22_ZREMRANGEBYRANK_KEY", 6));
@@ -2301,7 +2301,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP23_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP23_ZREMRANGEBYRANK_KEY", 3, 8, &ret);
+  s = db.ZRemrangebyrank("GP23_ZREMRANGEBYRANK_KEY", 3, 8, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(6, ret);
   ASSERT_TRUE(size_match(&db, "GP23_ZREMRANGEBYRANK_KEY", 3));
@@ -2321,7 +2321,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP24_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP24_ZREMRANGEBYRANK_KEY", -6, -1, &ret);
+  s = db.ZRemrangebyrank("GP24_ZREMRANGEBYRANK_KEY", -6, -1, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(6, ret);
   ASSERT_TRUE(size_match(&db, "GP24_ZREMRANGEBYRANK_KEY", 3));
@@ -2341,7 +2341,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP25_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP25_ZREMRANGEBYRANK_KEY", 3, -1, &ret);
+  s = db.ZRemrangebyrank("GP25_ZREMRANGEBYRANK_KEY", 3, -1, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(6, ret);
   ASSERT_TRUE(size_match(&db, "GP25_ZREMRANGEBYRANK_KEY", 3));
@@ -2361,7 +2361,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP26_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP26_ZREMRANGEBYRANK_KEY", -6, 8, &ret);
+  s = db.ZRemrangebyrank("GP26_ZREMRANGEBYRANK_KEY", -6, 8, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(6, ret);
   ASSERT_TRUE(size_match(&db, "GP26_ZREMRANGEBYRANK_KEY", 3));
@@ -2381,7 +2381,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP27_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP27_ZREMRANGEBYRANK_KEY", -6, 100, &ret);
+  s = db.ZRemrangebyrank("GP27_ZREMRANGEBYRANK_KEY", -6, 100, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(6, ret);
   ASSERT_TRUE(size_match(&db, "GP27_ZREMRANGEBYRANK_KEY", 3));
@@ -2401,7 +2401,7 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
   ASSERT_TRUE(score_members_match(
       &db, "GP28_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
-  s = db.ZRemrangebyrank("GP28_ZREMRANGEBYRANK_KEY", 3, 100, &ret);
+  s = db.ZRemrangebyrank("GP28_ZREMRANGEBYRANK_KEY", 3, 100, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(6, ret);
   ASSERT_TRUE(size_match(&db, "GP28_ZREMRANGEBYRANK_KEY", 3));
@@ -2422,14 +2422,14 @@ TEST_F(ZSetsTest, ZRemrangebyrankTest) {  // NOLINT
       &db, "GP29_ZREMRANGEBYRANK_KEY",
       {{0, "MM0"}, {1, "MM1"}, {2, "MM2"}, {3, "MM3"}, {4, "MM4"}, {5, "MM5"}, {6, "MM6"}, {7, "MM7"}, {8, "MM8"}}));
   ASSERT_TRUE(make_expired(&db, "GP29_ZREMRANGEBYRANK_KEY"));
-  s = db.ZRemrangebyrank("GP29_ZREMRANGEBYRANK_KEY", 0, 0, &ret);
+  s = db.ZRemrangebyrank("GP29_ZREMRANGEBYRANK_KEY", 0, 0, &ret, nullptr);
   ASSERT_TRUE(s.IsNotFound());
   ASSERT_EQ(0, ret);
   ASSERT_TRUE(size_match(&db, "GP29_ZREMRANGEBYRANK_KEY", 0));
   ASSERT_TRUE(score_members_match(&db, "GP29_ZREMRANGEBYRANK_KEY", {}));
 
   // ***************** Group 30 Test *****************
-  s = db.ZRemrangebyrank("GP30_ZREMRANGEBYRANK_KEY", 0, 0, &ret);
+  s = db.ZRemrangebyrank("GP30_ZREMRANGEBYRANK_KEY", 0, 0, &ret, nullptr);
   ASSERT_TRUE(s.IsNotFound());
   ASSERT_EQ(0, ret);
   ASSERT_TRUE(size_match(&db, "GP30_ZREMRANGEBYRANK_KEY", 0));
@@ -2465,7 +2465,7 @@ TEST_F(ZSetsTest, ZRemrangebyscoreTest) {  // NOLINT
   ASSERT_EQ(18, ret);
 
   s = db.ZRemrangebyscore("GP1_ZREMRANGEBYSCORE_KEY", std::numeric_limits<double>::lowest(),
-                          std::numeric_limits<double>::max(), true, true, &ret);
+                          std::numeric_limits<double>::max(), true, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(18, ret);
   ASSERT_TRUE(size_match(&db, "GP1_ZREMRANGEBYSCORE_KEY", 0));
@@ -2494,7 +2494,7 @@ TEST_F(ZSetsTest, ZRemrangebyscoreTest) {  // NOLINT
   s = db.ZAdd("GP2_ZREMRANGEBYSCORE_KEY", gp2_sm, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(18, ret);
-  s = db.ZRemrangebyscore("GP2_ZREMRANGEBYSCORE_KEY", -10000000000, -999999999, true, true, &ret);
+  s = db.ZRemrangebyscore("GP2_ZREMRANGEBYSCORE_KEY", -10000000000, -999999999, true, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(0, ret);
   ASSERT_TRUE(size_match(&db, "GP2_ZREMRANGEBYSCORE_KEY", 18));
@@ -2541,7 +2541,8 @@ TEST_F(ZSetsTest, ZRemrangebyscoreTest) {  // NOLINT
   s = db.ZAdd("GP3_ZREMRANGEBYSCORE_KEY", gp3_sm, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(18, ret);
-  s = db.ZRemrangebyscore("GP3_ZREMRANGEBYSCORE_KEY", -987654321.0000001, -7654321.000000001, true, true, &ret);
+  s = db.ZRemrangebyscore("GP3_ZREMRANGEBYSCORE_KEY", -987654321.0000001, -7654321.000000001, true, true, &ret,
+                          nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(3, ret);
   ASSERT_TRUE(size_match(&db, "GP3_ZREMRANGEBYSCORE_KEY", 15));
@@ -2585,7 +2586,7 @@ TEST_F(ZSetsTest, ZRemrangebyscoreTest) {  // NOLINT
   s = db.ZAdd("GP4_ZREMRANGEBYSCORE_KEY", gp4_sm, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(18, ret);
-  s = db.ZRemrangebyscore("GP4_ZREMRANGEBYSCORE_KEY", -999999999, -4321.000000000001, true, true, &ret);
+  s = db.ZRemrangebyscore("GP4_ZREMRANGEBYSCORE_KEY", -999999999, -4321.000000000001, true, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(6, ret);
   ASSERT_TRUE(size_match(&db, "GP4_ZREMRANGEBYSCORE_KEY", 12));
@@ -2626,7 +2627,8 @@ TEST_F(ZSetsTest, ZRemrangebyscoreTest) {  // NOLINT
   s = db.ZAdd("GP5_ZREMRANGEBYSCORE_KEY", gp5_sm, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(18, ret);
-  s = db.ZRemrangebyscore("GP5_ZREMRANGEBYSCORE_KEY", -1000.000000000001, -1000.000000000001, true, true, &ret);
+  s = db.ZRemrangebyscore("GP5_ZREMRANGEBYSCORE_KEY", -1000.000000000001, -1000.000000000001, true, true, &ret,
+                          nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(3, ret);
   ASSERT_TRUE(size_match(&db, "GP5_ZREMRANGEBYSCORE_KEY", 15));
@@ -2670,7 +2672,7 @@ TEST_F(ZSetsTest, ZRemrangebyscoreTest) {  // NOLINT
   s = db.ZAdd("GP6_ZREMRANGEBYSCORE_KEY", gp6_sm, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(18, ret);
-  s = db.ZRemrangebyscore("GP6_ZREMRANGEBYSCORE_KEY", -100.0000000000001, 100.0000000000001, true, true, &ret);
+  s = db.ZRemrangebyscore("GP6_ZREMRANGEBYSCORE_KEY", -100.0000000000001, 100.0000000000001, true, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(3, ret);
   ASSERT_TRUE(size_match(&db, "GP6_ZREMRANGEBYSCORE_KEY", 15));
@@ -2714,7 +2716,7 @@ TEST_F(ZSetsTest, ZRemrangebyscoreTest) {  // NOLINT
   s = db.ZAdd("GP7_ZREMRANGEBYSCORE_KEY", gp7_sm, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(18, ret);
-  s = db.ZRemrangebyscore("GP7_ZREMRANGEBYSCORE_KEY", 0, 0, true, true, &ret);
+  s = db.ZRemrangebyscore("GP7_ZREMRANGEBYSCORE_KEY", 0, 0, true, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(1, ret);
   ASSERT_TRUE(size_match(&db, "GP7_ZREMRANGEBYSCORE_KEY", 17));
@@ -2760,7 +2762,7 @@ TEST_F(ZSetsTest, ZRemrangebyscoreTest) {  // NOLINT
   s = db.ZAdd("GP8_ZREMRANGEBYSCORE_KEY", gp8_sm, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(18, ret);
-  s = db.ZRemrangebyscore("GP8_ZREMRANGEBYSCORE_KEY", 4321.000000000001, 654321.0000000001, true, true, &ret);
+  s = db.ZRemrangebyscore("GP8_ZREMRANGEBYSCORE_KEY", 4321.000000000001, 654321.0000000001, true, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(3, ret);
   ASSERT_TRUE(size_match(&db, "GP8_ZREMRANGEBYSCORE_KEY", 15));
@@ -2804,7 +2806,7 @@ TEST_F(ZSetsTest, ZRemrangebyscoreTest) {  // NOLINT
   s = db.ZAdd("GP9_ZREMRANGEBYSCORE_KEY", gp9_sm, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(18, ret);
-  s = db.ZRemrangebyscore("GP9_ZREMRANGEBYSCORE_KEY", 4321.000000000001, 987654321.0000001, true, true, &ret);
+  s = db.ZRemrangebyscore("GP9_ZREMRANGEBYSCORE_KEY", 4321.000000000001, 987654321.0000001, true, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(6, ret);
   ASSERT_TRUE(size_match(&db, "GP9_ZREMRANGEBYSCORE_KEY", 12));
@@ -2845,7 +2847,7 @@ TEST_F(ZSetsTest, ZRemrangebyscoreTest) {  // NOLINT
   s = db.ZAdd("GP10_ZREMRANGEBYSCORE_KEY", gp10_sm, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(18, ret);
-  s = db.ZRemrangebyscore("GP10_ZREMRANGEBYSCORE_KEY", 987654321.0000001, 987654321.0000001, true, true, &ret);
+  s = db.ZRemrangebyscore("GP10_ZREMRANGEBYSCORE_KEY", 987654321.0000001, 987654321.0000001, true, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(1, ret);
   ASSERT_TRUE(size_match(&db, "GP10_ZREMRANGEBYSCORE_KEY", 17));
@@ -2894,7 +2896,7 @@ TEST_F(ZSetsTest, ZRemrangebyscoreTest) {  // NOLINT
   ASSERT_TRUE(make_expired(&db, "GP11_ZREMRANGEBYSCORE_KEY"));
 
   s = db.ZRemrangebyscore("GP11_ZREMRANGEBYSCORE_KEY", std::numeric_limits<double>::lowest(),
-                          std::numeric_limits<double>::max(), true, true, &ret);
+                          std::numeric_limits<double>::max(), true, true, &ret, nullptr);
   ASSERT_TRUE(s.IsNotFound());
   ASSERT_EQ(0, ret);
   ASSERT_TRUE(size_match(&db, "GP11_ZREMRANGEBYSCORE_KEY", 0));
@@ -2902,7 +2904,7 @@ TEST_F(ZSetsTest, ZRemrangebyscoreTest) {  // NOLINT
 
   // ***************** Group 12 Test *****************
   s = db.ZRemrangebyscore("GP12_ZREMRANGEBYSCORE_KEY", std::numeric_limits<double>::lowest(),
-                          std::numeric_limits<double>::max(), true, true, &ret);
+                          std::numeric_limits<double>::max(), true, true, &ret, nullptr);
   ASSERT_TRUE(s.IsNotFound());
   ASSERT_EQ(0, ret);
   ASSERT_TRUE(size_match(&db, "GP12_ZREMRANGEBYSCORE_KEY", 0));
@@ -2914,7 +2916,7 @@ TEST_F(ZSetsTest, ZRemrangebyscoreTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(1, ret);
 
-  s = db.ZRemrangebyscore("GP13_ZREMRANGEBYSCORE_KEY", -1, 1, true, true, &ret);
+  s = db.ZRemrangebyscore("GP13_ZREMRANGEBYSCORE_KEY", -1, 1, true, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(1, ret);
   ASSERT_TRUE(size_match(&db, "GP13_ZREMRANGEBYSCORE_KEY", 0));
@@ -2943,7 +2945,8 @@ TEST_F(ZSetsTest, ZRemrangebyscoreTest) {  // NOLINT
   s = db.ZAdd("GP14_ZREMRANGEBYSCORE_KEY", gp14_sm, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(18, ret);
-  s = db.ZRemrangebyscore("GP14_ZREMRANGEBYSCORE_KEY", -987654321.0000001, -7654321.000000001, false, false, &ret);
+  s = db.ZRemrangebyscore("GP14_ZREMRANGEBYSCORE_KEY", -987654321.0000001, -7654321.000000001, false, false, &ret,
+                          nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(1, ret);
   ASSERT_TRUE(size_match(&db, "GP14_ZREMRANGEBYSCORE_KEY", 17));
@@ -2989,7 +2992,8 @@ TEST_F(ZSetsTest, ZRemrangebyscoreTest) {  // NOLINT
   s = db.ZAdd("GP15_ZREMRANGEBYSCORE_KEY", gp15_sm, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(18, ret);
-  s = db.ZRemrangebyscore("GP15_ZREMRANGEBYSCORE_KEY", -987654321.0000001, -7654321.000000001, true, false, &ret);
+  s = db.ZRemrangebyscore("GP15_ZREMRANGEBYSCORE_KEY", -987654321.0000001, -7654321.000000001, true, false, &ret,
+                          nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(2, ret);
   ASSERT_TRUE(size_match(&db, "GP15_ZREMRANGEBYSCORE_KEY", 16));
@@ -3034,7 +3038,8 @@ TEST_F(ZSetsTest, ZRemrangebyscoreTest) {  // NOLINT
   s = db.ZAdd("GP16_ZREMRANGEBYSCORE_KEY", gp16_sm, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(18, ret);
-  s = db.ZRemrangebyscore("GP16_ZREMRANGEBYSCORE_KEY", -987654321.0000001, -7654321.000000001, false, true, &ret);
+  s = db.ZRemrangebyscore("GP16_ZREMRANGEBYSCORE_KEY", -987654321.0000001, -7654321.000000001, false, true, &ret,
+                          nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(2, ret);
   ASSERT_TRUE(size_match(&db, "GP16_ZREMRANGEBYSCORE_KEY", 16));
@@ -4440,7 +4445,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP1_ZREMRANGEBYLEX", "a", "n", true, true, &ret);
+  s = db.ZRemrangebylex("GP1_ZREMRANGEBYLEX", "a", "n", true, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
   ASSERT_TRUE(size_match(&db, "GP1_ZREMRANGEBYLEX", 0));
@@ -4455,7 +4460,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP2_ZREMRANGEBYLEX", "e", "m", true, true, &ret);
+  s = db.ZRemrangebylex("GP2_ZREMRANGEBYLEX", "e", "m", true, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
   ASSERT_TRUE(size_match(&db, "GP2_ZREMRANGEBYLEX", 0));
@@ -4470,7 +4475,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP3_ZREMRANGEBYLEX", "e", "m", true, false, &ret);
+  s = db.ZRemrangebylex("GP3_ZREMRANGEBYLEX", "e", "m", true, false, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 8);
   ASSERT_TRUE(size_match(&db, "GP3_ZREMRANGEBYLEX", 1));
@@ -4485,7 +4490,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP4_ZREMRANGEBYLEX", "e", "m", false, true, &ret);
+  s = db.ZRemrangebylex("GP4_ZREMRANGEBYLEX", "e", "m", false, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 8);
   ASSERT_TRUE(size_match(&db, "GP4_ZREMRANGEBYLEX", 1));
@@ -4500,7 +4505,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP5_ZREMRANGEBYLEX", "e", "m", false, false, &ret);
+  s = db.ZRemrangebylex("GP5_ZREMRANGEBYLEX", "e", "m", false, false, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 7);
   ASSERT_TRUE(size_match(&db, "GP5_ZREMRANGEBYLEX", 2));
@@ -4515,7 +4520,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP6_ZREMRANGEBYLEX", "h", "j", true, true, &ret);
+  s = db.ZRemrangebylex("GP6_ZREMRANGEBYLEX", "h", "j", true, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
   ASSERT_TRUE(size_match(&db, "GP6_ZREMRANGEBYLEX", 6));
@@ -4531,7 +4536,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP7_ZREMRANGEBYLEX", "h", "j", true, false, &ret);
+  s = db.ZRemrangebylex("GP7_ZREMRANGEBYLEX", "h", "j", true, false, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 2);
   ASSERT_TRUE(size_match(&db, "GP7_ZREMRANGEBYLEX", 7));
@@ -4547,7 +4552,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP8_ZREMRANGEBYLEX", "h", "j", false, false, &ret);
+  s = db.ZRemrangebylex("GP8_ZREMRANGEBYLEX", "h", "j", false, false, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 1);
   ASSERT_TRUE(size_match(&db, "GP8_ZREMRANGEBYLEX", 8));
@@ -4563,7 +4568,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP9_ZREMRANGEBYLEX", "i", "i", true, true, &ret);
+  s = db.ZRemrangebylex("GP9_ZREMRANGEBYLEX", "i", "i", true, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 1);
   ASSERT_TRUE(size_match(&db, "GP9_ZREMRANGEBYLEX", 8));
@@ -4579,7 +4584,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP10_ZREMRANGEBYLEX", "i", "i", true, false, &ret);
+  s = db.ZRemrangebylex("GP10_ZREMRANGEBYLEX", "i", "i", true, false, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 0);
   ASSERT_TRUE(size_match(&db, "GP10_ZREMRANGEBYLEX", 9));
@@ -4596,7 +4601,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP11_ZREMRANGEBYLEX", "i", "i", false, true, &ret);
+  s = db.ZRemrangebylex("GP11_ZREMRANGEBYLEX", "i", "i", false, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 0);
   ASSERT_TRUE(size_match(&db, "GP11_ZREMRANGEBYLEX", 9));
@@ -4613,7 +4618,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP12_ZREMRANGEBYLEX", "i", "i", false, false, &ret);
+  s = db.ZRemrangebylex("GP12_ZREMRANGEBYLEX", "i", "i", false, false, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 0);
   ASSERT_TRUE(size_match(&db, "GP12_ZREMRANGEBYLEX", 9));
@@ -4630,7 +4635,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP13_ZREMRANGEBYLEX", "-", "+", true, true, &ret);
+  s = db.ZRemrangebylex("GP13_ZREMRANGEBYLEX", "-", "+", true, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
   ASSERT_TRUE(size_match(&db, "GP13_ZREMRANGEBYLEX", 0));
@@ -4645,7 +4650,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP14_ZREMRANGEBYLEX", "-", "+", true, false, &ret);
+  s = db.ZRemrangebylex("GP14_ZREMRANGEBYLEX", "-", "+", true, false, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
   ASSERT_TRUE(size_match(&db, "GP14_ZREMRANGEBYLEX", 0));
@@ -4660,7 +4665,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP15_ZREMRANGEBYLEX", "-", "+", false, true, &ret);
+  s = db.ZRemrangebylex("GP15_ZREMRANGEBYLEX", "-", "+", false, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
   ASSERT_TRUE(size_match(&db, "GP15_ZREMRANGEBYLEX", 0));
@@ -4675,7 +4680,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP16_ZREMRANGEBYLEX", "-", "+", false, false, &ret);
+  s = db.ZRemrangebylex("GP16_ZREMRANGEBYLEX", "-", "+", false, false, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
   ASSERT_TRUE(size_match(&db, "GP16_ZREMRANGEBYLEX", 0));
@@ -4690,7 +4695,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP17_ZREMRANGEBYLEX", "i", "+", true, true, &ret);
+  s = db.ZRemrangebylex("GP17_ZREMRANGEBYLEX", "i", "+", true, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 5);
   ASSERT_TRUE(size_match(&db, "GP17_ZREMRANGEBYLEX", 4));
@@ -4705,7 +4710,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP18_ZREMRANGEBYLEX", "i", "+", false, true, &ret);
+  s = db.ZRemrangebylex("GP18_ZREMRANGEBYLEX", "i", "+", false, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 4);
   ASSERT_TRUE(size_match(&db, "GP18_ZREMRANGEBYLEX", 5));
@@ -4720,7 +4725,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP19_ZREMRANGEBYLEX", "-", "i", true, true, &ret);
+  s = db.ZRemrangebylex("GP19_ZREMRANGEBYLEX", "-", "i", true, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 5);
   ASSERT_TRUE(size_match(&db, "GP19_ZREMRANGEBYLEX", 4));
@@ -4735,7 +4740,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP20_ZREMRANGEBYLEX", "-", "i", true, false, &ret);
+  s = db.ZRemrangebylex("GP20_ZREMRANGEBYLEX", "-", "i", true, false, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 4);
   ASSERT_TRUE(size_match(&db, "GP20_ZREMRANGEBYLEX", 5));
@@ -4750,7 +4755,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP21_ZREMRANGEBYLEX", "-", "e", true, true, &ret);
+  s = db.ZRemrangebylex("GP21_ZREMRANGEBYLEX", "-", "e", true, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 1);
   ASSERT_TRUE(size_match(&db, "GP21_ZREMRANGEBYLEX", 8));
@@ -4766,7 +4771,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP22_ZREMRANGEBYLEX", "-", "e", true, false, &ret);
+  s = db.ZRemrangebylex("GP22_ZREMRANGEBYLEX", "-", "e", true, false, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 0);
   ASSERT_TRUE(size_match(&db, "GP22_ZREMRANGEBYLEX", 9));
@@ -4783,7 +4788,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP23_ZREMRANGEBYLEX", "m", "+", true, true, &ret);
+  s = db.ZRemrangebylex("GP23_ZREMRANGEBYLEX", "m", "+", true, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 1);
   ASSERT_TRUE(size_match(&db, "GP23_ZREMRANGEBYLEX", 8));
@@ -4799,7 +4804,7 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 9);
 
-  s = db.ZRemrangebylex("GP24_ZREMRANGEBYLEX", "m", "+", false, true, &ret);
+  s = db.ZRemrangebylex("GP24_ZREMRANGEBYLEX", "m", "+", false, true, &ret, nullptr);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 0);
   ASSERT_TRUE(size_match(&db, "GP24_ZREMRANGEBYLEX", 9));
@@ -4817,12 +4822,12 @@ TEST_F(ZSetsTest, ZRemrangebylexTest) {  // NOLINT
   ASSERT_EQ(ret, 9);
   ASSERT_TRUE(make_expired(&db, "GP25_ZREMRANGEBYLEX"));
 
-  s = db.ZRemrangebylex("GP25_ZREMRANGEBYLEX", "-", "+", true, true, &ret);
+  s = db.ZRemrangebylex("GP25_ZREMRANGEBYLEX", "-", "+", true, true, &ret, nullptr);
   ASSERT_TRUE(s.IsNotFound());
   ASSERT_EQ(ret, 0);
 
   // ***************** Group 26 Test *****************
-  s = db.ZRemrangebylex("GP26_ZREMRANGEBYLEX", "-", "+", true, true, &ret);
+  s = db.ZRemrangebylex("GP26_ZREMRANGEBYLEX", "-", "+", true, true, &ret, nullptr);
   ASSERT_TRUE(s.IsNotFound());
   ASSERT_EQ(ret, 0);
 }

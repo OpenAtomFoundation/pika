@@ -814,7 +814,8 @@ Status Redis::ZRem(const Slice& key, const std::vector<std::string>& members, in
   return s;
 }
 
-Status Redis::ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int32_t* ret) {
+Status Redis::ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int32_t* ret,
+                              std::vector<std::string>* members_deled) {
   *ret = 0;
   uint32_t statistic = 0;
   std::string meta_value;
@@ -858,6 +859,9 @@ Status Redis::ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int
       for (iter->Seek(zsets_score_key.Encode()); iter->Valid() && cur_index <= stop_index; iter->Next(), ++cur_index) {
         if (cur_index >= start_index) {
           ParsedZSetsScoreKey parsed_zsets_score_key(iter->key());
+          if (members_deled) {
+            members_deled->emplace_back(parsed_zsets_score_key.member().data(), parsed_zsets_score_key.member().size());
+          }
           ZSetsMemberKey zsets_member_key(key, version, parsed_zsets_score_key.member());
           batch.Delete(handles_[kZsetsDataCF], zsets_member_key.Encode());
           batch.Delete(handles_[kZsetsScoreCF], iter->key());
@@ -882,7 +886,7 @@ Status Redis::ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int
 }
 
 Status Redis::ZRemrangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close,
-                                    int32_t* ret) {
+                               int32_t* ret, std::vector<std::string>* member_del) {
   *ret = 0;
   uint32_t statistic = 0;
   std::string meta_value;
@@ -936,6 +940,9 @@ Status Redis::ZRemrangebyscore(const Slice& key, double min, double max, bool le
         }
         if (left_pass && right_pass) {
           ZSetsMemberKey zsets_member_key(key, version, parsed_zsets_score_key.member());
+          if (member_del) {
+            member_del->emplace_back(parsed_zsets_score_key.member().data(), parsed_zsets_score_key.member().size());
+          }
           batch.Delete(handles_[kZsetsDataCF], zsets_member_key.Encode());
           batch.Delete(handles_[kZsetsScoreCF], iter->key());
           del_cnt++;
@@ -1588,8 +1595,8 @@ Status Redis::ZLexcount(const Slice& key, const Slice& min, const Slice& max, bo
   return s;
 }
 
-Status Redis::ZRemrangebylex(const Slice& key, const Slice& min, const Slice& max, bool left_close,
-                                  bool right_close, int32_t* ret) {
+Status Redis::ZRemrangebylex(const Slice& key, const Slice& min, const Slice& max, bool left_close, bool right_close,
+                             int32_t* ret, std::vector<std::string>* member_del) {
   *ret = 0;
   uint32_t statistic = 0;
   rocksdb::WriteBatch batch;
@@ -1633,6 +1640,9 @@ Status Redis::ZRemrangebylex(const Slice& key, const Slice& min, const Slice& ma
         bool left_pass = false;
         bool right_pass = false;
         ParsedZSetsMemberKey parsed_zsets_member_key(iter->key());
+        if (member_del) {
+          member_del->emplace_back(parsed_zsets_member_key.member().data(), parsed_zsets_member_key.member().size());
+        }
         Slice member = parsed_zsets_member_key.member();
         if (left_no_limit || (left_close && min.compare(member) <= 0) || (!left_close && min.compare(member) < 0)) {
           left_pass = true;

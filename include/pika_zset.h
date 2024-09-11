@@ -565,12 +565,13 @@ class ZRemrangebyrankCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRemrangebyrankCmd(*this); }
-
+  std::string ToRedisProtocol() override;
  private:
   std::string key_, min_, max_;
   int64_t start_rank_ = 0, stop_rank_ = -1;
   int32_t ele_deleted_;
   rocksdb::Status s_;
+  std::vector<std::string> members_remed_;
   void DoInitial() override;
 };
 
@@ -589,12 +590,15 @@ class ZRemrangebyscoreCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRemrangebyscoreCmd(*this); }
+  std::string ToRedisProtocol() override;
 
  private:
   std::string key_, min_, max_;
   double min_score_ = 0, max_score_ = 0;
   bool left_close_ = true, right_close_ = true;
   rocksdb::Status s_;
+  std::vector<std::string> members_del_;
+
   void DoInitial() override;
   void Clear() override { left_close_ = right_close_ = true; }
 };
@@ -614,12 +618,14 @@ class ZRemrangebylexCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRemrangebylexCmd(*this); }
+  std::string ToRedisProtocol() override;
 
  private:
   std::string key_, min_, max_;
   std::string min_member_, max_member_;
   bool left_close_ = true, right_close_ = true;
   rocksdb::Status s_;
+  std::vector<std::string> members_del_;
   void DoInitial() override;
   void Clear() override { left_close_ = right_close_ = true; }
 };
@@ -637,11 +643,13 @@ class ZPopmaxCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ZPopmaxCmd(*this); }
+  std::string ToRedisProtocol() override;
 
  private:
-  void DoInitial() override;
   std::string key_;
   int64_t count_ = 0;
+  std::vector<std::string> members_del_;
+  void DoInitial() override;
 };
 
 class ZPopminCmd : public Cmd {
@@ -657,11 +665,13 @@ class ZPopminCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ZPopminCmd(*this); }
+  std::string ToRedisProtocol() override;
 
  private:
-  void DoInitial() override;
   std::string key_;
   int64_t count_ = 0;
+  std::vector<std::string> members_del_;
+  void DoInitial() override;
 };
 
 #endif

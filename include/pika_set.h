@@ -40,6 +40,9 @@ class SAddCmd : public Cmd {
 
 class PKSAddCmd : public Cmd {
  public:
+  PKSAddCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SET)) {}
+
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(key_);

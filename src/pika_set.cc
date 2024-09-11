@@ -721,6 +721,7 @@ void SRandmemberCmd::DoUpdateCache() {
 void PKSAddCmd::Do() {
   if (ts_ms_ != 0 && ts_ms_ < pstd::NowMillis()) {
     res_.SetRes(CmdRes::kErrOther, "abort expired operation");
+    return;
   }
 
   int32_t count = 0;

@@ -254,6 +254,7 @@ std::string ZIncrbyCmd::ToRedisProtocol() {
 void PKZSetAtCmd::Do() {
     if (ts_ms_ != 0 && ts_ms_ < pstd::NowMillis()) {
       res_.SetRes(CmdRes::kErrOther, "abort expired operation");
+      return;
     }
 
     double score = 0.0;
@@ -1477,7 +1478,8 @@ void ZRemrangebyrankCmd::DoInitial() {
 
 void ZRemrangebyrankCmd::Do() {
   int32_t count = 0;
-  s_ = db_->storage()->ZRemrangebyrank(key_, static_cast<int32_t>(start_rank_), static_cast<int32_t>(stop_rank_), &count);
+  s_ = db_->storage()->ZRemrangebyrank(key_, static_cast<int32_t>(start_rank_), static_cast<int32_t>(stop_rank_),
+                                       &count, &members_remed_);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(count);
   } else if (s_.IsInvalidArgument()) {
@@ -1495,6 +1497,27 @@ void ZRemrangebyrankCmd::DoUpdateCache() {
   if (s_.ok()) {
     db_->cache()->ZRemrangebyrank(key_, min_, max_, ele_deleted_, db_);
   }
+}
+
+std::string ZRemrangebyrankCmd::ToRedisProtocol() {
+  std::string content;
+    content.reserve(RAW_ARGS_LEN);
+    RedisAppendLen(content, 2 + members_remed_.size(), "*");
+
+    // to zrem cmd
+    std::string zrem_cmd(kCmdNameZRem);
+    RedisAppendLenUint64(content,  zrem_cmd.size(), "$");
+    RedisAppendContent(content,  zrem_cmd);
+    // key
+    RedisAppendLenUint64(content, key_.size(), "$");
+    RedisAppendContent(content, key_);
+    // member
+    for (auto& m : members_remed_) {
+      RedisAppendLenUint64(content, m.size(), "$");
+      RedisAppendContent(content, m);
+    }
+
+    return content;
 }
 
 void ZRemrangebyscoreCmd::DoInitial() {
@@ -1516,7 +1539,7 @@ void ZRemrangebyscoreCmd::Do() {
     return;
   }
   int32_t count = 0;
-  s_ = db_->storage()->ZRemrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &count);
+  s_ = db_->storage()->ZRemrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &count, &members_del_);
   if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
@@ -1535,6 +1558,26 @@ void ZRemrangebyscoreCmd::DoUpdateCache() {
   if (s_.ok()) {
     db_->cache()->ZRemrangebyscore(key_, min_, max_, db_);
   }
+}
+std::string ZRemrangebyscoreCmd::ToRedisProtocol() {
+    std::string content;
+    content.reserve(RAW_ARGS_LEN);
+    RedisAppendLen(content, 2 + members_del_.size(), "*");
+
+    // to zrem cmd
+    std::string zrem_cmd(kCmdNameZRem);
+    RedisAppendLenUint64(content,  zrem_cmd.size(), "$");
+    RedisAppendContent(content,  zrem_cmd);
+    // key
+    RedisAppendLenUint64(content, key_.size(), "$");
+    RedisAppendContent(content, key_);
+    // member
+    for (auto& m : members_del_) {
+      RedisAppendLenUint64(content, m.size(), "$");
+      RedisAppendContent(content, m);
+    }
+
+    return content;
 }
 
 void ZRemrangebylexCmd::DoInitial() {
@@ -1557,7 +1600,7 @@ void ZRemrangebylexCmd::Do() {
   }
   int32_t count = 0;
 
-  s_ = db_->storage()->ZRemrangebylex(key_, min_member_, max_member_, left_close_, right_close_, &count);
+  s_ = db_->storage()->ZRemrangebylex(key_, min_member_, max_member_, left_close_, right_close_, &count, &members_del_);
   if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
@@ -1576,6 +1619,29 @@ void ZRemrangebylexCmd::DoUpdateCache() {
   if (s_.ok()) {
     db_->cache()->ZRemrangebylex(key_, min_, max_, db_);
   }
+}
+
+std::string ZRemrangebylexCmd::ToRedisProtocol() {
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 2 + members_del_.size(), "*");
+
+  // to zrem cmd
+  std::string zrem_cmd(kCmdNameZRem);
+  RedisAppendLenUint64(content,  zrem_cmd.size(), "$");
+  RedisAppendContent(content,  zrem_cmd);
+  // key
+
+  RedisAppendLenUint64(content, key_.size(), "$");
+  RedisAppendContent(content, key_);
+
+  // member
+  for (auto& m : members_del_) {
+    RedisAppendLenUint64(content, m.size(), "$");
+    RedisAppendContent(content, m);
+  }
+
+  return content;
 }
 
 void ZPopmaxCmd::DoInitial() {
@@ -1602,6 +1668,7 @@ void ZPopmaxCmd::Do() {
     int64_t len = 0;
     res_.AppendArrayLenUint64(score_members.size() * 2);
     for (const auto& sm : score_members) {
+      members_del_.emplace_back(sm.member);
       res_.AppendString(sm.member);
       len = pstd::d2string(buf, sizeof(buf), sm.score);
       res_.AppendStringLen(len);
@@ -1612,6 +1679,28 @@ void ZPopmaxCmd::Do() {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+}
+std::string ZPopmaxCmd::ToRedisProtocol() {
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 2 + members_del_.size(), "*");
+
+  // to zrem cmd
+  std::string zrem_cmd(kCmdNameZRem);
+  RedisAppendLenUint64(content,  zrem_cmd.size(), "$");
+  RedisAppendContent(content,  zrem_cmd);
+
+  // key
+  RedisAppendLenUint64(content, key_.size(), "$");
+  RedisAppendContent(content, key_);
+
+  // member
+  for (auto& m : members_del_) {
+    RedisAppendLenUint64(content, m.size(), "$");
+    RedisAppendContent(content, m);
+  }
+
+  return content;
 }
 
 void ZPopminCmd::DoInitial() {
@@ -1638,6 +1727,7 @@ void ZPopminCmd::Do() {
     int64_t len = 0;
     res_.AppendArrayLenUint64(score_members.size() * 2);
     for (const auto& sm : score_members) {
+      members_del_.emplace_back(sm.member);
       res_.AppendString(sm.member);
       len = pstd::d2string(buf, sizeof(buf), sm.score);
       res_.AppendStringLen(len);
@@ -1648,4 +1738,27 @@ void ZPopminCmd::Do() {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+}
+std::string ZPopminCmd::ToRedisProtocol() {
+
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 2 + members_del_.size(), "*");
+
+  // to zrem cmd
+  std::string zrem_cmd(kCmdNameZRem);
+  RedisAppendLenUint64(content,  zrem_cmd.size(), "$");
+  RedisAppendContent(content,  zrem_cmd);
+
+  // key
+  RedisAppendLenUint64(content, key_.size(), "$");
+  RedisAppendContent(content, key_);
+
+  // member
+  for (auto& m : members_del_) {
+    RedisAppendLenUint64(content, m.size(), "$");
+    RedisAppendContent(content, m);
+  }
+
+  return content;
 }
