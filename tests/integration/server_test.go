@@ -3,7 +3,7 @@ package pika_integration
 import (
 	"context"
 	"time"
-
+	"os"
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"
 	"github.com/redis/go-redis/v9"
@@ -161,6 +161,38 @@ var _ = Describe("Server", func() {
 			Expect(val).To(ContainSubstring("Background append only file rewriting"))
 		})
 
+		It("should BgSave", func() {
+			res := client.Set(ctx, "bgsava_key1", "bgsava_value1", 0)
+			Expect(res.Err()).NotTo(HaveOccurred())
+			_ = client.Set(ctx, "bgsava_key2", "bgsava_value2", 0)
+			Expect(res.Err()).NotTo(HaveOccurred())
+
+			res2, err2 := client.BgSave(ctx).Result()
+			Expect(err2).NotTo(HaveOccurred())
+			Expect(res.Err()).NotTo(HaveOccurred())
+			Expect(res2).To(ContainSubstring("Background saving started"))
+			dumpPath := "../dump/"
+
+			time.Sleep(5 * time.Second)
+			//wait for bgsave complete
+
+			files, err := os.ReadDir(dumpPath)
+			Expect(err).NotTo(HaveOccurred())
+			//need to delete test bgsave file?
+
+			Expect(len(files)).To(BeNumerically(">", 0), "dump directory is empty, bgsave create file failed")
+
+		})
+		
+		It("should FlushDb", func() {
+			res := client.Do(ctx, "flushdb")
+			Expect(res.Err()).NotTo(HaveOccurred())
+			Expect(res.Val()).To(Equal("OK"))
+
+			keys, err := client.Keys(ctx, "*").Result()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(keys).To(BeEmpty())
+		})
 		// Test scenario: Execute the del command, after executing bgsave, the get data will be wrong
 		//It("should BgSave", func() {
 		//	res := client.Set(ctx, "bgsava_key", "bgsava_value", 0)
@@ -444,6 +476,18 @@ var _ = Describe("Server", func() {
 			Expect(info.Err()).NotTo(HaveOccurred())
 			Expect(info.Val()).NotTo(Equal(""))
 			Expect(info.Val()).To(ContainSubstring(`used_cpu_sys`))
+		})
+
+		It("should Info after second", func() {
+			info := client.Info(ctx)
+			time.Sleep(1 * time.Second)
+			Expect(info.Err()).NotTo(HaveOccurred())
+			Expect(info.Val()).NotTo(Equal(""))
+
+			info = client.Info(ctx, "all")
+			time.Sleep(1 * time.Second)
+			Expect(info.Err()).NotTo(HaveOccurred())
+			Expect(info.Val()).NotTo(Equal(""))
 		})
 
 		It("should Info cpu", func() {

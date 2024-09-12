@@ -797,6 +797,25 @@ var _ = Describe("String Commands", func() {
 			}, "2s", "100ms").Should(Equal(redis.Nil))
 		})
 
+		It("should SetEX ten seconds", func() {
+			err := client.SetEx(ctx, "x", "y", 10 * time.Second).Err()
+			Expect(err).NotTo(HaveOccurred())
+		
+			val, err := client.Get(ctx, "x").Result()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(val).To(Equal("y"))
+		
+			time.Sleep(11 * time.Second)
+			//sleep 10 second x still exists
+		
+			err = client.Do(ctx, "compact").Err()
+			Expect(err).NotTo(HaveOccurred())
+		
+			keys, err := client.Keys(ctx, "x").Result()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(keys).To(BeEmpty())
+		})
+		
 		It("should SetNX", func() {
 			_, err := client.Del(ctx, "key").Result()
 			Expect(err).NotTo(HaveOccurred())
