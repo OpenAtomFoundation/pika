@@ -1318,6 +1318,8 @@ void ZRemrangebyrankCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
+  min_ = argv_[2];
+  max_ = argv_[3];
   if (pstd::string2int(argv_[2].data(), argv_[2].size(), &start_rank_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
@@ -1345,7 +1347,7 @@ void ZRemrangebyrankCmd::DoThroughDB() {
 void ZRemrangebyrankCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-    db_->cache()->ZRemrangebyrank(CachePrefixKeyZ, min_, max_, ele_deleted_);
+    db_->cache()->ZRemrangebyrank(key_, min_, max_, ele_deleted_, db_);
   }
 }
 
