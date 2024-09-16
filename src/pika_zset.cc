@@ -222,7 +222,10 @@ std::string ZIncrbyCmd::ToRedisProtocol() {
     RedisAppendContent(content, incr_value);
 
     // time_stamp
-    std::string at = std::to_string(ts_ms_);
+    char buf[100];
+    auto time_stamp = ts_ms_ / 1000;
+    pstd::ll2string(buf, 100, time_stamp);
+    std::string at(buf);
     RedisAppendLenUint64(content, at.size(), "$");
     RedisAppendContent(content, at);
     return content;
