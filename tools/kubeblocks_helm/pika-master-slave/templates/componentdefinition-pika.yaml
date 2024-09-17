@@ -19,18 +19,28 @@ spec:
             targetPort: pika
   updateStrategy: Serial
   configs:
-    - name: pika-config
+    - name: config
       templateRef: pika-master-slave-conf-template
       namespace: {{ .Release.Namespace }}
       volumeName: config
   scripts:
-    - name: pika-script
+    - name: script
       templateRef: pika-master-slave-script-template
       namespace: {{ .Release.Namespace }}
       volumeName: script
       defaultMode: 0555
   volumes:
     - name: data
+  lifecycleActions:
+    memberJoin:
+      customHandler:
+        image: {{ include "redis.image" . }}
+        exec:
+          command:
+           - /bin/sh
+           - -c
+           - "redis-cli -h ${CURRENT_POD_IP} -p ${KB_SERVICE_PORT} slaveof $(KB_MEMBER_ADDRESSES%%,*)"
+        preCondition: RuntimeReady
   runtime:
     initContainers:
       - name: init-config
@@ -60,8 +70,14 @@ spec:
             mountPath: /data
           - name: script
             mountPath: /script
-        command:  
-          - "/bin/bash"
-        args:  
+        env:
+          - name: CURRENT_POD_HOST_IP
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: status.hostIP
+        command:
+          - "/pika/bin/pika"
+        args:
           - "-c"
-          - "sh /script/admin.sh"
+          - "/etc/pika/pika.conf"

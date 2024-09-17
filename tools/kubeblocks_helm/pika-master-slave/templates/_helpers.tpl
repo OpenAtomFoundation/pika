@@ -60,3 +60,11 @@ Define image
 {{- define "pika.imagePullPolicy" -}}
 {{ .Values.image.pika.pullPolicy | default "IfNotPresent" }}
 {{- end }}
+
+{{- define "redis.image" -}}
+{{ .Values.image.pika.registry | default "docker.io" }}/{{ .Values.image.redis.repository }}
+{{- end }}
+
+{{- define "redis.imagePullPolicy" -}}
+{{ .Values.image.pika.pullPolicy | default "IfNotPresent" }}
+{{- end }}

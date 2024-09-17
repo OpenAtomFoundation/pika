@@ -58,16 +58,16 @@ scale in is not supported now.
 First,use helm install pika-master-slave-group componentdefinition and pika-master-slave cluster
 ```bash
 cd ./tools/kubeblocks-helm/
-helm install pika-master-slave-group ./pika-master-slave-group
-helm install pika-master-slave ./pika-master-slave-group
+helm install pika-master-slave ./pika-master-slave
+helm install pika-master-slave-cluster ./pika-master-slave-cluster
 ```
 Wait for pika-master-slave-pika-{index} pods until the status all to be `Running`.
 ```bash
 kubectl get pods --watch
 ````
-### connect to pika master-slave group
+### connect to pika master-slave cluster
 ```bash
-kubectl port-forward svc/pika-master-slave-pika 9221
+kubectl port-forward svc/pika-master-slave-cluster-pika 9221
 #start new terminal
 redis-cli -p 9221
 ```

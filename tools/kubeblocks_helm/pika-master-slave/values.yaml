@@ -6,6 +6,10 @@ image:
     repository: pikadb/pika
     tag: 3.5.3
     pullPolicy: IfNotPresent
+  redis:
+    registry: docker.io
+    repository: redislabs/redis
+    pullPolicy: IfNotPresent
 roleProbe:
   pika:
     failureThreshold: 2

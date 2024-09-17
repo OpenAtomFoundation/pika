@@ -8,6 +8,7 @@ echo "index:${INDEX}"
 PIKA_CONF="../data/pika.conf"
 
 # 确保配置文件存在
+
 touch $PIKA_CONF
 echo $?
 if [ "$INDEX" = "0" ]; then
@@ -15,6 +16,6 @@ if [ "$INDEX" = "0" ]; then
     ../pika/bin/pika -c ../data/pika.conf
 else
     # 如果不是pika-0，配置为从节点
-    sed -i "s/#slaveof : master-ip:master-port/slaveof : pika-master-slave-pika-0.pika-master-slave-pika-headless.default.svc.cluster.local:9221/" $PIKA_CONF
+    sed -i "s/#slaveof : master-ip:master-port/slaveof : pika-master-slave-cluster-pika:9221/" $PIKA_CONF
     ../pika/bin/pika -c ../data/pika.conf
 fi
