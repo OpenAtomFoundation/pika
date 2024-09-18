@@ -167,13 +167,30 @@ var _ = Describe("Server", func() {
 			_ = client.Set(ctx, "bgsava_key2", "bgsava_value2", 0)
 			Expect(res.Err()).NotTo(HaveOccurred())
 
+			lastSaveBefore, err := client.LastSave(ctx).Result()
+			Expect(err).NotTo(HaveOccurred())
+			
 			res2, err2 := client.BgSave(ctx).Result()
 			Expect(err2).NotTo(HaveOccurred())
 			Expect(res.Err()).NotTo(HaveOccurred())
 			Expect(res2).To(ContainSubstring("Background saving started"))
+			startTime := time.Now()			
+			maxWaitTime := 10 * time.Second
+				
+			for {
+				lastSaveAfter, err := client.LastSave(ctx).Result()
+				Expect(err).NotTo(HaveOccurred())
 
-			time.Sleep(5 * time.Second)
-			//wait for bgsave complete
+				if lastSaveAfter > lastSaveBefore {
+					break
+				}
+
+				if time.Since(startTime) > maxWaitTime {
+					Fail("BGSAVE did not complete within the expected time")
+				}
+
+				time.Sleep(500 * time.Millisecond)
+			}
 
 			dumpConfig := client.ConfigGet(ctx, "dump-path")
 			Expect(dumpConfig.Err()).NotTo(HaveOccurred())
