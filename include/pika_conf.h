@@ -29,6 +29,10 @@ const uint32_t configReplicationIDSize = 50;
 // global class, class members well initialized
 class PikaConf : public pstd::BaseConf {
  public:
+  enum CompactionStrategy {
+    FullCompact,
+    OldestOrBestDeleteRatioSstCompact
+  };
   PikaConf(const std::string& path);
   ~PikaConf() override = default;
 
@@ -117,6 +121,30 @@ class PikaConf : public pstd::BaseConf {
   int max_subcompactions() {
     std::shared_lock l(rwlock_);
     return max_subcompactions_;
+  }
+  int compact_every_num_of_files() {
+    std::shared_lock l(rwlock_);
+    return compact_every_num_of_files_;
+  }
+  int force_compact_file_age_seconds() {
+    std::shared_lock l(rwlock_);
+    return force_compact_file_age_seconds_;
+  }
+  int force_compact_min_delete_ratio() {
+    std::shared_lock l(rwlock_);
+    return force_compact_min_delete_ratio_;
+  }
+  int dont_compact_sst_created_in_seconds() {
+    std::shared_lock l(rwlock_);
+    return dont_compact_sst_created_in_seconds_;
+  }
+  int best_delete_min_ratio() {
+    std::shared_lock l(rwlock_);
+    return best_delete_min_ratio_;
+  }
+  CompactionStrategy compaction_strategy() {
+    std::shared_lock l(rwlock_);
+    return compaction_strategy_;
   }
   bool disable_auto_compactions() {
     std::shared_lock l(rwlock_);
@@ -931,6 +959,15 @@ class PikaConf : public pstd::BaseConf {
   std::string compact_interval_;
   int max_subcompactions_ = 1;
   bool disable_auto_compactions_ = false;
+
+  // for obd_compact
+  int compact_every_num_of_files_;
+  int force_compact_file_age_seconds_;
+  int force_compact_min_delete_ratio_;
+  int dont_compact_sst_created_in_seconds_;
+  int best_delete_min_ratio_;
+  CompactionStrategy compaction_strategy_;
+
   int64_t resume_check_interval_ = 60; // seconds
   int64_t least_free_disk_to_resume_ = 268435456; // 256 MB
   double min_check_resume_ratio_ = 0.7;

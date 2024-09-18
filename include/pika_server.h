@@ -59,6 +59,7 @@ enum TaskType {
   kStopKeyScan,
   kBgSave,
   kCompactRangeAll,
+  kCompactOldestOrBestDeleteRatioSst,
 };
 
 struct TaskArg {

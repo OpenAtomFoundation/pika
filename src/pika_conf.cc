@@ -305,6 +305,41 @@ int PikaConf::Load() {
     max_subcompactions_ = 1;
   }
 
+ GetConfInt("compact-every-num-of-files", &compact_every_num_of_files_);
+  if (compact_every_num_of_files_ < 10) {
+    compact_every_num_of_files_ = 10;
+  }
+
+  GetConfInt("force-compact-file-age-seconds", &force_compact_file_age_seconds_);
+  if (force_compact_file_age_seconds_ < 300) {
+    force_compact_file_age_seconds_ = 300;
+  }
+
+  GetConfInt("force-compact-min-delete-ratio", &force_compact_min_delete_ratio_);
+  if (force_compact_min_delete_ratio_ < 10) {
+    force_compact_min_delete_ratio_ = 10;
+  }
+
+  GetConfInt("dont-compact-sst-created-in-seconds", &dont_compact_sst_created_in_seconds_);
+  if (dont_compact_sst_created_in_seconds_ < 600) {
+    dont_compact_sst_created_in_seconds_ = 600;
+  }
+
+  GetConfInt("best-delete-min-ratio", &best_delete_min_ratio_);
+  if (best_delete_min_ratio_ < 10) {
+    best_delete_min_ratio_ = 10;
+  }
+
+  std::string cs_;
+  GetConfStr("compaction-strategy", &cs_);
+  if (cs_ == "full-compact") {
+    compaction_strategy_ = FullCompact;
+  } else if (cs_ == "obd-compact") {
+    compaction_strategy_ = OldestOrBestDeleteRatioSstCompact;
+  } else {
+    compaction_strategy_ = FullCompact;
+  }
+
   // least-free-disk-resume-size
   GetConfInt64Human("least-free-disk-resume-size", &least_free_disk_to_resume_);
   if (least_free_disk_to_resume_ <= 0) {
@@ -412,6 +447,11 @@ int PikaConf::Load() {
   GetConfInt("max-write-buffer-num", &max_write_buffer_num_);
   if (max_write_buffer_num_ <= 0) {
     max_write_buffer_num_ = 2;  // 1 for immutable memtable, 1 for mutable memtable
+  }
+
+  GetConfInt("min-write-buffer-number-to-merge", &min_write_buffer_number_to_merge_);
+  if (min_write_buffer_number_to_merge_ < 1) {
+    min_write_buffer_number_to_merge_ = 1;  // 1 for immutable memtable to merge
   }
 
   // max_client_response_size
@@ -798,6 +838,37 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("db-sync-speed", db_sync_speed_);
   SetConfStr("compact-cron", compact_cron_);
   SetConfStr("compact-interval", compact_interval_);
+  SetConfInt("compact-every-num-of-files", compact_every_num_of_files_);
+  if (compact_every_num_of_files_ < 1) {
+    compact_every_num_of_files_ = 1;
+  }
+  SetConfInt("force-compact-file-age-seconds", force_compact_file_age_seconds_);
+  if (force_compact_file_age_seconds_ < 300) {
+    force_compact_file_age_seconds_ = 300;
+  }
+  SetConfInt("force-compact-min-delete-ratio", force_compact_min_delete_ratio_);
+  if (force_compact_min_delete_ratio_ < 5) {
+    force_compact_min_delete_ratio_ = 5;
+  }
+  SetConfInt("dont-compact-sst-created-in-seconds", dont_compact_sst_created_in_seconds_);
+  if (dont_compact_sst_created_in_seconds_ < 300) {
+    dont_compact_sst_created_in_seconds_ = 300;
+  }
+  SetConfInt("best-delete-min-ratio", best_delete_min_ratio_);
+  if (best_delete_min_ratio_ < 10) {
+    best_delete_min_ratio_ = 10;
+  }
+
+  std::string cs_;
+  SetConfStr("compaction-strategy", cs_);
+  if (cs_ == "full_compact") {
+    compaction_strategy_ = FullCompact;
+  } else if (cs_ == "obd_compact") {
+    compaction_strategy_ = OldestOrBestDeleteRatioSstCompact;
+  } else {
+    compaction_strategy_ = FullCompact;
+  }
+
   SetConfStr("disable_auto_compactions", disable_auto_compactions_ ? "true" : "false");
   SetConfStr("cache-type", scachetype);
   SetConfInt64("least-free-disk-resume-size", least_free_disk_to_resume_);

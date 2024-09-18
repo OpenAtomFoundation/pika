@@ -5,12 +5,15 @@
 
 #include <sstream>
 
+#include "pstd_coding.h"
 #include "rocksdb/env.h"
 
 #include "src/redis.h"
 #include "src/lists_filter.h"
 #include "src/base_filter.h"
 #include "src/zsets_filter.h"
+#include "pstd/include/pstd_string.h"
+#include "pstd/include/pstd_defer.h"
 
 namespace storage {
 
@@ -57,6 +60,78 @@ Redis::~Redis() {
   }
 }
 
+class MyTablePropertiesCollector : public rocksdb::TablePropertiesCollector {
+ public:
+  MyTablePropertiesCollector() = default;
+
+  rocksdb::Status AddUserKey(const rocksdb::Slice& key, const rocksdb::Slice& value, rocksdb::EntryType type,
+                             rocksdb::SequenceNumber seq, uint64_t file_size) override {
+    total_keys++;
+    switch (type) {
+      case rocksdb::EntryType::kEntryPut: {
+        if (start_key.compare(key) > 0 || start_key.empty()) {
+          start_key = key;
+        }
+        if (stop_key.compare(key) < 0) {
+          stop_key = key;
+        }
+        break;
+      }
+      case rocksdb::EntryType::kEntryDelete: {
+        deleted_keys++;
+        break;
+      }
+      default:
+        break;
+    }
+
+    return rocksdb::Status::OK();
+  }
+
+  rocksdb::Status Finish(rocksdb::UserCollectedProperties* properties) override {
+    std::string encoded;
+    pstd::PutFixed64(&encoded, total_keys);
+    properties->emplace("total_keys", encoded);
+    pstd::PutFixed64(&encoded, deleted_keys);
+    properties->emplace("deleted_keys", encoded);
+    properties->emplace("start_key", start_key.ToString());
+    properties->emplace("stop_key", stop_key.ToString());
+    return rocksdb::Status::OK();
+  }
+
+  rocksdb::UserCollectedProperties GetReadableProperties() const override {
+    rocksdb::UserCollectedProperties properties;
+    std::string encoded;
+    pstd::PutFixed64(&encoded, total_keys);
+    properties.emplace("total_keys", encoded);
+    pstd::PutFixed64(&encoded, deleted_keys);
+    properties.emplace("deleted_keys", encoded);
+    properties.emplace("start_key", start_key.ToString());
+    properties.emplace("stop_key", stop_key.ToString());
+
+    return properties;
+  }
+
+  const char* Name() const override { return "MyTablePropertiesCollector"; }
+
+ private:
+  uint64_t total_keys;
+  uint64_t deleted_keys;
+  rocksdb::Slice start_key;
+  rocksdb::Slice stop_key;
+};
+
+class MyTablePropertiesCollectorFactory : public rocksdb::TablePropertiesCollectorFactory {
+ public:
+  MyTablePropertiesCollectorFactory() = default;
+  rocksdb::TablePropertiesCollector* CreateTablePropertiesCollector(
+      rocksdb::TablePropertiesCollectorFactory::Context context) override {
+    return new MyTablePropertiesCollector();
+  }
+
+  const char* Name() const override { return "MyTablePropertiesCollectorFactory"; }
+};
+
 Status Redis::Open(const StorageOptions& storage_options, const std::string& db_path) {
   statistics_store_->SetCapacity(storage_options.statistics_max_size);
   small_compaction_threshold_ = storage_options.small_compaction_threshold;
@@ -64,13 +139,10 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
   rocksdb::BlockBasedTableOptions table_ops(storage_options.table_options);
   table_ops.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10, true));
 
-  rocksdb::DBOptions db_ops(storage_options.options);
-  db_ops.create_missing_column_families = true;
-  if (storage_options.enable_db_statistics) {
-    db_statistics_ = rocksdb::CreateDBStatistics();
-    db_statistics_->set_stats_level(static_cast<rocksdb::StatsLevel>(storage_options.db_statistics_level));
-    db_ops.statistics = db_statistics_;
-  }
+  auto my_factory = std::make_shared<MyTablePropertiesCollectorFactory>();
+  rocksdb::Options ops(storage_options.options);
+  ops.create_missing_column_families = true;
+  ops.table_properties_collector_factories.emplace_back(my_factory);
 
   /*
    * Because zset, set, the hash, list, stream type meta
@@ -79,6 +151,7 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
    */
   // meta & string column-family options
   rocksdb::ColumnFamilyOptions meta_cf_ops(storage_options.options);
+  meta_cf_ops.table_properties_collector_factories.emplace_back(my_factory);
   meta_cf_ops.compaction_filter_factory = std::make_shared<MetaFilterFactory>();
   rocksdb::BlockBasedTableOptions meta_table_ops(table_ops);
 
@@ -90,6 +163,7 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
 
   // hash column-family options
   rocksdb::ColumnFamilyOptions hash_data_cf_ops(storage_options.options);
+  hash_data_cf_ops.table_properties_collector_factories.emplace_back(my_factory);
   hash_data_cf_ops.compaction_filter_factory = std::make_shared<HashesDataFilterFactory>(&db_, &handles_, DataType::kHashes);
   rocksdb::BlockBasedTableOptions hash_data_cf_table_ops(table_ops);
   if (!storage_options.share_block_cache && storage_options.block_cache_size > 0) {
@@ -99,6 +173,7 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
 
   // list column-family options
   rocksdb::ColumnFamilyOptions list_data_cf_ops(storage_options.options);
+  list_data_cf_ops.table_properties_collector_factories.emplace_back(my_factory);
   list_data_cf_ops.compaction_filter_factory = std::make_shared<ListsDataFilterFactory>(&db_, &handles_, DataType::kLists);
   list_data_cf_ops.comparator = ListsDataKeyComparator();
 
@@ -110,6 +185,7 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
 
   // set column-family options
   rocksdb::ColumnFamilyOptions set_data_cf_ops(storage_options.options);
+  set_data_cf_ops.table_properties_collector_factories.emplace_back(my_factory);
   set_data_cf_ops.compaction_filter_factory = std::make_shared<SetsMemberFilterFactory>(&db_, &handles_, DataType::kSets);
   rocksdb::BlockBasedTableOptions set_data_cf_table_ops(table_ops);
   if (!storage_options.share_block_cache && storage_options.block_cache_size > 0) {
@@ -120,6 +196,8 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
   // zset column-family options
   rocksdb::ColumnFamilyOptions zset_data_cf_ops(storage_options.options);
   rocksdb::ColumnFamilyOptions zset_score_cf_ops(storage_options.options);
+  zset_data_cf_ops.table_properties_collector_factories.emplace_back(my_factory);
+  zset_score_cf_ops.table_properties_collector_factories.emplace_back(my_factory);
   zset_data_cf_ops.compaction_filter_factory = std::make_shared<ZSetsDataFilterFactory>(&db_, &handles_, DataType::kZSets);
   zset_score_cf_ops.compaction_filter_factory = std::make_shared<ZSetsScoreFilterFactory>(&db_, &handles_, DataType::kZSets);
   zset_score_cf_ops.comparator = ZSetsScoreKeyComparator();
@@ -135,6 +213,7 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
 
   // stream column-family options
   rocksdb::ColumnFamilyOptions stream_data_cf_ops(storage_options.options);
+  stream_data_cf_ops.table_properties_collector_factories.emplace_back(my_factory);
   stream_data_cf_ops.compaction_filter_factory = std::make_shared<BaseDataFilterFactory>(&db_, &handles_, DataType::kStreams);
   rocksdb::BlockBasedTableOptions stream_data_cf_table_ops(table_ops);
   if (!storage_options.share_block_cache && storage_options.block_cache_size > 0) {
@@ -156,7 +235,7 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
   column_families.emplace_back("zset_score_cf", zset_score_cf_ops);
   // stream CF
   column_families.emplace_back("stream_data_cf", stream_data_cf_ops);
-  return rocksdb::DB::Open(db_ops, db_path, column_families, &handles_, &db_);
+  return rocksdb::DB::Open(ops, db_path, column_families, &handles_, &db_);
 }
 
 Status Redis::GetScanStartPoint(const DataType& type, const Slice& key, const Slice& pattern, int64_t cursor, std::string* start_point) {
@@ -200,6 +279,210 @@ Status Redis::CompactRange(const rocksdb::Slice* begin, const rocksdb::Slice* en
   db_->CompactRange(default_compact_range_options_, handles_[kZsetsDataCF], begin, end);
   db_->CompactRange(default_compact_range_options_, handles_[kZsetsScoreCF], begin, end);
   db_->CompactRange(default_compact_range_options_, handles_[kStreamsDataCF], begin, end);
+  return Status::OK();
+}
+
+void SelectColumnFamilyHandles(const DataType& option_type, const ColumnFamilyType& type,
+                               std::vector<int>& handleIdxVec) {
+  switch (option_type) {
+    case DataType::kStrings:
+      handleIdxVec.push_back(kMetaCF);
+      break;
+    case DataType::kHashes:
+      if (type == kMeta || type == kMetaAndData) {
+        handleIdxVec.push_back(kMetaCF);
+      }
+      if (type == kData || type == kMetaAndData) {
+        handleIdxVec.push_back(kHashesDataCF);
+      }
+      break;
+    case DataType::kSets:
+      if (type == kMeta || type == kMetaAndData) {
+        handleIdxVec.push_back(kMetaCF);
+      }
+      if (type == kData || type == kMetaAndData) {
+        handleIdxVec.push_back(kSetsDataCF);
+      }
+      break;
+    case DataType::kLists:
+      if (type == kMeta || type == kMetaAndData) {
+        handleIdxVec.push_back(kMetaCF);
+      }
+      if (type == kData || type == kMetaAndData) {
+        handleIdxVec.push_back(kListsDataCF);
+      }
+      break;
+    case DataType::kZSets:
+      if (type == kMeta || type == kMetaAndData) {
+        handleIdxVec.push_back(kMetaCF);
+      }
+      if (type == kData || type == kMetaAndData) {
+        handleIdxVec.push_back(kZsetsDataCF);
+        handleIdxVec.push_back(kZsetsScoreCF);
+      }
+      break;
+    case DataType::kStreams:
+      if (type == kMeta || type == kMetaAndData) {
+        handleIdxVec.push_back(kMetaCF);
+      }
+      if (type == kData || type == kMetaAndData) {
+        handleIdxVec.push_back(kStreamsDataCF);
+      }
+      break;
+    case DataType::kAll:
+      enum ColumnFamilyIndex s;
+      for (s = kMetaCF; s <= kStreamsDataCF; s = (ColumnFamilyIndex)(s + 1)) {
+        handleIdxVec.push_back(s);
+      }
+      break;
+    default:
+      break;
+  }
+}
+
+Status Redis::LongestNotCompactiontSstCompact(const DataType& option_type, std::vector<Status>* compact_result_vec,
+                                              const ColumnFamilyType& type) {
+  bool no_compact = false;
+  bool to_comapct = true;
+  if (!in_compact_flag_.compare_exchange_weak(no_compact, to_comapct, std::memory_order_relaxed,
+                                              std::memory_order_relaxed)) {
+    return Status::Corruption("compact running");
+  }
+
+  DEFER { in_compact_flag_.store(false); };
+  std::vector<int> handleIdxVec;
+  SelectColumnFamilyHandles(option_type, type, handleIdxVec);
+  if (handleIdxVec.size() == 0) {
+    return Status::Corruption("Invalid data type");
+  }
+
+  if (compact_result_vec) {
+    compact_result_vec->clear();
+  }
+
+  pstd::Slice encoded;
+  for (auto idx : handleIdxVec) {
+    rocksdb::TablePropertiesCollection props;
+    Status s = db_->GetPropertiesOfAllTables(handles_[idx], &props);
+    if (!s.ok()) {
+      if (compact_result_vec) {
+        compact_result_vec->push_back(
+            Status::Corruption(handles_[idx]->GetName() +
+                               " LongestNotCompactiontSstCompact GetPropertiesOfAllTables error: " + s.ToString()));
+      }
+      continue;
+    }
+
+    // The main goal of compaction was reclaimed the disk space and removed
+    // the tombstone. It seems that compaction scheduler was unnecessary here when
+    // the live files was too few, Hard code to 1 here.
+    if (props.size() < 1) {
+      // LOG(WARNING) << "LongestNotCompactiontSstCompact " << handles_[idx]->GetName() << " only one file";
+      if (compact_result_vec) {
+        compact_result_vec->push_back(Status::OK());
+      }
+      continue;
+    }
+
+    size_t max_files_to_compact = 1;
+    const StorageOptions& storageOptions = storage_->GetStorageOptions();
+    if (props.size() / storageOptions.compact_param_.compact_every_num_of_files_ > max_files_to_compact) {
+      max_files_to_compact = props.size() / storageOptions.compact_param_.compact_every_num_of_files_;
+    }
+
+    int64_t now =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+            .count();
+
+    auto force_compact_min_ratio =
+        static_cast<double>(storageOptions.compact_param_.force_compact_min_delete_ratio_) / 100.0;
+    auto best_delete_min_ratio = static_cast<double>(storageOptions.compact_param_.best_delete_min_ratio_) / 100.0;
+
+    std::string best_filename;
+    double best_delete_ratio = 0;
+    uint64_t total_keys = 0, deleted_keys = 0;
+    rocksdb::Slice start_key, stop_key, best_start_key, best_stop_key;
+    Status compact_result;
+    for (const auto& iter : props) {
+      uint64_t file_creation_time = iter.second->file_creation_time;
+      if (file_creation_time == 0) {
+        // Fallback to the file Modification time to prevent repeatedly compacting the same file,
+        // file_creation_time is 0 which means the unknown condition in rocksdb
+        auto s = rocksdb::Env::Default()->GetFileModificationTime(iter.first, &file_creation_time);
+        if (!s.ok()) {
+          LOG(WARNING) << handles_[idx]->GetName() << " Failed to get the file creation time: " << iter.first << " in "
+                       << handles_[idx]->GetName() << ", err: " << s.ToString();
+          continue;
+        }
+      }
+
+      for (const auto& property_iter : iter.second->user_collected_properties) {
+        if (property_iter.first == "total_keys") {
+          encoded = property_iter.second;
+          pstd::GetFixed64(&encoded, &total_keys);
+        }
+        if (property_iter.first == "deleted_keys") {
+          encoded = property_iter.second;
+          pstd::GetFixed64(&encoded, &deleted_keys);
+        }
+        if (property_iter.first == "start_key") {
+          start_key = property_iter.second;
+        }
+        if (property_iter.first == "stop_key") {
+          stop_key = property_iter.second;
+        }
+      }
+
+      if (start_key.empty() || stop_key.empty()) {
+        continue;
+      }
+      double delete_ratio = static_cast<double>(deleted_keys) / static_cast<double>(total_keys);
+
+      // pick the file according to force compact policy
+      if (file_creation_time <
+              static_cast<uint64_t>(now / 1000 - storageOptions.compact_param_.force_compact_file_age_seconds_) &&
+          delete_ratio >= force_compact_min_ratio) {
+        compact_result = db_->CompactRange(default_compact_range_options_, &start_key, &stop_key);
+        if (--max_files_to_compact == 0) {
+          break;
+        }
+        continue;
+      }
+
+      // don't compact the SST created in x `dont_compact_sst_created_in_seconds_`.
+      if (file_creation_time >
+          static_cast<uint64_t>(now / 1000 - storageOptions.compact_param_.dont_compact_sst_created_in_seconds_)) {
+        continue;
+      }
+
+      // pick the file which has highest delete ratio
+      if (total_keys != 0 && delete_ratio > best_delete_ratio) {
+        best_delete_ratio = delete_ratio;
+        best_filename = iter.first;
+        best_start_key = start_key;
+        start_key.clear();
+        best_stop_key = stop_key;
+        stop_key.clear();
+      }
+    }
+
+    if (best_delete_ratio > best_delete_min_ratio && !best_start_key.empty() && !best_stop_key.empty()) {
+      compact_result =
+          db_->CompactRange(default_compact_range_options_, handles_[idx], &best_start_key, &best_stop_key);
+    }
+
+    if (!compact_result.ok()) {
+      if (compact_result_vec) {
+        compact_result_vec->push_back(
+            Status::Corruption(handles_[idx]->GetName() + " Failed to do compaction " + compact_result.ToString()));
+      }
+      continue;
+    }
+
+    if (compact_result_vec) {
+      compact_result_vec->push_back(Status::OK());
+    }
+  }
   return Status::OK();
 }
 
