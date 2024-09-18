@@ -171,11 +171,14 @@ var _ = Describe("Server", func() {
 			Expect(err2).NotTo(HaveOccurred())
 			Expect(res.Err()).NotTo(HaveOccurred())
 			Expect(res2).To(ContainSubstring("Background saving started"))
-			dumpPath := "../dump/"
 
 			time.Sleep(5 * time.Second)
 			//wait for bgsave complete
 
+			dumpConfig := client.ConfigGet(ctx, "dump-path")
+			Expect(dumpConfig.Err()).NotTo(HaveOccurred())
+			dumpPath, ok := dumpConfig.Val()["dump-path"]
+			Expect(ok).To(BeTrue())
 			files, err := os.ReadDir(dumpPath)
 			Expect(err).NotTo(HaveOccurred())
 			//need to delete test bgsave file?
