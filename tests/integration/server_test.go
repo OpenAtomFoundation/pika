@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 	"os"
+	"fmt"
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"
 	"github.com/redis/go-redis/v9"
@@ -196,6 +197,22 @@ var _ = Describe("Server", func() {
 			Expect(dumpConfig.Err()).NotTo(HaveOccurred())
 			dumpPath, ok := dumpConfig.Val()["dump-path"]
 			Expect(ok).To(BeTrue())
+
+			currentDir, err := os.Getwd()
+			Expect(err).NotTo(HaveOccurred())
+			fmt.Printf("Current working directory: %s\n", currentDir)
+
+			fmt.Printf("Dump path: %s\n", dumpPath)
+			
+			// Check if dumpPath exists and is a directory
+			info, err := os.Stat(dumpPath)
+			if os.IsNotExist(err) {
+				Fail("Directory does not exist: " + dumpPath)
+			} else if err != nil {
+				Fail("Error accessing directory: " + err.Error())
+			}
+			Expect(info.IsDir()).To(BeTrue(), "dump path should be a directory")
+
 			files, err := os.ReadDir(dumpPath)
 			Expect(err).NotTo(HaveOccurred())
 			//need to delete test bgsave file?
