@@ -32,15 +32,30 @@ spec:
   volumes:
     - name: data
   lifecycleActions:
-    memberJoin:
+    postProvision:
       customHandler:
-        image: {{ include "redis.image" . }}
+        image: {{ include "redis.image" .}}
         exec:
           command:
-           - /bin/sh
+           - /bin/bash
            - -c
-           - "redis-cli -h ${CURRENT_POD_IP} -p ${KB_SERVICE_PORT} slaveof $(KB_MEMBER_ADDRESSES%%,*)"
-        preCondition: RuntimeReady
+           - |
+             IFS=',' read -r -a pod_name_array <<< ${KB_CLUSTER_COMPONENT_POD_NAME_LIST}
+             IFS=',' read -r -a pod_ip_array <<< ${KB_CLUSTER_COMPONENT_POD_IP_LIST}
+             # Ergodic name and ip array
+             for i in "${!pod_name_array[@]}"; do
+               pod_name=${pod_name_array[${i}]}
+               pod_ip=${pod_ip_array[${i}]}
+               # Extracting the digital portion of the pod
+               pod_number=$(echo "${pod_name}" | grep -o '[0-9]*')
+               # If the pod number is greater than 0
+               if (( pod_number > 0 )); then
+                 pod0_ip=${pod_ip_array[0]}
+                 echo "exec:redis-cli -h ${pod_ip} -p 9221 slaveof ${pod0_ip}:9221"
+                 redis-cli -h "${pod_ip}" -p 9221 slaveof "${pod0_ip}" 9221
+               fi
+             done
+        preCondition: ComponentReady
   runtime:
     initContainers:
       - name: init-config

@@ -8,7 +8,7 @@ image:
     pullPolicy: IfNotPresent
   redis:
     registry: docker.io
-    repository: redislabs/redis
+    repository: redis
     pullPolicy: IfNotPresent
 roleProbe:
   pika:
