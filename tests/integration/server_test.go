@@ -5,6 +5,7 @@ import (
 	"time"
 	"os"
 	"fmt"
+	"path/filepath"
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"
 	"github.com/redis/go-redis/v9"
@@ -198,21 +199,40 @@ var _ = Describe("Server", func() {
 			dumpPath, ok := dumpConfig.Val()["dump-path"]
 			Expect(ok).To(BeTrue())
 
-			currentDir, err := os.Getwd()
-			Expect(err).NotTo(HaveOccurred())
-			fmt.Printf("Current working directory: %s\n", currentDir)
+			// Convert dumpPath to absolute path
+			baseDir := "/home/runner/work/pika/"
+			absDumpPath := filepath.Join(baseDir, dumpPath)
 
-			fmt.Printf("Dump path: %s\n", dumpPath)
-			
 			// Check if dumpPath exists and is a directory
-			info, err := os.Stat(dumpPath)
+			info, err := os.Stat(absDumpPath)
 			if os.IsNotExist(err) {
-				Fail("Directory does not exist: " + dumpPath)
-			} else if err != nil {
-				Fail("Error accessing directory: " + err.Error())
-			}
-			Expect(info.IsDir()).To(BeTrue(), "dump path should be a directory")
+				// If dumpPath does not exist, search for 'dump' directories
+				fmt.Println("Dump path does not exist. Searching for 'dump' directories...")
 
+				err = filepath.WalkDir(baseDir, func(path string, info os.DirEntry, err error) error {
+					if err != nil {
+						return err
+					}
+
+					if info.IsDir() && info.Name() == "dump" {
+						absPath, err := filepath.Abs(path)
+						if err != nil {
+							return err
+						}
+						fmt.Println("Found dump directory:", absPath)
+					}
+
+					return nil
+				})
+
+				if err != nil {
+					Fail("Error while searching for dump directories: " + err.Error())
+				}
+			} else if err != nil {
+				Fail("Error accessing dump path: " + err.Error())
+			} else {
+				Expect(info.IsDir()).To(BeTrue(), "dump path should be a directory")
+			}
 			files, err := os.ReadDir(dumpPath)
 			Expect(err).NotTo(HaveOccurred())
 			//need to delete test bgsave file?
