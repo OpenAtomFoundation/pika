@@ -1,3 +1,71 @@
+# V4.0.1
+
+## New features
+
+- 为RTC功能添加开关，如果Get/HGet在RTC路径上就未命中缓存，后面流转到正常路径上时直接读DB，不再读cache[#2841](https://github.com/OpenAtomFoundation/pika/pull/2841)@[cheniujh](https://github.com/cheniujh)
+
+- 用 RTC 模型处理 Pika 访问缓存部分，提升 Pika 服务的读性能[#2837](https://github.com/OpenAtomFoundation/pika/pull/2837)@[cheniujh](https://github.com/cheniujh)
+
+- 添加定时删除日志的任务，默认 7 天删除一次，可以根据自己需求在 config 文件中进行配置[#2829](https://github.com/OpenAtomFoundation/pika/pull/2829)@[XiaoLiang2333](https://github.com/XiaoLiang2333)
+
+## Improvement
+
+- 添加数据清洗函数，方便用户在升级过程中进行清洗数据[#2888](https://github.com/OpenAtomFoundation/pika/pull/2888)@[QlQlqiqi](https://github.com/QlQlqiqi)
+
+- 将 Floyd 存储的 data 字段中的值改为 ms 级别，与 Redis 命令保持兼容[#2857](https://github.com/OpenAtomFoundation/pika/pull/2857)@[luky116](https://github.com/luky116)
+
+- flushall 命令写 flushdb 为 binlog，如果是多 DB 状态，每个 DB 分别写一条，保证从节点消费的顺序 [#2846](https://github.com/OpenAtomFoundation/pika/pull/2846)@[cheniujh](https://github.com/cheniujh)
+
+- 删除不必要的日志，避免磁盘消费过大，影响业务数据读写[#2840](https://github.com/OpenAtomFoundation/pika/pull/2840)@[chejinge](https://github.com/chejinge)
+
+- incr、append 命令在传输 binlog 时，使用 pksetexat 命令，防止因为不正确的操作导致数据无法过期，出现脏数据[#2833](https://github.com/OpenAtomFoundation/pika/pull/2833)@[chejinge](https://github.com/chejinge)
+
+- 修改 Pika 从节点消费 binlog 的线程模型，保证 binlog 的消费顺序[#2708](https://github.com/OpenAtomFoundation/pika/pull/2708)@[cheniujh](https://github.com/cheniujh)
+
+- 添加更多的 RocksDB 指标，配置中增加 open_rocksdb_statistics_tickers  字段，默认为no。开启会损耗+1.5%[#2658](https://github.com/OpenAtomFoundation/pika/pull/2658)@[baixin01](https://github.com/baixin01)
+
+## Bugfix
+
+- 修复 Pika 进程使用 cache 数据不准确，导致监控不准确的问题[#2899](https://github.com/OpenAtomFoundation/pika/pull/2899)@[chejinge](https://github.com/chejinge)
+
+- 修复执行 zremrangebyrank 命令出现异常错误信号，导致 Pika 进程崩溃的问题[#2891](https://github.com/OpenAtomFoundation/pika/pull/2891)@[chejinge](https://github.com/chejinge)
+
+- 修复 Rpushx 命令执行时未更新 RedisCache 的问题，避免出现 DB、缓存不一致的问题[#2879](https://github.com/OpenAtomFoundation/pika/pull/2879)@[hahahashen](https://github.com/hahahashen)
+
+- 修复 kill client 命令杀连接流程不正确的问题[#2862](https://github.com/OpenAtomFoundation/pika/pull/2862)@[cheniujh](https://github.com/cheniujh)
+
+- 修复 blpop/brpop 更新数据库的时候未更新缓存可能回导致 RocksDB 数据库与 RedisCache 缓存不一致的现象[#2858](https://github.com/OpenAtomFoundation/pika/pull/2858)@[cheniujh](https://github.com/cheniujh)
+
+- 修复 Pika 不支持 Redis-Sentinel 的问题[#2854](https://github.com/OpenAtomFoundation/pika/pull/2854)@[cheniujh](https://github.com/cheniujh)
+
+- 修复 hincrby 命令多次执行返回结果不一致的问题[#2836](https://github.com/OpenAtomFoundation/pika/pull/2836)@[luky116](https://github.com/luky116)
+
+- 用 Rocky 环境替代 CentOS, github CI 流程总体支持 MacOS/Ubuntu/Rocky 三个环境[#2823](https://github.com/OpenAtomFoundation/pika/pull/2823)@[QlQlqiqi](https://github.com/QlQlqiqi)
+
+- 修改 client watch 的 key，被任何人修改（包括自己的改动），都会失效的问题[#2815](https://github.com/OpenAtomFoundation/pika/pull/2815)@[luky116](https://github.com/luky116)
+
+- 解决 Pika slave_prorority 赋值不准确导致从节点无法升主，不能使用 Redis-Sentinel 的问题[#2813](https://github.com/OpenAtomFoundation/pika/pull/2813)@[chejinge](https://github.com/chejinge)
+
+- 事务命令处理走 DB 的同时，走 RedisCache 避免出现 DB、缓存不一致的情况[#2812](https://github.com/OpenAtomFoundation/pika/pull/2812)@[luky116](https://github.com/luky116)
+
+- 优化主从复制，确保 Master 端的 SlaveNode 在提交 bgsave 任务前进入 DBSync 状态，防止bgsave执行时的 binlog 在极端情况下被清除[#2798](https://github.com/OpenAtomFoundation/pika/pull/2798)@[cheniujh](https://github.com/cheniujh)
+
+- 修改主从复制过程中 flushdb binlog 的处理逻辑，确保按照顺序执行，避免出现主从不一致的情况[#2794](https://github.com/OpenAtomFoundation/pika/pull/2794)@[cheniujh](https://github.com/cheniujh)
+
+- 修复 BlockCache 计算不准确的问题[#2797](https://github.com/OpenAtomFoundation/pika/pull/2797)@[bigdaronlee163](https://github.com/bigdaronlee163)
+
+- 添加标志位、时间戳和返回值机制，确保 Pika 在执行 flushdb 且处理异步删除旧目录时冲突时正确处理[#2790](https://github.com/OpenAtomFoundation/pika/pull/2790)@[cheniujh](https://github.com/cheniujh)
+
+- 修复集群模式主备自动容灾过程中，老主节点降备过程中，因为 sent_offset 和 acked_offset 不相等，导致状态 Error 的情况[#2789](https://github.com/OpenAtomFoundation/pika/pull/2714)@[luky116](https://github.com/luky116)
+
+- PkpatternMatchDel 在删除数据库的同时删除 RedisCache，保证数据的一致性[#2777](https://github.com/OpenAtomFoundation/pika/pull/2777)@[haiyang426](https://github.com/haiyang426)
+
+- timerTaskThread_ 重命令为 timer_task_thread_[#2776](https://github.com/OpenAtomFoundation/pika/pull/2776)@[cheniujh](https://github.com/cheniujh)
+
+- 修复 Sentinel 主从切换时，由于主节点和从节点数据量不一致导致主从切换状态扭转错误问题[#2766](https://github.com/OpenAtomFoundation/pika/pull/2766)@[cheniujh](https://github.com/cheniujh)
+
+- 修复连续扩容多个从实例，全量复制失败的问题[#2756](https://github.com/OpenAtomFoundation/pika/pull/2756)@[cheniujh](https://github.com/cheniujh)
+
 # v3.5.5
 
 ## New features
