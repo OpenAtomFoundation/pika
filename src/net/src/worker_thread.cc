@@ -76,7 +76,7 @@ void* WorkerThread::ThreadMain() {
   NetFiredEvent* pfe = nullptr;
   char bb[2048];
   NetItem ti;
-  std::shared_ptr<NetConn> in_conn = nullptr;
+
 
   struct timeval when;
   gettimeofday(&when, nullptr);
@@ -155,7 +155,7 @@ void* WorkerThread::ThreadMain() {
           continue;
         }
       } else {
-        in_conn = nullptr;
+        std::shared_ptr<NetConn> in_conn = nullptr;
         int should_close = 0;
 
         {
