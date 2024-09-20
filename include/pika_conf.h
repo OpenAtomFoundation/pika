@@ -30,6 +30,7 @@ const uint32_t configReplicationIDSize = 50;
 class PikaConf : public pstd::BaseConf {
  public:
   enum CompactionStrategy {
+    NONE,
     FullCompact,
     OldestOrBestDeleteRatioSstCompact
   };

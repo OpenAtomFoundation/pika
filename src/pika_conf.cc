@@ -337,7 +337,7 @@ int PikaConf::Load() {
   } else if (cs_ == "obd-compact") {
     compaction_strategy_ = OldestOrBestDeleteRatioSstCompact;
   } else {
-    compaction_strategy_ = FullCompact;
+    compaction_strategy_ = NONE;
   }
 
   // least-free-disk-resume-size
@@ -861,7 +861,7 @@ int PikaConf::ConfigRewrite() {
   } else if (cs_ == "obd-compact") {
     compaction_strategy_ = OldestOrBestDeleteRatioSstCompact;
   } else {
-    compaction_strategy_ = FullCompact;
+    compaction_strategy_ = NONE;
   }
 
   SetConfStr("disable_auto_compactions", disable_auto_compactions_ ? "true" : "false");

@@ -69,11 +69,17 @@ class MyTablePropertiesCollector : public rocksdb::TablePropertiesCollector {
     total_keys++;
     switch (type) {
       case rocksdb::EntryType::kEntryPut: {
-        if (start_key.compare(key) > 0 || start_key.empty()) {
-          start_key = key;
+        const auto &k_str = key.ToString();
+        if (keys.find(k_str) != keys.end()) {
+          deleted_keys++;
+          break;
         }
-        if (stop_key.compare(key) < 0) {
-          stop_key = key;
+        keys.emplace(k_str);
+        if (start_key > k_str || start_key.empty()) {
+          start_key = k_str;
+        }
+        if (stop_key > k_str) {
+          stop_key = k_str;
         }
         break;
       }
@@ -94,8 +100,8 @@ class MyTablePropertiesCollector : public rocksdb::TablePropertiesCollector {
     properties->emplace("total_keys", encoded);
     pstd::PutFixed64(&encoded, deleted_keys);
     properties->emplace("deleted_keys", encoded);
-    properties->emplace("start_key", start_key.ToString());
-    properties->emplace("stop_key", stop_key.ToString());
+    properties->emplace("start_key", start_key);
+    properties->emplace("stop_key", stop_key);
     return rocksdb::Status::OK();
   }
 
@@ -106,8 +112,8 @@ class MyTablePropertiesCollector : public rocksdb::TablePropertiesCollector {
     properties.emplace("total_keys", encoded);
     pstd::PutFixed64(&encoded, deleted_keys);
     properties.emplace("deleted_keys", encoded);
-    properties.emplace("start_key", start_key.ToString());
-    properties.emplace("stop_key", stop_key.ToString());
+    properties.emplace("start_key", start_key);
+    properties.emplace("stop_key", stop_key);
 
     return properties;
   }
@@ -117,8 +123,9 @@ class MyTablePropertiesCollector : public rocksdb::TablePropertiesCollector {
  private:
   uint64_t total_keys;
   uint64_t deleted_keys;
-  rocksdb::Slice start_key;
-  rocksdb::Slice stop_key;
+  std::string start_key;
+  std::string stop_key;
+  std::unordered_set<std::string> keys;
 };
 
 class MyTablePropertiesCollectorFactory : public rocksdb::TablePropertiesCollectorFactory {
