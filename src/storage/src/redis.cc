@@ -142,6 +142,11 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
   auto my_factory = std::make_shared<MyTablePropertiesCollectorFactory>();
   rocksdb::Options ops(storage_options.options);
   ops.create_missing_column_families = true;
+  if (storage_options.enable_db_statistics) {
+    db_statistics_ = rocksdb::CreateDBStatistics();
+    db_statistics_->set_stats_level(static_cast<rocksdb::StatsLevel>(storage_options.db_statistics_level));
+    ops.statistics = db_statistics_;
+  }
   ops.table_properties_collector_factories.emplace_back(my_factory);
 
   /*
@@ -330,8 +335,7 @@ void SelectColumnFamilyHandles(const DataType& option_type, const ColumnFamilyTy
       }
       break;
     case DataType::kAll:
-      enum ColumnFamilyIndex s;
-      for (s = kMetaCF; s <= kStreamsDataCF; s = (ColumnFamilyIndex)(s + 1)) {
+      for (auto s = kMetaCF; s <= kStreamsDataCF; s = static_cast<ColumnFamilyIndex>(s + 1)) {
         handleIdxVec.push_back(s);
       }
       break;
@@ -376,7 +380,7 @@ Status Redis::LongestNotCompactiontSstCompact(const DataType& option_type, std::
     // The main goal of compaction was reclaimed the disk space and removed
     // the tombstone. It seems that compaction scheduler was unnecessary here when
     // the live files was too few, Hard code to 1 here.
-    if (props.size() < 1) {
+    if (props.size() <= 1) {
       // LOG(WARNING) << "LongestNotCompactiontSstCompact " << handles_[idx]->GetName() << " only one file";
       if (compact_result_vec) {
         compact_result_vec->push_back(Status::OK());

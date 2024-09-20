@@ -305,7 +305,7 @@ int PikaConf::Load() {
     max_subcompactions_ = 1;
   }
 
- GetConfInt("compact-every-num-of-files", &compact_every_num_of_files_);
+  GetConfInt("compact-every-num-of-files", &compact_every_num_of_files_);
   if (compact_every_num_of_files_ < 10) {
     compact_every_num_of_files_ = 10;
   }
@@ -447,11 +447,6 @@ int PikaConf::Load() {
   GetConfInt("max-write-buffer-num", &max_write_buffer_num_);
   if (max_write_buffer_num_ <= 0) {
     max_write_buffer_num_ = 2;  // 1 for immutable memtable, 1 for mutable memtable
-  }
-
-  GetConfInt("min-write-buffer-number-to-merge", &min_write_buffer_number_to_merge_);
-  if (min_write_buffer_number_to_merge_ < 1) {
-    min_write_buffer_number_to_merge_ = 1;  // 1 for immutable memtable to merge
   }
 
   // max_client_response_size
@@ -861,9 +856,9 @@ int PikaConf::ConfigRewrite() {
 
   std::string cs_;
   SetConfStr("compaction-strategy", cs_);
-  if (cs_ == "full_compact") {
+  if (cs_ == "full-compact") {
     compaction_strategy_ = FullCompact;
-  } else if (cs_ == "obd_compact") {
+  } else if (cs_ == "obd-compact") {
     compaction_strategy_ = OldestOrBestDeleteRatioSstCompact;
   } else {
     compaction_strategy_ = FullCompact;
