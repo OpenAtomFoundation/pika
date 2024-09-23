@@ -354,7 +354,7 @@ bool PikaClientConn::ReadCmdInCache(const net::RedisCmdArgsType& argv, const std
   c_ptr->Initial(argv, current_db_);
   // dont store cmd with too large key(only Get/HGet cmd can reach here)
   // the cmd with large key should be non-exist in cache, except for pre-stored
-  if(c_ptr->IsTooLargeKey(g_pika_conf->max_key_size_in_cache())) {
+  if (c_ptr->IsTooLargeKey(g_pika_conf->max_key_size_in_cache())) {
     resp_num--;
     return false;
   }
