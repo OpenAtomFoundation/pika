@@ -1347,7 +1347,7 @@ void ZRemrangebyrankCmd::DoThroughDB() {
 void ZRemrangebyrankCmd::DoUpdateCache() {
   if (s_.ok()) {
     std::string CachePrefixKeyZ = PCacheKeyPrefixZ + key_;
-    db_->cache()->ZRemrangebyrank(key_, min_, max_, ele_deleted_, db_);
+    db_->cache()->ZRemrangebyrank(CachePrefixKeyZ, min_, max_, ele_deleted_, db_);
   }
 }
 
