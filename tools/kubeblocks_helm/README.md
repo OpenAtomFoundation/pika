@@ -23,7 +23,7 @@ kubectl get cluster --watch
 ### Add Pika instance to codis
 Then connect codis front end.
 ```bash
- kubectl port-forward svc/pika-cluster-codis-fe 8080
+kubectl port-forward svc/pika-cluster-codis-fe 8080
 ```
 Open browser and visit `http://localhost:8080`
 

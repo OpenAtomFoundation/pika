@@ -2,16 +2,16 @@ apiVersion: apps.kubeblocks.io/v1alpha1
 kind: ComponentDefinition
 metadata:
   name: pika-codis-dashboard
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "pika.labels" . | nindent 4 }}
 spec:
   provider: pika
   description: A pika codis dashboard component definition
   serviceKind: pika-codis-dashboard
-  serviceVersion: 3.5.3
+  serviceVersion: {{ .Chart.AppVersion }}
   services:
     - name: dashboard
-      serviceName: dashboard
       spec:
         ports:
           - name: dashboard
