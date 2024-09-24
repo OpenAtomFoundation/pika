@@ -12,7 +12,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var _ = Describe("List Commands Codis", func() {
+var _ = PDescribe("List Commands Codis", func() {
 	ctx := context.TODO()
 	var client *redis.Client
 

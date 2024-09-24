@@ -473,6 +473,7 @@ void DecrCmd::DoUpdateCache() {
     db_->cache()->Decrxx(key_);
   }
 }
+
 std::string DecrCmd::ToRedisProtocol() {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
@@ -492,9 +493,11 @@ std::string DecrCmd::ToRedisProtocol() {
   RedisAppendLenUint64(content, at.size(), "$");
   RedisAppendContent(content, at);
   // value
-  auto new_value_str = std::to_string(new_value_);
-  RedisAppendLenUint64(content, new_value_str.size(), "$");
-  RedisAppendContent(content, new_value_str);
+  char buf_2[100];
+  pstd::ll2string(buf_2, sizeof(buf_2), new_value_);
+  std::string tmp(buf_2);
+  RedisAppendLenUint64(content, tmp.size(), "$");
+  RedisAppendContent(content, tmp);
   return content;
 }
 

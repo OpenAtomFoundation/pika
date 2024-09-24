@@ -209,6 +209,7 @@ void* WorkerThread::ThreadMain() {
           }
           should_close = 0;
         }
+        in_conn = nullptr;
       }  // connection event
     }    // for (int i = 0; i < nfds; i++)
   }      // while (!should_stop())
