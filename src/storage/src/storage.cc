@@ -517,6 +517,72 @@ Status Storage::PKHSet(const Slice& key, const Slice& field, const Slice& value,
   return inst->PKHSet(key, field, value, res);
 }
 
+Status Storage::PKHSetex(const Slice& key, const Slice& field, const Slice& value, int32_t ttl, int32_t* ret) {
+  auto& inst = GetDBInstance(key);
+  return inst->PKHSetex(key, field, value, ttl, ret);
+}
+
+Status Storage::PKHExists(const Slice& key, const Slice& field) {
+  auto& inst = GetDBInstance(key);
+  return inst->PKHExists(key, field);
+}
+
+Status Storage::PKHDel(const Slice& key, const std::vector<std::string>& fields, int32_t* ret) {
+  auto& inst = GetDBInstance(key);
+  return inst->PKHDel(key, fields, ret);
+}
+
+Status Storage::PKHLen(const Slice& key, int32_t* ret) {
+  auto& inst = GetDBInstance(key);
+  return inst->PKHLen(key, ret);
+}
+
+Status Storage::PKHStrlen(const Slice& key, const Slice& field, int32_t* len) {
+  auto& inst = GetDBInstance(key);
+  return inst->PKHStrlen(key, field, len);
+}
+
+Status Storage::PKHIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret, int32_t ttl) {
+  auto& inst = GetDBInstance(key);
+  return inst->PKHIncrby(key, field, value, ret, ttl);
+}
+
+Status Storage::PKHMSet(const Slice& key, const std::vector<FieldValue>& fvs) {
+  auto& inst = GetDBInstance(key);
+  return inst->PKHMSet(key, fvs);
+}
+
+Status Storage::PKHMSetex(const Slice& key, const std::vector<FieldValueTTL>& fvts) {
+  auto& inst = GetDBInstance(key);
+  return inst->PKHMSetex(key, fvts);
+}
+
+Status Storage::PKHMGet(const Slice& key, const std::vector<std::string>& fields, std::vector<ValueStatus>* vss) {
+  auto& inst = GetDBInstance(key);
+  return inst->PKHMGet(key, fields, vss);
+}
+
+Status Storage::PKHKeys(const Slice& key, std::vector<std::string>* fields) {
+  auto& inst = GetDBInstance(key);
+  return inst->PKHKeys(key, fields);
+}
+
+Status Storage::PKHVals(const Slice& key, std::vector<std::string>* values) {
+  auto& inst = GetDBInstance(key);
+  return inst->PKHVals(key, values);
+}
+
+Status Storage::PKHGetall(const Slice& key, std::vector<FieldValueTTL>* fvts) {
+  auto& inst = GetDBInstance(key);
+  return inst->PKHGetall(key, fvts);
+}
+
+Status Storage::PKHScan(const Slice& key, int64_t cursor, const std::string& pattern, int64_t count,
+                        std::vector<FieldValueTTL>* fvts, int64_t* next_cursor) {
+  auto& inst = GetDBInstance(key);
+  return inst->PKHScan(key, cursor, pattern, count, fvts, next_cursor);
+}
+
 // Sets Commands
 Status Storage::SAdd(const Slice& key, const std::vector<std::string>& members, int32_t* ret) {
   auto& inst = GetDBInstance(key);

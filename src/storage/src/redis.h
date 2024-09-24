@@ -115,6 +115,8 @@ class Redis {
   // Keys Commands
   virtual Status StringsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta = {});
   virtual Status HashesExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta = {});
+  virtual Status PKHashesExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta = {});
+
   virtual Status ListsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta = {});
   virtual Status ZsetsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta = {});
   virtual Status SetsExpire(const Slice& key, int64_t ttl, std::string&& prefetch_meta = {});
@@ -261,7 +263,35 @@ class Redis {
   Status PKHPersist(const Slice& key, int32_t numfields, const std::vector<std::string>& fields,
                     std::vector<int32_t>* rets);
   Status PKHGet(const Slice& key, const Slice& field, std::string* value);
+
   Status PKHSet(const Slice& key, const Slice& field, const Slice& value, int32_t* res);
+
+  Status PKHSetex(const Slice& key, const Slice& field, const Slice& value, int32_t ttl, int32_t* ret);
+
+  Status PKHExists(const Slice& key, const Slice& field);
+
+  Status PKHDel(const Slice& key, const std::vector<std::string>& fields, int32_t* ret);
+
+  Status PKHLen(const Slice& key, int32_t* ret, std::string&& prefetch_meta = {});
+
+  Status PKHStrlen(const Slice& key, const Slice& field, int32_t* len);
+
+  Status PKHIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret, int32_t ttl = 0);
+
+  Status PKHMSet(const Slice& key, const std::vector<FieldValue>& fvs);
+
+  Status PKHMSetex(const Slice& key, const std::vector<FieldValueTTL>& fvts);
+
+  Status PKHMGet(const Slice& key, const std::vector<std::string>& fields, std::vector<ValueStatus>* vss);
+
+  Status PKHKeys(const Slice& key, std::vector<std::string>* fields);
+
+  Status PKHVals(const Slice& key, std::vector<std::string>* values);
+
+  Status PKHGetall(const Slice& key, std::vector<FieldValueTTL>* fvts);
+
+  Status PKHScan(const Slice& key, int64_t cursor, const std::string& pattern, int64_t count,
+                 std::vector<FieldValueTTL>* fvts, int64_t* next_cursor);
 
   // Sets Commands
   Status SAdd(const Slice& key, const std::vector<std::string>& members, int32_t* ret);

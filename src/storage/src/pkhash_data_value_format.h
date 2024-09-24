@@ -19,6 +19,7 @@
 namespace storage {
 /*
  * pika expire hash data value format
+ * use etime to store expire time
  * | value | reserve | ctime | etime |
  * |       |   16B   |   8B  |   8B  |
  */
@@ -75,7 +76,7 @@ class ParsedPKHashDataValue : public ParsedInternalValue {
       user_value_ = rocksdb::Slice(value.data(), value.size() - kPKHashDataValueSuffixLength);
       memcpy(reserve_, value.data() + user_value_.size(), kSuffixReserveLength);
       ctime_ = DecodeFixed64(value.data() + user_value_.size() + kSuffixReserveLength);
-      etime_ = DecodeFixed64(value_->data() + user_value_.size() + kSuffixReserveLength + kTimestampLength);
+      etime_ = DecodeFixed64(value.data() + user_value_.size() + kSuffixReserveLength + kTimestampLength);
     }
   }
 

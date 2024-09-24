@@ -121,6 +121,13 @@ struct FieldValue {
   bool operator==(const FieldValue& fv) const { return (fv.field == field && fv.value == value); }
 };
 
+struct FieldValueTTL {
+  std::string field;
+  std::string value;
+  int32_t ttl;
+  bool operator==(const FieldValueTTL& fv) const { return (fv.field == field && fv.value == value && fv.ttl == ttl); }
+};
+
 struct IdMessage {
   std::string field;
   std::string value;
@@ -406,7 +413,7 @@ class Storage {
                        int32_t limit, std::vector<FieldValue>* field_values, std::string* next_field);
 
   // Pika Hash Commands
-  // redis hash 命令放在这里。
+
   Status PKHExpire(const Slice& key, int32_t ttl, int32_t numfields, const std::vector<std::string>& fields,
                    std::vector<int32_t>* rets);
   Status PKHExpireat(const Slice& key, int64_t timestamp, int32_t numfields, const std::vector<std::string>& fields,
@@ -420,33 +427,35 @@ class Storage {
                 std::vector<int64_t>* ttls);
 
   Status PKHSet(const Slice& key, const Slice& field, const Slice& value, int32_t* res);
-  // Status PKHSetnx(const Slice& key, const Slice& field, const Slice& value, int32_t* ret, int32_t ttl = 0);
-  // Status PKHSetxx(const Slice& key, const Slice& field, const Slice& value, int32_t* ret, int32_t ttl = 0);
-  // // 支持过期的Set，上面的两个不支持过期的Set，ttl 默认值为 0
-  // Status PKHSetex(const Slice& key, const Slice& field, const Slice& value, int32_t ttl);
 
   Status PKHGet(const Slice& key, const Slice& field, std::string* value);
-  // Status PKHExists(const Slice& key, const Slice& field);
-  // Status PKHDel(const Slice& key, const std::vector<std::string>& fields, int32_t* ret);
-  // Status PKHen(const Slice& key, int32_t* ret);
-  // Status PKHLenForce(const Slice& key, int32_t* ret);
-  // Status PKHStrlen(const Slice& key, const Slice& field, int32_t* len);
-  // Status PKHIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret, int32_t ttl = 0);
-  // // 源码中存在，但是文档中，没有实现最小的功能。
-  // Status PKHIncrbynxex(const Slice& key, const Slice& field, int64_t value, int64_t* ret, int32_t ttl);
-  // Status PKHIncrbyxxex(const Slice& key, const Slice& field, int64_t value, int64_t* ret, int32_t ttl);
-  // Status PKHIncrbyfloat(const Slice& key, const Slice& field, const Slice& by, std::string* new_value, int32_t ttl =
-  // 0); Status PKHIncrbyfloatnxex(const Slice& key, const Slice& field, const Slice& by, std::string* new_value,
-  // int32_t ttl); Status PKHIncrbyfloatxxex(const Slice& key, const Slice& field, const Slice& by, std::string*
-  // new_value, int32_t ttl); Status PKHMSet(const Slice& key, const std::vector<FieldValue>& fvs); Status
-  // PKHMSetex(const Slice& key, const std::vector<FieldValueTTL>& fvts); Status PKHMget(const Slice& key, const
-  // std::vector<std::string>& fields, std::vector<ValueStatus>* vss); Status PKHKeys(const Slice& key,
-  // std::vector<std::string>* fields); Status PKHVals(const Slice& key, std::vector<std::string>* values); Status
-  // PKHGetall(const Slice& key, std::vector<FieldValueTTL>* fvts); Status PKHScan(const Slice& key, int64_t cursor,
-  // const std::string& pattern, int64_t count,
-  //                std::vector<FieldValueTTL>* fvts, int64_t* next_cursor);
-  // Status PKHScanx(const Slice& key, const std::string start_field, const std::string& pattern, int64_t count,
-  //                 std::vector<FieldValueTTL>* fvts, std::string* next_field);
+
+  Status PKHSetex(const Slice& key, const Slice& field, const Slice& value, int32_t ttl, int32_t* ret);
+
+  Status PKHExists(const Slice& key, const Slice& field);
+
+  Status PKHDel(const Slice& key, const std::vector<std::string>& fields, int32_t* ret);
+
+  Status PKHLen(const Slice& key, int32_t* ret);
+
+  Status PKHStrlen(const Slice& key, const Slice& field, int32_t* len);
+
+  Status PKHIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret, int32_t ttl = 0);
+
+  Status PKHMSet(const Slice& key, const std::vector<FieldValue>& fvs);
+
+  Status PKHMSetex(const Slice& key, const std::vector<FieldValueTTL>& fvts);
+
+  Status PKHMGet(const Slice& key, const std::vector<std::string>& fields, std::vector<ValueStatus>* vss);
+
+  Status PKHKeys(const Slice& key, std::vector<std::string>* fields);
+
+  Status PKHVals(const Slice& key, std::vector<std::string>* values);
+
+  Status PKHGetall(const Slice& key, std::vector<FieldValueTTL>* fvts);
+
+  Status PKHScan(const Slice& key, int64_t cursor, const std::string& pattern, int64_t count,
+                 std::vector<FieldValueTTL>* fvts, int64_t* next_cursor);
 
   // Sets Commands
 

@@ -180,8 +180,288 @@ class PKHSetCmd : public Cmd {
   Cmd* Clone() override { return new PKHSetCmd(*this); }
 
  private:
-  // 每个命令的参数组成不同。
   std::string key_, field_, value_;
+  void DoInitial() override;
+  rocksdb::Status s_;
+};
+
+class PKHSetexCmd : public Cmd {
+ public:
+  PKHSetexCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::PKHASH)) {}
+  std::vector<std::string> current_key() const override {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new PKHSetexCmd(*this); }
+
+ private:
+  std::string key_, field_, value_;
+  int64_t sec_;
+  void DoInitial() override;
+  rocksdb::Status s_;
+};
+
+class PKHExistsCmd : public Cmd {
+ public:
+  PKHExistsCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::PKHASH)) {}
+  std::vector<std::string> current_key() const override {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new PKHExistsCmd(*this); }
+
+ private:
+  std::string key_, field_;
+  void DoInitial() override;
+  rocksdb::Status s_;
+};
+
+class PKHDelCmd : public Cmd {
+ public:
+  PKHDelCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::PKHASH)) {}
+  std::vector<std::string> current_key() const override {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new PKHDelCmd(*this); }
+
+ private:
+  std::string key_;
+  std::vector<std::string> fields_;
+  int32_t deleted_ = 0;
+  void DoInitial() override;
+  rocksdb::Status s_;
+};
+
+class PKHLenCmd : public Cmd {
+ public:
+  PKHLenCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::PKHASH)) {}
+  std::vector<std::string> current_key() const override {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new PKHLenCmd(*this); }
+
+ private:
+  std::string key_;
+  bool is_force_;
+  void DoInitial() override;
+  rocksdb::Status s_;
+};
+
+class PKHStrLenCmd : public Cmd {
+ public:
+  PKHStrLenCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::PKHASH)) {}
+  std::vector<std::string> current_key() const override {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new PKHStrLenCmd(*this); }
+
+ private:
+  std::string key_, field_;
+  void DoInitial() override;
+  rocksdb::Status s_;
+};
+
+class PKHIncrbyCmd : public Cmd {
+ public:
+  PKHIncrbyCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::PKHASH)) {}
+  std::vector<std::string> current_key() const override {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new PKHIncrbyCmd(*this); }
+
+ private:
+  std::string key_, field_;
+  int64_t by_;
+  int64_t sec_;
+  void DoInitial() override;
+  rocksdb::Status s_;
+};
+
+class PKHMSetCmd : public Cmd {
+ public:
+  PKHMSetCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::PKHASH)) {}
+  std::vector<std::string> current_key() const override {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new PKHMSetCmd(*this); }
+
+ private:
+  std::string key_;
+  std::vector<storage::FieldValue> fvs_;
+  void DoInitial() override;
+  rocksdb::Status s_;
+};
+
+class PKHMGetCmd : public Cmd {
+ public:
+  PKHMGetCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::PKHASH)) {}
+  std::vector<std::string> current_key() const override {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new PKHMGetCmd(*this); }
+
+ private:
+  std::string key_;
+  std::vector<std::string> fields_;
+  void DoInitial() override;
+  rocksdb::Status s_;
+};
+
+class PKHKeysCmd : public Cmd {
+ public:
+  PKHKeysCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::PKHASH)) {}
+  std::vector<std::string> current_key() const override {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new PKHKeysCmd(*this); }
+
+ private:
+  std::string key_;
+  void DoInitial() override;
+  rocksdb::Status s_;
+};
+
+class PKHValsCmd : public Cmd {
+ public:
+  PKHValsCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::PKHASH)) {}
+  std::vector<std::string> current_key() const override {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new PKHValsCmd(*this); }
+
+ private:
+  std::string key_;
+  void DoInitial() override;
+  rocksdb::Status s_;
+};
+
+class PKHGetAllCmd : public Cmd {
+ public:
+  PKHGetAllCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::PKHASH)) {}
+  std::vector<std::string> current_key() const override {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new PKHGetAllCmd(*this); }
+
+ private:
+  std::string key_;
+  bool is_wt_;
+  void DoInitial() override;
+  rocksdb::Status s_;
+};
+
+class PKHScanCmd : public Cmd {
+ public:
+  PKHScanCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::PKHASH)) {}
+  std::vector<std::string> current_key() const override {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new PKHScanCmd(*this); }
+
+ private:
+  std::string key_, pattern_;
+  int64_t cursor_, count_;
+  bool is_wt_;
+  virtual void Clear() {
+    pattern_ = "*";
+    count_ = 10;
+    is_wt_ = false;
+  }
+
   void DoInitial() override;
   rocksdb::Status s_;
 };
