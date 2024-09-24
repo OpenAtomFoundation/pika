@@ -274,7 +274,8 @@ Status Redis::BitOp(BitOpType op, const std::string& dest_key, const std::vector
   return db_->Put(default_write_options_, base_dest_key.Encode(), strings_value.Encode());
 }
 
-Status Redis::Decrby(const Slice& key, int64_t value, int64_t* ret) {
+Status Redis::Decrby(const Slice& key, int64_t value, int64_t* ret, uint64_t* ts_ms) {
+  *ts_ms = 0;
   std::string old_value;
   std::string new_value;
   ScopeRecordLock l(lock_mgr_, key);
@@ -300,6 +301,7 @@ Status Redis::Decrby(const Slice& key, int64_t value, int64_t* ret) {
       return db_->Put(default_write_options_, base_key.Encode(), strings_value.Encode());
     } else {
       uint64_t timestamp = parsed_strings_value.Etime();
+      *ts_ms = timestamp;
       std::string old_user_value = parsed_strings_value.UserValue().ToString();
       char* end = nullptr;
       errno = 0;

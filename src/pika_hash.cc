@@ -269,10 +269,9 @@ void HIncrbyCmd::DoInitial() {
 }
 
 void HIncrbyCmd::Do() {
-  int64_t new_value = 0;
-  s_ = db_->storage()->HIncrby(key_, field_, by_, &new_value);
+  s_ = db_->storage()->HIncrby(key_, field_, by_, &new_value_, &ts_ms_);
   if (s_.ok() || s_.IsNotFound()) {
-    res_.AppendContent(":" + std::to_string(new_value));
+    res_.AppendContent(":" + std::to_string(new_value_));
     AddSlotKey("h", key_, db_);
   } else if (s_.IsInvalidArgument() && s_.ToString().substr(0, std::char_traits<char>::length(ErrTypeMessage)) == ErrTypeMessage) {
     res_.SetRes(CmdRes::kMultiKey);
@@ -294,6 +293,39 @@ void HIncrbyCmd::DoUpdateCache() {
     db_->cache()->HIncrbyxx(key_, field_, by_);
   }
 }
+std::string HIncrbyCmd::ToRedisProtocol() {
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 5, "*");
+
+  // to pkhsetat cmd
+  std::string pkhsetat_cmd(kCmdNamePKHSetAt);
+  RedisAppendLenUint64(content, pkhsetat_cmd.size(), "$");
+  RedisAppendContent(content, pkhsetat_cmd);
+
+  // key
+  RedisAppendLenUint64(content, key_.size(), "$");
+  RedisAppendContent(content, key_);
+
+  //field
+  RedisAppendLenUint64(content, field_.size(), "$");
+  RedisAppendContent(content, field_);
+
+  //result_value(from int to str)
+  auto new_value_str = std::to_string(new_value_);
+  RedisAppendLenUint64(content, new_value_str.size(), "$");
+  RedisAppendContent(content, new_value_str);
+
+  // time_stamp
+  char buf[100];
+  auto time_stamp = ts_ms_;
+  pstd::ll2string(buf, 100, time_stamp);
+  std::string at(buf);
+  RedisAppendLenUint64(content, at.size(), "$");
+  RedisAppendContent(content, at);
+
+  return content;
+}
 
 void HIncrbyfloatCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -306,11 +338,10 @@ void HIncrbyfloatCmd::DoInitial() {
 }
 
 void HIncrbyfloatCmd::Do() {
-  std::string new_value;
-  s_ = db_->storage()->HIncrbyfloat(key_, field_, by_, &new_value);
+  s_ = db_->storage()->HIncrbyfloat(key_, field_, by_, &new_value_str_, &ts_ms_);
   if (s_.ok()) {
-    res_.AppendStringLenUint64(new_value.size());
-    res_.AppendContent(new_value);
+    res_.AppendStringLenUint64(new_value_str_.size());
+    res_.AppendContent(new_value_str_);
     AddSlotKey("h", key_, db_);
   } else if (s_.IsInvalidArgument() && s_.ToString().substr(0, std::char_traits<char>::length(ErrTypeMessage)) == ErrTypeMessage) {
     res_.SetRes(CmdRes::kMultiKey);
@@ -335,6 +366,40 @@ void HIncrbyfloatCmd::DoUpdateCache() {
     }
   }
 }
+
+std::string HIncrbyfloatCmd::ToRedisProtocol() {
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 5, "*");
+
+  // to pkhsetat cmd
+  std::string pkhsetat_cmd(kCmdNamePKHSetAt);
+  RedisAppendLenUint64(content, pkhsetat_cmd.size(), "$");
+  RedisAppendContent(content, pkhsetat_cmd);
+
+  // key
+  RedisAppendLenUint64(content, key_.size(), "$");
+  RedisAppendContent(content, key_);
+
+  //field
+  RedisAppendLenUint64(content, field_.size(), "$");
+  RedisAppendContent(content, field_);
+
+  //result_value(which is a float stored within str)
+  RedisAppendLenUint64(content, new_value_str_.size(), "$");
+  RedisAppendContent(content, new_value_str_);
+
+  // time_stamp
+  char buf[100];
+  auto time_stamp = ts_ms_;
+  pstd::ll2string(buf, 100, time_stamp);
+  std::string at(buf);
+  RedisAppendLenUint64(content, at.size(), "$");
+  RedisAppendContent(content, at);
+
+  return content;
+}
+
 
 void HKeysCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -889,4 +954,50 @@ void PKHRScanRangeCmd::Do() {
   }  else {
     res_.SetRes(CmdRes::kErrOther, s_.ToString());
   }
+}
+
+void PKHSetAtCmd::DoInitial() {
+
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameHSet);
+    return;
+  }
+
+  key_ = argv_[1];
+  field_ = argv_[2];
+  result_ = argv_[3];
+
+  if (pstd::string2int(argv_[4].data(), argv_[4].size(), &ts_ms_) == 0) {
+    res_.SetRes(CmdRes::kInvalidInt);
+    return;
+  }
+}
+
+void PKHSetAtCmd::Do() {
+
+  if (ts_ms_ != 0 && ts_ms_ < pstd::NowMillis()) {
+    res_.SetRes(CmdRes::kErrOther, "abort expired operation");
+    return;
+  }
+
+  int32_t ret = 0;
+  s_ = db_->storage()->HSet(key_, field_, result_, &ret);
+  if (s_.ok()) {
+    res_.AppendContent(":" + std::to_string(ret));
+    AddSlotKey("h", key_, db_);
+  } else if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+  }
+}
+
+void PKHSetAtCmd::DoThroughDB() {
+  Do();
+}
+
+void PKHSetAtCmd::DoUpdateCache() {
+    if (s_.ok()) {
+      db_->cache()->HSetIfKeyExist(key_, field_, result_);
+    }
 }

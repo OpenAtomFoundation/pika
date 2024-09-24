@@ -108,6 +108,32 @@ class HSetCmd : public Cmd {
   rocksdb::Status s_;
 };
 
+class PKHSetAtCmd : public Cmd{
+ public:
+  PKHSetAtCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::HASH)) {}
+  std::vector<std::string> current_key() const override {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
+
+  void Do() override;
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
+  void Split(const HintKeys& hint_keys) override {};
+  void Merge() override {};
+  Cmd* Clone() override { return new PKHSetAtCmd(*this); }
+
+ private:
+  std::string key_;
+  std::string field_;
+  std::string result_;
+  uint64_t ts_ms_ = 0;
+  void DoInitial() override;
+};
+
+
 class HExistsCmd : public Cmd {
  public:
   HExistsCmd(const std::string& name, int arity, uint32_t flag)
@@ -146,12 +172,14 @@ class HIncrbyCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new HIncrbyCmd(*this); }
-
+  std::string ToRedisProtocol() override;
  private:
   std::string key_, field_;
   int64_t by_ = 0;
-  void DoInitial() override;
   rocksdb::Status s_;
+  uint64_t ts_ms_ = 0;
+  int64_t new_value_;
+  void DoInitial() override;
 };
 
 class HIncrbyfloatCmd : public Cmd {
@@ -169,11 +197,13 @@ class HIncrbyfloatCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new HIncrbyfloatCmd(*this); }
-
+  std::string ToRedisProtocol() override;
  private:
   std::string key_, field_, by_;
-  void DoInitial() override;
+  std::string new_value_str_;
+  uint64_t ts_ms_ = 0;
   rocksdb::Status s_;
+  void DoInitial() override;
 };
 
 class HKeysCmd : public Cmd {

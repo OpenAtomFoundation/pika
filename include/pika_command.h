@@ -120,6 +120,7 @@ const std::string kCmdNamePKRScanRange = "pkrscanrange";
 // Hash
 const std::string kCmdNameHDel = "hdel";
 const std::string kCmdNameHSet = "hset";
+const std::string kCmdNamePKHSetAt = "pkhsetat";
 const std::string kCmdNameHGet = "hget";
 const std::string kCmdNameHGetall = "hgetall";
 const std::string kCmdNameHExists = "hexists";
@@ -167,6 +168,7 @@ const std::string kCmdNameZAdd = "zadd";
 const std::string kCmdNameZCard = "zcard";
 const std::string kCmdNameZScan = "zscan";
 const std::string kCmdNameZIncrby = "zincrby";
+const std::string kCmdNamePKZSetAt= "pkzsetat";
 const std::string kCmdNameZRange = "zrange";
 const std::string kCmdNameZRangebyscore = "zrangebyscore";
 const std::string kCmdNameZCount = "zcount";
@@ -189,6 +191,7 @@ const std::string kCmdNameZPopmin = "zpopmin";
 
 // Set
 const std::string kCmdNameSAdd = "sadd";
+const std::string kCmdNamePKSAdd = "pksadd";
 const std::string kCmdNameSPop = "spop";
 const std::string kCmdNameSCard = "scard";
 const std::string kCmdNameSMembers = "smembers";
@@ -215,6 +218,7 @@ const std::string kCmdNameUnWatch = "unwatch";
 const std::string kCmdNamePfAdd = "pfadd";
 const std::string kCmdNamePfCount = "pfcount";
 const std::string kCmdNamePfMerge = "pfmerge";
+const std::string kCmdNamePKHyperloglogSet = "pkhyperloglogset";
 
 // GEO
 const std::string kCmdNameGeoAdd = "geoadd";

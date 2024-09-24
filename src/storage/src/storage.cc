@@ -348,9 +348,13 @@ Status Storage::BitPos(const Slice& key, int32_t bit, int64_t start_offset, int6
   return inst->BitPos(key, bit, start_offset, end_offset, ret);
 }
 
-Status Storage::Decrby(const Slice& key, int64_t value, int64_t* ret) {
+Status Storage::Decrby(const Slice& key, int64_t value, int64_t* ret, uint64_t* ts_ms) {
   auto& inst = GetDBInstance(key);
-  return inst->Decrby(key, value, ret);
+  uint64_t tmp_ts = 0;
+  if (!ts_ms) {
+    ts_ms = &tmp_ts;
+  }
+  return inst->Decrby(key, value, ret, ts_ms);
 }
 
 Status Storage::Incrby(const Slice& key, int64_t value, int64_t* ret, int64_t* expired_timestamp_millsec) {
@@ -442,14 +446,23 @@ Status Storage::HExists(const Slice& key, const Slice& field) {
   return inst->HExists(key, field);
 }
 
-Status Storage::HIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret) {
+Status Storage::HIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret, uint64_t* ts_ms) {
   auto& inst = GetDBInstance(key);
-  return inst->HIncrby(key, field, value, ret);
+  uint64_t tmp_ts = 0;
+  if (!ts_ms) {
+    ts_ms = &tmp_ts;
+  }
+  return inst->HIncrby(key, field, value, ret, ts_ms);
 }
 
-Status Storage::HIncrbyfloat(const Slice& key, const Slice& field, const Slice& by, std::string* new_value) {
+Status Storage::HIncrbyfloat(const Slice& key, const Slice& field, const Slice& by, std::string* new_value,
+                             uint64_t* ts_ms) {
   auto& inst = GetDBInstance(key);
-  return inst->HIncrbyfloat(key, field, by, new_value);
+  uint64_t tmp_ts = 0;
+  if (!ts_ms) {
+    ts_ms = &tmp_ts;
+  }
+  return inst->HIncrbyfloat(key, field, by, new_value, ts_ms);
 }
 
 Status Storage::HDel(const Slice& key, const std::vector<std::string>& fields, int32_t* ret) {
@@ -484,9 +497,13 @@ Status Storage::PKHRScanRange(const Slice& key, const Slice& field_start, const 
 }
 
 // Sets Commands
-Status Storage::SAdd(const Slice& key, const std::vector<std::string>& members, int32_t* ret) {
+Status Storage::SAdd(const Slice& key, const std::vector<std::string>& members, int32_t* ret, uint64_t* ts_ms) {
   auto& inst = GetDBInstance(key);
-  return inst->SAdd(key, members, ret);
+  uint64_t tmp_ts;
+  if (!ts_ms) {
+    ts_ms = &tmp_ts;
+  }
+  return inst->SAdd(key, members, ret, *ts_ms);
 }
 
 Status Storage::SCard(const Slice& key, int32_t* ret) {
@@ -553,8 +570,8 @@ Status Storage::SDiffstore(const Slice& destination, const std::vector<std::stri
   if (!s.ok() && !s.IsNotFound()) {
     return s;
   }
-
-  s = inst->SAdd(destination, value_to_dest, ret);
+  uint64_t ts_ms;
+  s = inst->SAdd(destination, value_to_dest, ret, ts_ms);
   return s;
 }
 
@@ -620,8 +637,8 @@ Status Storage::SInterstore(const Slice& destination, const std::vector<std::str
   if (!s.ok() && !s.IsNotFound()) {
     return s;
   }
-
-  s = dest_inst->SAdd(destination, value_to_dest, ret);
+  uint64_t ts_ms;
+  s = dest_inst->SAdd(destination, value_to_dest, ret, ts_ms);
   return s;
 }
 
@@ -665,7 +682,8 @@ Status Storage::SMove(const Slice& source, const Slice& destination, const Slice
   }
   auto& dest_inst = GetDBInstance(destination);
   int unused_ret;
-  return dest_inst->SAdd(destination, std::vector<std::string>{member.ToString()}, &unused_ret);
+  uint64_t ts_ms;
+  return dest_inst->SAdd(destination, std::vector<std::string>{member.ToString()}, &unused_ret, ts_ms);
 }
 
 Status Storage::SPop(const Slice& key, std::vector<std::string>* members, int64_t count) {
@@ -737,7 +755,8 @@ Status Storage::SUnionstore(const Slice& destination, const std::vector<std::str
     return s;
   }
   int unused_ret;
-  return dest_inst->SAdd(destination, value_to_dest, &unused_ret);
+  uint64_t ts_ms;
+  return dest_inst->SAdd(destination, value_to_dest, &unused_ret, ts_ms);
 }
 
 Status Storage::SScan(const Slice& key, int64_t cursor, const std::string& pattern, int64_t count,
@@ -883,9 +902,21 @@ Status Storage::ZCount(const Slice& key, double min, double max, bool left_close
   return inst->ZCount(key, min, max, left_close, right_close, ret);
 }
 
-Status Storage::ZIncrby(const Slice& key, const Slice& member, double increment, double* ret) {
+Status Storage::ZIncrby(const Slice& key, const Slice& member, double increment, double* ret, uint64_t* ts_ms,
+                        bool* key_found) {
   auto& inst = GetDBInstance(key);
-  return inst->ZIncrby(key, member, increment, ret);
+
+  uint64_t tmp_ts;
+  if (!ts_ms) {
+    ts_ms = &tmp_ts;
+  }
+
+  bool tmp_key_found;
+  if (!key_found) {
+    key_found = &tmp_key_found;
+  }
+
+  return inst->ZIncrby(key, member, increment, ret, *ts_ms, *key_found);
 }
 
 Status Storage::ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members) {
@@ -926,15 +957,16 @@ Status Storage::ZRem(const Slice& key, const std::vector<std::string>& members, 
   return inst->ZRem(key, members, ret);
 }
 
-Status Storage::ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int32_t* ret) {
+Status Storage::ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int32_t* ret,
+                                std::vector<std::string>* members_deled) {
   auto& inst = GetDBInstance(key);
-  return inst->ZRemrangebyrank(key, start, stop, ret);
+  return inst->ZRemrangebyrank(key, start, stop, ret, members_deled);
 }
 
 Status Storage::ZRemrangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close,
-                                 int32_t* ret) {
+                                 int32_t* ret, std::vector<std::string>* members_del) {
   auto& inst = GetDBInstance(key);
-  return inst->ZRemrangebyscore(key, min, max, left_close, right_close, ret);
+  return inst->ZRemrangebyscore(key, min, max, left_close, right_close, ret, members_del);
 }
 
 Status Storage::ZRevrangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close,
@@ -1109,10 +1141,11 @@ Status Storage::ZLexcount(const Slice& key, const Slice& min, const Slice& max, 
   return inst->ZLexcount(key, min, max, left_close, right_close, ret);
 }
 
-Status Storage::ZRemrangebylex(const Slice& key, const Slice& min, const Slice& max,
-                               bool left_close, bool right_close, int32_t* ret) {
+Status Storage::ZRemrangebylex(const Slice& key, const Slice& min, const Slice& max, bool left_close, bool right_close,
+                               int32_t* ret, std::vector<std::string>* members_del) {
   auto& inst = GetDBInstance(key);
-  return inst->ZRemrangebylex(key, min, max, left_close, right_close, ret);
+  std::vector<std::string> tmp_m_del;
+  return inst->ZRemrangebylex(key, min, max, left_close, right_close, ret, nullptr);
 }
 
 Status Storage::ZScan(const Slice& key, int64_t cursor, const std::string& pattern, int64_t count,
@@ -1969,6 +2002,15 @@ void Storage::DisableWal(const bool is_wal_disable) {
   for (const auto& inst : insts_) {
     inst->SetWriteWalOptions(is_wal_disable);
   }
+}
+
+Status Storage::PKZSetAt(const Slice& key, const Slice& member, double old_score, double incr_value) {
+  auto& inst = GetDBInstance(key);
+  return inst->PKZSetAt(key, member, old_score, incr_value);
+}
+Status Storage::HyperloglogSet(const Slice& key, std::string& value) {
+  auto& inst = GetDBInstance(key);
+  return inst->HyperloglogGet(key, &value);
 }
 
 }  //  namespace storage

@@ -14,6 +14,34 @@
 /*
  * zset
  */
+//format: zsetat key member old_score incr_value ts
+class PKZSetAtCmd : public Cmd {
+ public:
+  PKZSetAtCmd(const std::string& name, int arity, uint32_t flag)
+      : Cmd(name, arity, flag, static_cast<uint32_t>(AclCategory::SORTEDSET)) {}
+  std::vector<std::string> current_key() const override {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
+
+  void Do() override;
+  void DoUpdateCache() override;
+  void DoThroughDB() override;
+  void Split(const HintKeys& hint_keys) override{};
+  void Merge() override{};
+  Cmd* Clone() override { return new PKZSetAtCmd(*this); }
+  double Score() const { return old_score_ + incr_value_; }
+
+ private:
+  std::string key_;
+  std::string member_;
+  double old_score_ = .0f;
+  double incr_value_ = .0f;
+  int64_t ts_ms_ = -1;
+  void DoInitial() override;
+};
+
 class ZAddCmd : public Cmd {
  public:
   ZAddCmd(const std::string& name, int arity, uint32_t flag)
@@ -92,6 +120,7 @@ class ZIncrbyCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
+
   void Do() override;
   void DoUpdateCache() override;
   void DoThroughDB() override;
@@ -99,13 +128,17 @@ class ZIncrbyCmd : public Cmd {
   void Merge() override{};
   Cmd* Clone() override { return new ZIncrbyCmd(*this); }
   double Score() { return score_; }
+  std::string ToRedisProtocol() override;
 
  private:
   std::string key_, member_;
   double by_ = .0f;
   double score_ = .0f;
+  uint64_t ts_ms_ = 0;
+  bool key_found_ = false;
   void DoInitial() override;
 };
+
 
 class ZsetRangeParentCmd : public Cmd {
  public:
@@ -532,12 +565,13 @@ class ZRemrangebyrankCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRemrangebyrankCmd(*this); }
-
+  std::string ToRedisProtocol() override;
  private:
   std::string key_, min_, max_;
   int64_t start_rank_ = 0, stop_rank_ = -1;
   int32_t ele_deleted_;
   rocksdb::Status s_;
+  std::vector<std::string> members_remed_;
   void DoInitial() override;
 };
 
@@ -556,12 +590,15 @@ class ZRemrangebyscoreCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRemrangebyscoreCmd(*this); }
+  std::string ToRedisProtocol() override;
 
  private:
   std::string key_, min_, max_;
   double min_score_ = 0, max_score_ = 0;
   bool left_close_ = true, right_close_ = true;
   rocksdb::Status s_;
+  std::vector<std::string> members_del_;
+
   void DoInitial() override;
   void Clear() override { left_close_ = right_close_ = true; }
 };
@@ -581,12 +618,14 @@ class ZRemrangebylexCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new ZRemrangebylexCmd(*this); }
+  std::string ToRedisProtocol() override;
 
  private:
   std::string key_, min_, max_;
   std::string min_member_, max_member_;
   bool left_close_ = true, right_close_ = true;
   rocksdb::Status s_;
+  std::vector<std::string> members_del_;
   void DoInitial() override;
   void Clear() override { left_close_ = right_close_ = true; }
 };
@@ -604,11 +643,13 @@ class ZPopmaxCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ZPopmaxCmd(*this); }
+  std::string ToRedisProtocol() override;
 
  private:
-  void DoInitial() override;
   std::string key_;
   int64_t count_ = 0;
+  std::vector<std::string> members_del_;
+  void DoInitial() override;
 };
 
 class ZPopminCmd : public Cmd {
@@ -624,11 +665,13 @@ class ZPopminCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ZPopminCmd(*this); }
+  std::string ToRedisProtocol() override;
 
  private:
-  void DoInitial() override;
   std::string key_;
   int64_t count_ = 0;
+  std::vector<std::string> members_del_;
+  void DoInitial() override;
 };
 
 #endif

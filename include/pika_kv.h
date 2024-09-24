@@ -186,10 +186,12 @@ class DecrCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new DecrCmd(*this); }
+  std::string ToRedisProtocol() override;
 
  private:
   std::string key_;
   int64_t new_value_ = 0;
+  uint64_t ts_ms_ = 0;
   void DoInitial() override;
   rocksdb::Status s_;
 };
@@ -209,10 +211,12 @@ class DecrbyCmd : public Cmd {
   void Split(const HintKeys& hint_keys) override{};
   void Merge() override{};
   Cmd* Clone() override { return new DecrbyCmd(*this); }
+  std::string ToRedisProtocol() override;
 
  private:
   std::string key_;
   int64_t by_ = 0, new_value_ = 0;
+  uint64_t ts_ms_ = 0;
   void DoInitial() override;
   rocksdb::Status s_;
 };
@@ -260,9 +264,9 @@ class AppendCmd : public Cmd {
   std::string key_;
   std::string value_;
   std::string new_value_;
-  void DoInitial() override;
   rocksdb::Status s_;
   int64_t expired_timestamp_millsec_ = 0;
+  void DoInitial() override;
   std::string ToRedisProtocol() override;
 };
 

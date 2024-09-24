@@ -390,6 +390,10 @@ void InitCmdTable(CmdTable* cmd_table) {
   std::unique_ptr<Cmd> hsetptr =
       std::make_unique<HSetCmd>(kCmdNameHSet, 4, kCmdFlagsWrite |  kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameHSet, std::move(hsetptr)));
+  ////PKHSetAt
+  std::unique_ptr<Cmd> pkhsetat =
+      std::make_unique<HSetCmd>(kCmdNamePKHSetAt, 5, kCmdFlagsWrite |  kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsFast);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePKHSetAt, std::move(pkhsetat)));
   ////HGetCmd
   std::unique_ptr<Cmd> hgetptr =
       std::make_unique<HGetCmd>(kCmdNameHGet, 3, kCmdFlagsRead |  kCmdFlagsHash | kCmdFlagsUpdateCache | kCmdFlagsDoThroughDB | kCmdFlagsReadCache |kCmdFlagsFast);
@@ -527,6 +531,10 @@ void InitCmdTable(CmdTable* cmd_table) {
   std::unique_ptr<Cmd> zincrbyptr =
       std::make_unique<ZIncrbyCmd>(kCmdNameZIncrby, 4, kCmdFlagsWrite |  kCmdFlagsZset | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast) ;
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameZIncrby, std::move(zincrbyptr)));
+  ////PKZSetat
+  std::unique_ptr<Cmd> pkzsetatptr =
+      std::make_unique<PKZSetAtCmd>(kCmdNamePKZSetAt, 6, kCmdFlagsWrite |  kCmdFlagsZset | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast) ;
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePKZSetAt, std::move(pkzsetatptr)));
   ////ZRangeCmd
   std::unique_ptr<Cmd> zrangeptr =
       std::make_unique<ZRangeCmd>(kCmdNameZRange, -4, kCmdFlagsRead |  kCmdFlagsZset |kCmdFlagsDoThroughDB | kCmdFlagsReadCache | kCmdFlagsUpdateCache | kCmdFlagsSlow);
@@ -612,6 +620,10 @@ void InitCmdTable(CmdTable* cmd_table) {
   std::unique_ptr<Cmd> saddptr =
       std::make_unique<SAddCmd>(kCmdNameSAdd, -3, kCmdFlagsWrite |  kCmdFlagsSet |kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSAdd, std::move(saddptr)));
+  ////PKSAddCmd
+  std::unique_ptr<Cmd> pksaddptr =
+      std::make_unique<PKSAddCmd>(kCmdNamePKSAdd, -3, kCmdFlagsWrite |  kCmdFlagsSet |kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePKSAdd, std::move(pksaddptr)));
   ////SPopCmd
   std::unique_ptr<Cmd> spopptr =
       std::make_unique<SPopCmd>(kCmdNameSPop, -2, kCmdFlagsWrite |  kCmdFlagsSet | kCmdFlagsDoThroughDB | kCmdFlagsUpdateCache | kCmdFlagsFast);
@@ -704,6 +716,10 @@ void InitCmdTable(CmdTable* cmd_table) {
   std::unique_ptr<Cmd> pfmergeptr = std::make_unique<PfMergeCmd>(
       kCmdNamePfMerge, -2, kCmdFlagsWrite | kCmdFlagsHyperLogLog | kCmdFlagsSlow);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePfMerge, std::move(pfmergeptr)));
+  //// PKHyperloglogSet
+  std::unique_ptr<Cmd> hyperlogsetptr = std::make_unique<PKHyperloglogSetCmd>(
+      kCmdNamePKHyperloglogSet, 3, kCmdFlagsWrite | kCmdFlagsHyperLogLog | kCmdFlagsSlow);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePKHyperloglogSet, std::move(hyperlogsetptr)));
 
   // GEO
   ////GepAdd

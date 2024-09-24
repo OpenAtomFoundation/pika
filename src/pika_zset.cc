@@ -167,9 +167,10 @@ void ZIncrbyCmd::DoInitial() {
   member_ = argv_[3];
 }
 
+
 void ZIncrbyCmd::Do() {
   double score = 0.0;
-  rocksdb::Status s = db_->storage()->ZIncrby(key_, member_, by_, &score);
+  rocksdb::Status s = db_->storage()->ZIncrby(key_, member_, by_, &score, &ts_ms_, &key_found_);
   if (s.ok()) {
     score_ = score;
     char buf[32];
@@ -193,6 +194,116 @@ void ZIncrbyCmd::DoUpdateCache() {
     db_->cache()->ZIncrbyIfKeyExist(key_, member_, by_, this, db_);
   }
 }
+std::string ZIncrbyCmd::ToRedisProtocol() {
+  std::string content;
+  if (key_found_ || ts_ms_ != 0) {
+    content.reserve(RAW_ARGS_LEN);
+    RedisAppendLen(content, 6, "*");
+
+    // to pkzsetat cmd
+    std::string pkzsetat_cmd("pkzsetat");
+    RedisAppendLenUint64(content,  pkzsetat_cmd.size(), "$");
+    RedisAppendContent(content,  pkzsetat_cmd);
+    // key
+    RedisAppendLenUint64(content, key_.size(), "$");
+    RedisAppendContent(content, key_);
+    // member
+    RedisAppendLenUint64(content, member_.size(), "$");
+    RedisAppendContent(content, member_);
+
+    std::string old_score = std::to_string(score_ - by_);
+    // old_score
+    RedisAppendLenUint64(content, old_score.size(), "$");
+    RedisAppendContent(content, old_score);
+
+    // incr value
+    std::string incr_value = std::to_string(by_);
+    RedisAppendLenUint64(content, incr_value.size(), "$");
+    RedisAppendContent(content, incr_value);
+
+    // time_stamp
+    char buf[100];
+    auto time_stamp = ts_ms_ / 1000;
+    pstd::ll2string(buf, 100, time_stamp);
+    std::string at(buf);
+    RedisAppendLenUint64(content, at.size(), "$");
+    RedisAppendContent(content, at);
+    return content;
+  } else {
+    content.reserve(RAW_ARGS_LEN);
+    RedisAppendLen(content, 4, "*");
+
+    // to zadd cmd
+    std::string pkzadd_cmd("zadd");
+    RedisAppendLenUint64(content, pkzadd_cmd.size(), "$");
+    RedisAppendContent(content, pkzadd_cmd);
+
+    // key
+    RedisAppendLenUint64(content, key_.size(), "$");
+    RedisAppendContent(content, key_);
+
+    std::string old_score = std::to_string(score_);
+    // new_score
+    RedisAppendLenUint64(content, old_score.size(), "$");
+    RedisAppendContent(content, old_score);
+
+    // member
+    RedisAppendLenUint64(content, member_.size(), "$");
+    RedisAppendContent(content, member_);
+  }
+  return content;
+}
+
+void PKZSetAtCmd::Do() {
+    if (ts_ms_ != 0 && ts_ms_ < pstd::NowMillis()) {
+      res_.SetRes(CmdRes::kErrOther, "abort expired operation");
+      return;
+    }
+
+    double score = 0.0;
+    rocksdb::Status s = db_->storage()->PKZSetAt(key_, member_, old_score_, incr_value_);
+    if (s.ok()) {
+      res_.SetRes(CmdRes::kOk);
+    } else if (s_.IsInvalidArgument()) {
+      res_.SetRes(CmdRes::kMultiKey);
+    } else {
+      res_.SetRes(CmdRes::kErrOther, s.ToString());
+    }
+}
+
+void PKZSetAtCmd::DoUpdateCache() {
+  if (s_.ok()) {
+    db_->cache()->ZSetAtIfKeyExists(key_, member_, this, db_);
+  }
+}
+
+void PKZSetAtCmd::DoThroughDB() {
+  Do();
+}
+
+void PKZSetAtCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameZAdd);
+    return;
+  }
+  key_ = argv_[1];
+  member_ = argv_[2];
+
+  if (pstd::string2d(argv_[3].data(), argv_[3].size(), &old_score_) == 0) {
+    res_.SetRes(CmdRes::kInvalidFloat);
+    return;
+  }
+  if (pstd::string2d(argv_[4].data(), argv_[4].size(), &incr_value_) == 0) {
+    res_.SetRes(CmdRes::kInvalidFloat);
+    return;
+  }
+
+  if ((pstd::string2int(argv_[5].data(), argv_[5].size(), &ts_ms_) == 0) || ts_ms_ >= INT64_MAX) {
+    res_.SetRes(CmdRes::kInvalidInt);
+    return;
+  }
+}
+
 
 void ZsetRangeParentCmd::DoInitial() {
   if (argv_.size() == 5 && (strcasecmp(argv_[4].data(), "withscores") == 0)) {
@@ -1370,7 +1481,8 @@ void ZRemrangebyrankCmd::DoInitial() {
 
 void ZRemrangebyrankCmd::Do() {
   int32_t count = 0;
-  s_ = db_->storage()->ZRemrangebyrank(key_, static_cast<int32_t>(start_rank_), static_cast<int32_t>(stop_rank_), &count);
+  s_ = db_->storage()->ZRemrangebyrank(key_, static_cast<int32_t>(start_rank_), static_cast<int32_t>(stop_rank_),
+                                       &count, &members_remed_);
   if (s_.ok() || s_.IsNotFound()) {
     res_.AppendInteger(count);
   } else if (s_.IsInvalidArgument()) {
@@ -1388,6 +1500,27 @@ void ZRemrangebyrankCmd::DoUpdateCache() {
   if (s_.ok()) {
     db_->cache()->ZRemrangebyrank(key_, min_, max_, ele_deleted_, db_);
   }
+}
+
+std::string ZRemrangebyrankCmd::ToRedisProtocol() {
+  std::string content;
+    content.reserve(RAW_ARGS_LEN);
+    RedisAppendLen(content, 2 + members_remed_.size(), "*");
+
+    // to zrem cmd
+    std::string zrem_cmd(kCmdNameZRem);
+    RedisAppendLenUint64(content,  zrem_cmd.size(), "$");
+    RedisAppendContent(content,  zrem_cmd);
+    // key
+    RedisAppendLenUint64(content, key_.size(), "$");
+    RedisAppendContent(content, key_);
+    // member
+    for (auto& m : members_remed_) {
+      RedisAppendLenUint64(content, m.size(), "$");
+      RedisAppendContent(content, m);
+    }
+
+    return content;
 }
 
 void ZRemrangebyscoreCmd::DoInitial() {
@@ -1409,7 +1542,7 @@ void ZRemrangebyscoreCmd::Do() {
     return;
   }
   int32_t count = 0;
-  s_ = db_->storage()->ZRemrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &count);
+  s_ = db_->storage()->ZRemrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &count, &members_del_);
   if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
@@ -1428,6 +1561,26 @@ void ZRemrangebyscoreCmd::DoUpdateCache() {
   if (s_.ok()) {
     db_->cache()->ZRemrangebyscore(key_, min_, max_, db_);
   }
+}
+std::string ZRemrangebyscoreCmd::ToRedisProtocol() {
+    std::string content;
+    content.reserve(RAW_ARGS_LEN);
+    RedisAppendLen(content, 2 + members_del_.size(), "*");
+
+    // to zrem cmd
+    std::string zrem_cmd(kCmdNameZRem);
+    RedisAppendLenUint64(content,  zrem_cmd.size(), "$");
+    RedisAppendContent(content,  zrem_cmd);
+    // key
+    RedisAppendLenUint64(content, key_.size(), "$");
+    RedisAppendContent(content, key_);
+    // member
+    for (auto& m : members_del_) {
+      RedisAppendLenUint64(content, m.size(), "$");
+      RedisAppendContent(content, m);
+    }
+
+    return content;
 }
 
 void ZRemrangebylexCmd::DoInitial() {
@@ -1450,7 +1603,7 @@ void ZRemrangebylexCmd::Do() {
   }
   int32_t count = 0;
 
-  s_ = db_->storage()->ZRemrangebylex(key_, min_member_, max_member_, left_close_, right_close_, &count);
+  s_ = db_->storage()->ZRemrangebylex(key_, min_member_, max_member_, left_close_, right_close_, &count, &members_del_);
   if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
@@ -1469,6 +1622,29 @@ void ZRemrangebylexCmd::DoUpdateCache() {
   if (s_.ok()) {
     db_->cache()->ZRemrangebylex(key_, min_, max_, db_);
   }
+}
+
+std::string ZRemrangebylexCmd::ToRedisProtocol() {
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 2 + members_del_.size(), "*");
+
+  // to zrem cmd
+  std::string zrem_cmd(kCmdNameZRem);
+  RedisAppendLenUint64(content,  zrem_cmd.size(), "$");
+  RedisAppendContent(content,  zrem_cmd);
+  // key
+
+  RedisAppendLenUint64(content, key_.size(), "$");
+  RedisAppendContent(content, key_);
+
+  // member
+  for (auto& m : members_del_) {
+    RedisAppendLenUint64(content, m.size(), "$");
+    RedisAppendContent(content, m);
+  }
+
+  return content;
 }
 
 void ZPopmaxCmd::DoInitial() {
@@ -1495,6 +1671,7 @@ void ZPopmaxCmd::Do() {
     int64_t len = 0;
     res_.AppendArrayLenUint64(score_members.size() * 2);
     for (const auto& sm : score_members) {
+      members_del_.emplace_back(sm.member);
       res_.AppendString(sm.member);
       len = pstd::d2string(buf, sizeof(buf), sm.score);
       res_.AppendStringLen(len);
@@ -1505,6 +1682,28 @@ void ZPopmaxCmd::Do() {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+}
+std::string ZPopmaxCmd::ToRedisProtocol() {
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 2 + members_del_.size(), "*");
+
+  // to zrem cmd
+  std::string zrem_cmd(kCmdNameZRem);
+  RedisAppendLenUint64(content,  zrem_cmd.size(), "$");
+  RedisAppendContent(content,  zrem_cmd);
+
+  // key
+  RedisAppendLenUint64(content, key_.size(), "$");
+  RedisAppendContent(content, key_);
+
+  // member
+  for (auto& m : members_del_) {
+    RedisAppendLenUint64(content, m.size(), "$");
+    RedisAppendContent(content, m);
+  }
+
+  return content;
 }
 
 void ZPopminCmd::DoInitial() {
@@ -1531,6 +1730,7 @@ void ZPopminCmd::Do() {
     int64_t len = 0;
     res_.AppendArrayLenUint64(score_members.size() * 2);
     for (const auto& sm : score_members) {
+      members_del_.emplace_back(sm.member);
       res_.AppendString(sm.member);
       len = pstd::d2string(buf, sizeof(buf), sm.score);
       res_.AppendStringLen(len);
@@ -1541,4 +1741,27 @@ void ZPopminCmd::Do() {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+}
+std::string ZPopminCmd::ToRedisProtocol() {
+
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 2 + members_del_.size(), "*");
+
+  // to zrem cmd
+  std::string zrem_cmd(kCmdNameZRem);
+  RedisAppendLenUint64(content,  zrem_cmd.size(), "$");
+  RedisAppendContent(content,  zrem_cmd);
+
+  // key
+  RedisAppendLenUint64(content, key_.size(), "$");
+  RedisAppendContent(content, key_);
+
+  // member
+  for (auto& m : members_del_) {
+    RedisAppendLenUint64(content, m.size(), "$");
+    RedisAppendContent(content, m);
+  }
+
+  return content;
 }

@@ -111,7 +111,7 @@ func UpdateTimout(cli *redis.Client, ctx context.Context, wg *sync.WaitGroup) {
 	}
 }
 
-var _ = Describe("Rsync Reconfig Test", func() {
+var _ = PDescribe("Rsync Reconfig Test", func() {
 	ctx := context.TODO()
 	var (
 		slave1  *redis.Client

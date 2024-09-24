@@ -61,7 +61,8 @@ rocksdb::Status Redis::ScanSetsKeyNum(KeyInfo* key_info) {
   return rocksdb::Status::OK();
 }
 
-rocksdb::Status Redis::SAdd(const Slice& key, const std::vector<std::string>& members, int32_t* ret) {
+Status Redis::SAdd(const Slice& key, const std::vector<std::string>& members, int32_t* ret, uint64_t& ts_ms) {
+  ts_ms = 0;
   std::unordered_set<std::string> unique;
   std::vector<std::string> filtered_members;
   for (const auto& member : members) {
@@ -106,6 +107,7 @@ rocksdb::Status Redis::SAdd(const Slice& key, const std::vector<std::string>& me
     } else {
       int32_t cnt = 0;
       std::string member_value;
+      ts_ms = parsed_sets_meta_value.Etime();
       version = parsed_sets_meta_value.Version();
       for (const auto& member : filtered_members) {
         SetsMemberKey sets_member_key(key, version, member);

@@ -14,6 +14,7 @@ void SAddCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSAdd);
     return;
   }
+  ts_ms_ = 0;
   key_ = argv_[1];
   auto iter = argv_.begin();
   iter++;
@@ -23,7 +24,7 @@ void SAddCmd::DoInitial() {
 
 void SAddCmd::Do() {
   int32_t count = 0;
-  s_ = db_->storage()->SAdd(key_, members_, &count);
+  s_ = db_->storage()->SAdd(key_, members_, &count, nullptr);
   if (s_.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kMultiKey);
     return;
@@ -43,6 +44,37 @@ void SAddCmd::DoUpdateCache() {
   if (s_.ok()) {
     db_->cache()->SAddIfKeyExist(key_, members_);
   }
+}
+std::string SAddCmd::ToRedisProtocol() {
+  if (ts_ms_ == 0) {
+    return Cmd::ToRedisProtocol();
+  }
+
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 3 + members_.size(), "*");
+
+  // to pksadd cmd
+  std::string pksadd_cmd(kCmdNamePKSAdd);
+  RedisAppendLenUint64(content, pksadd_cmd.size(), "$");
+  RedisAppendContent(content, pksadd_cmd);
+
+  // key
+  RedisAppendLenUint64(content, key_.size(), "$");
+  RedisAppendContent(content, key_);
+
+  // member
+  for (auto& m : members_) {
+    RedisAppendLenUint64(content, m.size(), "$");
+    RedisAppendContent(content, m);
+  }
+
+  //ts
+  std::string ts_str = std::to_string(ts_ms_);
+  RedisAppendLenUint64(content, ts_str.size(), "$");
+  RedisAppendContent(content, ts_str);
+
+  return content;
 }
 
 void SPopCmd::DoInitial() {
@@ -94,22 +126,25 @@ void SPopCmd::DoUpdateCache() {
   }
 }
 
-void SPopCmd::DoBinlog() {
-  if (!s_.ok()) {
-    return;
+std::string SPopCmd::ToRedisProtocol() {
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 2 + members_.size(), "*");
+
+  // to srem cmd
+  std::string pkzsetat_cmd(kCmdNameSRem);
+  RedisAppendLenUint64(content,  pkzsetat_cmd.size(), "$");
+  RedisAppendContent(content,  pkzsetat_cmd);
+  // key
+  RedisAppendLenUint64(content, key_.size(), "$");
+  RedisAppendContent(content, key_);
+  // member
+  for (auto& m : members_) {
+    RedisAppendLenUint64(content, m.size(), "$");
+    RedisAppendContent(content, m);
   }
 
-  PikaCmdArgsType srem_args;
-  srem_args.emplace_back("srem");
-  srem_args.emplace_back(key_);
-  for (auto m = members_.begin(); m != members_.end(); ++m) {
-    srem_args.emplace_back(*m);
-  }
-  
-  srem_cmd_->Initial(srem_args, db_name_);
-  srem_cmd_->SetConn(GetConn());
-  srem_cmd_->SetResp(resp_.lock());
-  srem_cmd_->DoBinlog();
+  return content;
 }
 
 void SCardCmd::DoInitial() {
@@ -359,44 +394,29 @@ void SUnionstoreCmd::DoUpdateCache() {
   }
 }
 
-void SetOperationCmd::DoBinlog() {
-  PikaCmdArgsType del_args;
-  del_args.emplace_back("del");
-  del_args.emplace_back(dest_key_);
-  del_cmd_->Initial(del_args, db_name_);
-  del_cmd_->SetConn(GetConn());
-  del_cmd_->SetResp(resp_.lock());
-  del_cmd_->DoBinlog();
-
-  if (value_to_dest_.size() == 0) {
+std::string SetOperationCmd::ToRedisProtocol() {
+  if (value_to_dest_.empty()) {
     //The union/diff/inter operation got an empty set, just exec del to simulate overwrite an empty set to dest_key
-    return;
+    return {};
   }
 
-  PikaCmdArgsType initial_args;
-  initial_args.emplace_back("sadd");//use "sadd" to distinguish the binlog of SaddCmd which use "SADD" for binlog
-  initial_args.emplace_back(dest_key_);
-  initial_args.emplace_back(value_to_dest_[0]);
-  sadd_cmd_->Initial(initial_args, db_name_);
-  sadd_cmd_->SetConn(GetConn());
-  sadd_cmd_->SetResp(resp_.lock());
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 2 + value_to_dest_.size(), "*");
 
-  auto& sadd_argv = sadd_cmd_->argv();
-  size_t data_size = value_to_dest_[0].size();
-
-  for (size_t i = 1; i < value_to_dest_.size(); i++) {
-    if (data_size >= 131072) {
-      // If the binlog has reached the size of 128KB. (131,072 bytes = 128KB)
-      sadd_cmd_->DoBinlog();
-      sadd_argv.clear();
-      sadd_argv.emplace_back("sadd");
-      sadd_argv.emplace_back(dest_key_);
-      data_size = 0;
-    }
-    sadd_argv.emplace_back(value_to_dest_[i]);
-    data_size += value_to_dest_[i].size();
+  // to zadd cmd
+  std::string pkzsetat_cmd(kCmdNameSPop);
+  RedisAppendLenUint64(content,  pkzsetat_cmd.size(), "$");
+  RedisAppendContent(content,  pkzsetat_cmd);
+  // key
+  RedisAppendLenUint64(content, keys_[0].size(), "$");
+  RedisAppendContent(content, keys_[0]);
+  // members
+  for (auto& m : value_to_dest_) {
+    RedisAppendLenUint64(content, m.size(), "$");
+    RedisAppendContent(content, m);
   }
-  sadd_cmd_->DoBinlog();
+  return content;
 }
 
 void SInterCmd::DoInitial() {
@@ -696,5 +716,48 @@ void SRandmemberCmd::DoUpdateCache() {
   if (s_.ok()) {
     db_->cache()->PushKeyToAsyncLoadQueue(PIKA_KEY_TYPE_SET, key_, db_);
   }
+}
+
+void PKSAddCmd::Do() {
+  if (ts_ms_ != 0 && ts_ms_ < pstd::NowMillis()) {
+    res_.SetRes(CmdRes::kErrOther, "abort expired operation");
+    return;
+  }
+
+  int32_t count = 0;
+  uint64_t ts_ms;
+  s_ = db_->storage()->SAdd(key_, members_, &count, &ts_ms_);
+  if (s_.IsInvalidArgument()) {
+    res_.SetRes(CmdRes::kMultiKey);
+    return;
+  } else if (!s_.ok()) {
+    res_.SetRes(CmdRes::kErrOther, s_.ToString());
+    return;
+  }
+
+  AddSlotKey("s", key_, db_);
+  res_.AppendInteger(count);
+}
+
+void PKSAddCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSRandmember);
+    return;
+  }
+
+  key_ = argv_[1];
+
+  for (int32_t i = 2; i < argv_.size() - 1; i++) {
+    members_.push_back(argv_[i]);
+  }
+
+  if ((pstd::string2int(argv_.back().data(), argv_.back().size(), &ts_ms_) == 0) || ts_ms_ >= INT64_MAX) {
+    res_.SetRes(CmdRes::kInvalidInt);
+    return;
+  }
+}
+
+void PKSAddCmd::DoThroughDB() {
+  Do();
 }
 

@@ -152,7 +152,7 @@ class Redis {
   Status Append(const Slice& key, const Slice& value, int32_t* ret, int64_t* expired_timestamp_millsec, std::string& out_new_value);
   Status BitCount(const Slice& key, int64_t start_offset, int64_t end_offset, int32_t* ret, bool have_range);
   Status BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys, std::string &value_to_dest, int64_t* ret);
-  Status Decrby(const Slice& key, int64_t value, int64_t* ret);
+  Status Decrby(const Slice& key, int64_t value, int64_t* ret, uint64_t* ts_ms);
   Status Get(const Slice& key, std::string* value);
   Status HyperloglogGet(const Slice& key, std::string* value);
   Status MGet(const Slice& key, std::string* value);
@@ -199,8 +199,8 @@ class Redis {
   Status HGet(const Slice& key, const Slice& field, std::string* value);
   Status HGetall(const Slice& key, std::vector<FieldValue>* fvs);
   Status HGetallWithTTL(const Slice& key, std::vector<FieldValue>* fvs, int64_t* ttl_millsec);
-  Status HIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret);
-  Status HIncrbyfloat(const Slice& key, const Slice& field, const Slice& by, std::string* new_value);
+  Status HIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret, uint64_t* ts_ms);
+  Status HIncrbyfloat(const Slice& key, const Slice& field, const Slice& by, std::string* new_value, uint64_t* ts_ms);
   Status HKeys(const Slice& key, std::vector<std::string>* fields);
   Status HLen(const Slice& key, int32_t* ret, std::string&& prefetch_meta = {});
   Status HMGet(const Slice& key, const std::vector<std::string>& fields, std::vector<ValueStatus>* vss);
@@ -247,7 +247,7 @@ class Redis {
   void GetRocksDBInfo(std::string &info, const char *prefix);
 
   // Sets Commands
-  Status SAdd(const Slice& key, const std::vector<std::string>& members, int32_t* ret);
+  Status SAdd(const Slice& key, const std::vector<std::string>& members, int32_t* ret, uint64_t& ts_ms);
   Status SCard(const Slice& key, int32_t* ret, std::string&& prefetch_meta = {});
   Status SDiff(const std::vector<std::string>& keys, std::vector<std::string>* members);
   Status SDiffstore(const Slice& destination, const std::vector<std::string>& keys, std::vector<std::string>& value_to_dest, int32_t* ret);
@@ -289,15 +289,18 @@ class Redis {
   Status ZAdd(const Slice& key, const std::vector<ScoreMember>& score_members, int32_t* ret);
   Status ZCard(const Slice& key, int32_t* card, std::string&& prefetch_meta = {});
   Status ZCount(const Slice& key, double min, double max, bool left_close, bool right_close, int32_t* ret);
-  Status ZIncrby(const Slice& key, const Slice& member, double increment, double* ret);
+  Status ZIncrby(const Slice& key, const Slice& member, double increment, double* ret, uint64_t& ts_ms_,
+                 bool& key_found);
   Status ZRange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members);
   Status ZRangeWithTTL(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members, int64_t* ttl_millsec);
   Status ZRangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close, int64_t count,
                        int64_t offset, std::vector<ScoreMember>* score_members);
   Status ZRank(const Slice& key, const Slice& member, int32_t* rank);
   Status ZRem(const Slice& key, const std::vector<std::string>& members, int32_t* ret);
-  Status ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int32_t* ret);
-  Status ZRemrangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close, int32_t* ret);
+  Status ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int32_t* ret,
+                         std::vector<std::string>* members_deled);
+  Status ZRemrangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close, int32_t* ret,
+                          std::vector<std::string>* member_del);
   Status ZRevrange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members);
   Status ZRevrangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close, int64_t count,
                           int64_t offset, std::vector<ScoreMember>* score_members);
@@ -313,11 +316,12 @@ class Redis {
   Status ZLexcount(const Slice& key, const Slice& min, const Slice& max, bool left_close, bool right_close,
                    int32_t* ret);
   Status ZRemrangebylex(const Slice& key, const Slice& min, const Slice& max, bool left_close, bool right_close,
-                        int32_t* ret);
+                        int32_t* ret, std::vector<std::string>* member_del);
   Status ZScan(const Slice& key, int64_t cursor, const std::string& pattern, int64_t count,
                std::vector<ScoreMember>* score_members, int64_t* next_cursor);
   Status ZPopMax(const Slice& key, int64_t count, std::vector<ScoreMember>* score_members);
   Status ZPopMin(const Slice& key, int64_t count, std::vector<ScoreMember>* score_members);
+  Status PKZSetAt(const Slice& key, const Slice& member, double old_score, double incr_value);
 
   //===--------------------------------------------------------------------===//
   // Commands

@@ -283,11 +283,15 @@ class Storage {
 
   // Decrements the number stored at key by decrement
   // return the value of key after the decrement
-  Status Decrby(const Slice& key, int64_t value, int64_t* ret);
+  Status Decrby(const Slice& key, int64_t value, int64_t* ret, uint64_t* ts_ms);
 
   // Increments the number stored at key by increment.
   // If the key does not exist, it is set to 0 before performing the operation
   Status Incrby(const Slice& key, int64_t value, int64_t* ret, int64_t* expired_timestamp_millsec);
+
+
+  Status PKZSetAt(const Slice& key, const Slice& member, double old_score, double incr_value);
+
 
   // Increment the string representing a floating point number
   // stored at key by the specified increment.
@@ -367,7 +371,7 @@ class Storage {
   // increment. If key does not exist, a new key holding a hash is created. If
   // field does not exist the value is set to 0 before the operation is
   // performed.
-  Status HIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret);
+  Status HIncrby(const Slice& key, const Slice& field, int64_t value, int64_t* ret, uint64_t* ts_ms);
 
   // Increment the specified field of a hash stored at key, and representing a
   // floating point number, by the specified increment. If the increment value
@@ -379,7 +383,7 @@ class Storage {
   // The field contains a value of the wrong type (not a string).
   // The current field content or the specified increment are not parsable as a
   // double precision floating point number.
-  Status HIncrbyfloat(const Slice& key, const Slice& field, const Slice& by, std::string* new_value);
+  Status HIncrbyfloat(const Slice& key, const Slice& field, const Slice& by, std::string* new_value, uint64_t* ts_ms);
 
   // Removes the specified fields from the hash stored at key. Specified fields
   // that do not exist within this hash are ignored. If key does not exist, it
@@ -411,7 +415,7 @@ class Storage {
   // Add the specified members to the set stored at key. Specified members that
   // are already a member of this set are ignored. If key does not exist, a new
   // set is created before adding the specified members.
-  Status SAdd(const Slice& key, const std::vector<std::string>& members, int32_t* ret);
+  Status SAdd(const Slice& key, const std::vector<std::string>& members, int32_t* ret, uint64_t* ts_ms);
 
   // Returns the set cardinality (number of elements) of the set stored at key.
   Status SCard(const Slice& key, int32_t* ret);
@@ -675,7 +679,8 @@ class Storage {
   // The score value should be the string representation of a numeric value, and
   // accepts double precision floating point numbers. It is possible to provide
   // a negative value to decrement the score.
-  Status ZIncrby(const Slice& key, const Slice& member, double increment, double* ret);
+  Status ZIncrby(const Slice& key, const Slice& member, double increment, double* ret, uint64_t* ts_ms,
+                 bool* key_found);
 
   // Returns the specified range of elements in the sorted set stored at key.
   // The elements are considered to be ordered from the lowest to the highest
@@ -805,11 +810,13 @@ class Storage {
   // they indicate offsets starting at the element with the highest score. For
   // example: -1 is the element with the highest score, -2 the element with the
   // second highest score and so forth.
-  Status ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int32_t* ret);
+  Status ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int32_t* ret,
+                         std::vector<std::string>* members_deled);
 
   // Removes all elements in the sorted set stored at key with a score between
   // min and max (inclusive).
-  Status ZRemrangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close, int32_t* ret);
+  Status ZRemrangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close, int32_t* ret,
+                          std::vector<std::string>* members_del);
 
   // Returns the specified range of elements in the sorted set stored at key.
   // The elements are considered to be ordered from the highest to the lowest
@@ -938,7 +945,7 @@ class Storage {
   // Similarly, this command actually returns the same elements that ZRANGEBYLEX
   // would return if called with the same min and max arguments.
   Status ZRemrangebylex(const Slice& key, const Slice& min, const Slice& max, bool left_close, bool right_close,
-                        int32_t* ret);
+                        int32_t* ret, std::vector<std::string>* members_del);
 
   // See SCAN for ZSCAN documentation.
   Status ZScan(const Slice& key, int64_t cursor, const std::string& pattern, int64_t count,
@@ -1059,6 +1066,8 @@ class Storage {
   // Adds all the element arguments to the HyperLogLog data structure stored
   // at the variable name specified as first argument.
   Status PfAdd(const Slice& key, const std::vector<std::string>& values, bool* update);
+
+  Status HyperloglogSet(const Slice& key, std::string& value);
 
   // When called with a single key, returns the approximated cardinality
   // computed by the HyperLogLog data structure stored at the specified
