@@ -529,6 +529,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   // used for execute multikey command into different slots
   virtual void Split(const HintKeys& hint_keys) = 0;
   virtual void Merge() = 0;
+  virtual bool IsTooLargeKey(const int &max_sz) { return false; }
 
   int8_t SubCmdIndex(const std::string& cmdName);  // if the command no subCommand，return -1；
 

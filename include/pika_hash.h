@@ -54,6 +54,7 @@ class HGetCmd : public Cmd {
   void DoUpdateCache() override;
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
+  bool IsTooLargeKey(const int &max_sz) override { return key_.size() > static_cast<uint32_t>(max_sz); }
   Cmd* Clone() override { return new HGetCmd(*this); }
 
  private:

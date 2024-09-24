@@ -640,6 +640,13 @@ int PikaConf::Load() {
   }
   zset_cache_field_num_per_key_ = zset_cache_field_num_per_key;
 
+  int max_key_size_in_cache = DEFAULT_CACHE_MAX_KEY_SIZE;
+  GetConfInt("max-key-size-in-cache", &max_key_size_in_cache);
+  if (max_key_size_in_cache <= 0) {
+    max_key_size_in_cache = DEFAULT_CACHE_MAX_KEY_SIZE;
+  }
+  max_key_size_in_cache_ = max_key_size_in_cache;
+
   int64_t cache_maxmemory = PIKA_CACHE_SIZE_DEFAULT;
   GetConfInt64("cache-maxmemory", &cache_maxmemory);
   cache_maxmemory_ = (PIKA_CACHE_SIZE_MIN > cache_maxmemory) ? PIKA_CACHE_SIZE_DEFAULT : cache_maxmemory;
