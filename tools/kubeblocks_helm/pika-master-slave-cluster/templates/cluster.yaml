@@ -19,7 +19,7 @@ spec:
       enabledLogs: {{ $.Values.enabledLogs | toJson | indent 4 }}
       replicas: {{ add (int $.Values.slaveCount) 1 | default 2 }}
       serviceAccountName: {{ include "pika-cluster.serviceAccountName" $ }}
-      {{- with  $.Values.resources.pikaGroup }}
+      {{- with  $.Values.resources.pikaMS }}
       resources:
         limits:
           cpu: {{ .limits.cpu | quote }}

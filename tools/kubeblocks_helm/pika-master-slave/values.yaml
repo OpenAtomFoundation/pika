@@ -1,5 +1,5 @@
 pika:
-  version: v3.5.3
+  version: v3.5.5
 image:
   pika:
     registry: docker.io
@@ -9,6 +9,7 @@ image:
   redis:
     registry: docker.io
     repository: redis
+    tag: 7.2
     pullPolicy: IfNotPresent
 roleProbe:
   pika:

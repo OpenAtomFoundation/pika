@@ -23,12 +23,6 @@ spec:
       templateRef: pika-master-slave-conf-template
       namespace: {{ .Release.Namespace }}
       volumeName: config
-  scripts:
-    - name: script
-      templateRef: pika-master-slave-script-template
-      namespace: {{ .Release.Namespace }}
-      volumeName: script
-      defaultMode: 0555
   volumes:
     - name: data
   lifecycleActions:
@@ -41,18 +35,17 @@ spec:
            - -c
            - |
              IFS=',' read -r -a pod_name_array <<< ${KB_CLUSTER_COMPONENT_POD_NAME_LIST}
-             IFS=',' read -r -a pod_ip_array <<< ${KB_CLUSTER_COMPONENT_POD_IP_LIST}
-             # Ergodic name and ip array
+             # Ergodic name array
+             headless=".pika-master-slave-cluster-pika-headless"
              for i in "${!pod_name_array[@]}"; do
                pod_name=${pod_name_array[${i}]}
-               pod_ip=${pod_ip_array[${i}]}
                # Extracting the digital portion of the pod
                pod_number=$(echo "${pod_name}" | grep -o '[0-9]*')
                # If the pod number is greater than 0
                if (( pod_number > 0 )); then
-                 pod0_ip=${pod_ip_array[0]}
-                 echo "exec:redis-cli -h ${pod_ip} -p 9221 slaveof ${pod0_ip}:9221"
-                 redis-cli -h "${pod_ip}" -p 9221 slaveof "${pod0_ip}" 9221
+                 pod0_svc=${pod_name_array[0]}${headless}
+                 echo "exec:redis-cli -h ${pod_name}${headless} -p 9221 slaveof ${pod0_svc}:9221"
+                 redis-cli -h "${pod_name}${headless}" -p 9221 slaveof "${pod0_svc}" 9221
                fi
              done
         preCondition: ComponentReady
@@ -83,8 +76,6 @@ spec:
             mountPath: /etc/pika
           - name: data
             mountPath: /data
-          - name: script
-            mountPath: /script
         env:
           - name: CURRENT_POD_HOST_IP
             valueFrom:
@@ -95,4 +86,4 @@ spec:
           - "/pika/bin/pika"
         args:
           - "-c"
-          - "/etc/pika/pika.conf"
+          - "/data/pika.conf"
