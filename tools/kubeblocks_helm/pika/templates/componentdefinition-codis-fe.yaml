@@ -2,16 +2,16 @@ apiVersion: apps.kubeblocks.io/v1alpha1
 kind: ComponentDefinition
 metadata:
   name: pika-codis-fe
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "pika.labels" . | nindent 4 }}
 spec:
   provider: pika
   description: A pika codis frontend component definition
   serviceKind: pika-codis-fe
-  serviceVersion: 3.5.3
+  serviceVersion: {{ .Chart.AppVersion }}
   services:
     - name: fe
-      serviceName: fe
       spec:
         ports:
           - name: fe

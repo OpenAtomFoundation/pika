@@ -9,7 +9,7 @@ set_instance_role() {
 
 # set group id
 set_group_id() {
-  GROUP_ID=${KB_CLUSTER_COMP_NAME##*-}
+  GROUP_ID=${KB_COMP_NAME##*-}
   echo "GROUP_ID: "${GROUP_ID}
 }
 
@@ -81,8 +81,8 @@ reload_until_success() {
 
 register_server() {
   reload_until_success
-  if [ ${POD_ID} -gt 0 ]; then wait_all_master_registered; fi
-  $CODIS_ADMIN --create-group --gid=${GROUP_ID} 1>/dev/null 2>&1
+  if [ ${POD_ID} -eq 0 ]; then $CODIS_ADMIN --create-group --gid=${GROUP_ID} 1>/dev/null 2>&1; fi
+  if [ ${POD_ID} -gt 0 ]; then wait_all_master_registered; sleep 5; fi
   $CODIS_ADMIN --group-add --gid=${GROUP_ID} --addr=${KB_POD_FQDN}:9221
   $CODIS_ADMIN --sync-action --create --addr=${KB_POD_FQDN}:9221 1>/dev/null 2>&1
 }

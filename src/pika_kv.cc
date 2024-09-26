@@ -106,7 +106,7 @@ void SetCmd::DoThroughDB() {
 }
 
 void SetCmd::DoUpdateCache() {
-  if (SetCmd::kNX == condition_) {
+  if (SetCmd::kNX == condition_ || IsTooLargeKey(g_pika_conf->max_key_size_in_cache())) {
     return;
   }
   if (s_.ok()) {
@@ -187,6 +187,9 @@ void GetCmd::DoThroughDB() {
 }
 
 void GetCmd::DoUpdateCache() {
+  if (IsTooLargeKey(g_pika_conf->max_key_size_in_cache())) {
+    return;
+  }
   if (s_.ok()) {
     db_->cache()->WriteKVToCache(key_, value_, ttl_millsec_ / 1000);
   }

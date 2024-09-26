@@ -38,6 +38,7 @@ constexpr int CACHE_START_FROM_END = -1;
  * cache items per key
  */
 #define DEFAULT_CACHE_ITEMS_PER_KEY 512
+#define DEFAULT_CACHE_MAX_KEY_SIZE 512
 
 struct CacheConfig {
   uint64_t maxmemory;                      /* Can used max memory */
