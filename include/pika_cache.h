@@ -16,6 +16,7 @@
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_status.h"
 #include "cache/include/cache.h"
+#include "rocksdb/status.h"
 #include "storage/storage.h"
 
 class PikaCacheLoadThread;
@@ -172,6 +173,8 @@ class PikaCache : public pstd::noncopyable, public std::enable_shared_from_this<
   rocksdb::Status ZLexcount(std::string& key, std::string& min, std::string& max, uint64_t* len,
                             const std::shared_ptr<DB>& db);
   rocksdb::Status ZRemrangebylex(std::string& key, std::string& min, std::string& max, const std::shared_ptr<DB>& db);
+  rocksdb::Status ZPopMin(std::string& key, int64_t count, std::vector<storage::ScoreMember>* score_members, const std::shared_ptr<DB>& db);
+  rocksdb::Status ZPopMax(std::string& key, int64_t count, std::vector<storage::ScoreMember>* score_members, const std::shared_ptr<DB>& db);
 
   // Bit Commands
   rocksdb::Status SetBit(std::string& key, size_t offset, int64_t value);

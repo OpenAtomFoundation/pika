@@ -603,6 +603,8 @@ class ZPopmaxCmd : public Cmd {
   void Do() override;
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
+  void DoThroughDB() override;
+  void DoUpdateCache() override;
   Cmd* Clone() override { return new ZPopmaxCmd(*this); }
 
  private:
@@ -621,6 +623,8 @@ class ZPopminCmd : public Cmd {
     return res;
   }
   void Do() override;
+  void DoUpdateCache() override;
+  void DoThroughDB() override;
   void Split(const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ZPopminCmd(*this); }

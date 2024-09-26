@@ -5,6 +5,7 @@
 
 #include <glog/logging.h>
 #include <ctime>
+#include <mutex>
 #include <unordered_set>
 #include <thread>
 #include <zlib.h>
@@ -16,6 +17,7 @@
 #include "pstd/include/pika_codis_slot.h"
 #include "cache/include/cache.h"
 #include "cache/include/config.h"
+#include "rocksdb/status.h"
 
 extern PikaServer* g_pika_server;
 #define EXTEND_CACHE_SIZE(N) (N * 12 / 10)
@@ -1464,6 +1466,46 @@ Status PikaCache::ZRemrangebylex(std::string& key, std::string &min, std::string
     return Status::NotFound("key not in cache");
   }
 }
+
+
+Status PikaCache::ZPopMin(std::string& key, int64_t count, std::vector<storage::ScoreMember>* score_members, const std::shared_ptr<DB>& db) {
+    int cache_index = CacheIndex(key);
+    std::lock_guard lm(*cache_mutexs_[cache_index]);
+
+    auto cache_obj = caches_[cache_index];
+    Status s;
+
+    if (cache_obj->Exists(key)) {
+        return cache_obj->ZPopMin(key, count, score_members); // 从缓存中弹出最小元素
+    } else {
+        score_members->clear();
+        s = db->storage()->ZPopMin(key, count, score_members);
+        if (s.ok()) {
+            cache_obj->ZAdd(key, *score_members); // 更新缓存
+        }
+        return s;
+    }
+}
+
+Status PikaCache::ZPopMax(std::string& key, int64_t count, std::vector<storage::ScoreMember>* score_members, const std::shared_ptr<DB>& db) {
+    int cache_index = CacheIndex(key);
+    std::lock_guard lm(*cache_mutexs_[cache_index]);
+
+    auto cache_obj = caches_[cache_index];
+    Status s;
+
+    if (cache_obj->Exists(key)) {
+        return cache_obj->ZPopMax(key, count, score_members); // 从缓存中弹出最大元素
+    } else {
+        score_members->clear();
+        s = db->storage()->ZPopMax(key, count, score_members);
+        if (s.ok()) {
+            cache_obj->ZAdd(key, *score_members); // 更新缓存
+        }
+        return s;
+    }
+}
+
 
 /*-----------------------------------------------------------------------------
  * Bit Commands

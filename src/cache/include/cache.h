@@ -147,6 +147,8 @@ public:
                      std::vector<std::string> *members);
   Status ZLexcount(std::string& key, std::string &min, std::string &max, uint64_t *len);
   Status ZRemrangebylex(std::string& key, std::string &min, std::string &max);
+  Status ZPopMin(std::string& key, int64_t count, std::vector<storage::ScoreMember>* score_members);
+  Status ZPopMax(std::string& key, int64_t count, std::vector<storage::ScoreMember>* score_members);
 
   // Bit Commands
   Status SetBit(std::string& key, size_t offset, int64_t value);
