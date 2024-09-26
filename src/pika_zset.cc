@@ -1514,7 +1514,7 @@ void ZPopmaxCmd::DoThroughDB(){
 void ZPopmaxCmd::DoUpdateCache(){
   std::vector<storage::ScoreMember> score_members;
   if(s_.ok() || s_.IsNotFound()){
-      db_->cache()->ZPopMin(key_, count_, &score_members, db_);
+      db_->cache()->ZPopMax(key_, count_, &score_members, db_);
   }
 }
 void ZPopminCmd::DoInitial() {
