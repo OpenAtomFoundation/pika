@@ -1476,12 +1476,12 @@ Status PikaCache::ZPopMin(std::string& key, int64_t count, std::vector<storage::
     Status s;
 
     if (cache_obj->Exists(key)) {
-        return cache_obj->ZPopMin(key, count, score_members); // 从缓存中弹出最小元素
+        return cache_obj->ZPopMin(key, count, score_members);
     } else {
         score_members->clear();
         s = db->storage()->ZPopMin(key, count, score_members);
         if (s.ok()) {
-            cache_obj->ZAdd(key, *score_members); // 更新缓存
+            cache_obj->ZAdd(key, *score_members);
         }
         return s;
     }
@@ -1495,12 +1495,12 @@ Status PikaCache::ZPopMax(std::string& key, int64_t count, std::vector<storage::
     Status s;
 
     if (cache_obj->Exists(key)) {
-        return cache_obj->ZPopMax(key, count, score_members); // 从缓存中弹出最大元素
+        return cache_obj->ZPopMax(key, count, score_members);
     } else {
         score_members->clear();
         s = db->storage()->ZPopMax(key, count, score_members);
         if (s.ok()) {
-            cache_obj->ZAdd(key, *score_members); // 更新缓存
+            cache_obj->ZAdd(key, *score_members);
         }
         return s;
     }
