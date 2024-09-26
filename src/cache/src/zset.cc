@@ -425,7 +425,7 @@ Status RedisCache::ZPopMin(std::string& key, int64_t count, std::vector<storage:
 
         robj* member_obj = createObject(OBJ_STRING, sdsnewlen(items[i].member, sdslen(items[i].member)));
         RcZRem(cache_, kobj, &member_obj, 1);
-        DecrObjectsRefCount(member_obj);
+        DecrObjectsRefCount(member_obj); // 释放创建的对象
     }
 
     FreeZitemList(items, items_size);
@@ -454,7 +454,7 @@ Status RedisCache::ZPopMax(std::string& key, int64_t count, std::vector<storage:
 
         robj* member_obj = createObject(OBJ_STRING, sdsnewlen(items[i].member, sdslen(items[i].member)));
         RcZRem(cache_, kobj, &member_obj, 1);
-        DecrObjectsRefCount(member_obj);
+        DecrObjectsRefCount(member_obj); // 释放创建的对象
     }
 
     FreeZitemList(items, items_size);
