@@ -33,6 +33,11 @@ kubectl port-forward svc/pika-cluster-codis-proxy 19000
 # start new terminal
 redis-cli -p 19000 info
 ```
+### uninstall pika cluster
+```bash
+helm uninstall pika-cluster
+helm uninstall pika
+```
 
 ## Scale pika cluster
 
@@ -46,3 +51,29 @@ helm upgrade pika-cluster ./pika-cluster
 
 ### Scale in
 scale in is not supported now.
+
+## Install pika Master/Slave group by kubeblocks
+
+### Install pika CD and pika Master/Slave 
+First,use helm install pika-master-slave-group componentdefinition and pika-master-slave cluster
+```bash
+cd ./tools/kubeblocks-helm/
+helm install pika-master-slave ./pika-master-slave
+helm install pika-master-slave-cluster ./pika-master-slave-cluster
+```
+Wait for pika-master-slave-pika-{index} pods until the status all to be `Running`.
+```bash
+kubectl get pods --watch
+````
+### connect to pika master-slave cluster
+```bash
+kubectl port-forward svc/pika-master-slave-cluster-pika 9221
+#start new terminal
+redis-cli -p 9221
+```
+
+### uninstall pika master-slave-cluster
+```bash
+helm uninstall pika-master-slave-cluster
+helm uninstall pika-master-slave
+```

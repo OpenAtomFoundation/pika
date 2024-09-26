@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pika-master-slave-conf-template
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "pika.labels" . | nindent 4 }}
+data:
+  pika.conf: |-
+    {{- .Files.Get "config/pika-config.tpl" | nindent 4 }}

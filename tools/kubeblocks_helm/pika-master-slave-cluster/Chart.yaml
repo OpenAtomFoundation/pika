@@ -1,0 +1,22 @@
+apiVersion: v2
+name: pika-master-slave
+description: A Pika Master-Slave Group Helm chart for KubeBlocks.
+
+type: application
+
+version: 0.9.0
+
+appVersion: "3.5.5"
+
+home: https://github.com/OpenAtomFoundation/pika
+keywords:
+  - pika
+  - redis
+  - database
+  - nosql
+  - replication
+  - codis
+
+maintainers:
+  - name: pika
+    url: https://github.com/OpenAtomFoundation/pika/tools/kubeblocks_helm
