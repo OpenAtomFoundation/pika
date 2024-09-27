@@ -1478,9 +1478,7 @@ Status PikaCache::ZPopMin(std::string& key, int64_t count, std::vector<storage::
     if (cache_obj->Exists(key)) {
         return cache_obj->ZPopMin(key, count, score_members);
     } else {
-        score_members->clear();
-        s = db->storage()->ZPopMin(key, count, score_members);
-        return s;
+        return Status::NotFound("key not in cache");
     }
 }
 
@@ -1494,9 +1492,7 @@ Status PikaCache::ZPopMax(std::string& key, int64_t count, std::vector<storage::
     if (cache_obj->Exists(key)) {
         return cache_obj->ZPopMax(key, count, score_members);
     } else {
-        score_members->clear();
-        s = db->storage()->ZPopMax(key, count, score_members);
-        return s;
+        return Status::NotFound("key not in cache");
     }
 }
 
