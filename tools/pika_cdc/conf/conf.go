@@ -16,7 +16,6 @@ type PikaCdcConfig struct {
 	PikaServer         string   `yaml:"pika_server"`
 	KafkaServers       []string `yaml:"kafka_servers"`
 	RedisServers       []string `yaml:"redis_servers"`
-	PulsarServers      []string `yaml:"pulsar_servers"`
 	Retries            int      `yaml:"retries"`
 	RetryInterval      int      `yaml:"retry_interval"`
 	ParallelThreadSize int      `yaml:"parallel_thread_size"`

@@ -14,7 +14,6 @@ type Kafka struct {
 	wg         sync.WaitGroup
 	msgChanns  map[string]chan []byte
 	stopChan   chan bool
-	once       sync.Once
 	protocol   KafkaProtocol
 }
 
@@ -46,26 +45,13 @@ func NewKafka(server string, retries int, msgChanns map[string]chan []byte) (*Ka
 	return k, nil
 }
 
-func (k *Kafka) close() error {
-	//k.stopChan <- true
-	//close(k.stopChan)
-	//close(*k.messageChan)
-	//for _, conn := range k.kafkaConns {
-	//	err := conn.Close()
-	//	if err != nil {
-	//		logrus.Warn(err)
-	//		return err
-	//	}
-	//}
-	return nil
-}
 func (k *Kafka) Close() error {
-	//var err error
-	//err = nil
-	//k.once.Do(func() {
-	//	err = k.close()
-	//})
-	//return err
+	k.Stop()
+	for _, conn := range k.kafkaConns {
+		if err := conn.Close(); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 func (k *Kafka) Run() {
