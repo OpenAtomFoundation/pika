@@ -29,6 +29,23 @@ namespace storage {
 static const bool kLittleEndian = STORAGE_PLATFORM_IS_LITTLE_ENDIAN;
 #undef STORAGE_PLATFORM_IS_LITTLE_ENDIAN
 
+inline void EncodeFixed8(char* buf, uint8_t value) {
+  if (kLittleEndian) {
+    memcpy(buf, &value, sizeof(value));
+  } else {
+    buf[0] = value & 0xff;
+  }
+}
+
+inline void EncodeFixed16(char* buf, uint16_t value) {
+  if (kLittleEndian) {
+    memcpy(buf, &value, sizeof(value));
+  } else {
+    buf[0] = value & 0xff;
+    buf[1] = (value >> 8) & 0xff;
+  }
+}
+
 inline void EncodeFixed32(char* buf, uint32_t value) {
   if (kLittleEndian) {
     memcpy(buf, &value, sizeof(value));
@@ -52,6 +69,29 @@ inline void EncodeFixed64(char* buf, uint64_t value) {
     buf[5] = (value >> 40) & 0xff;
     buf[6] = (value >> 48) & 0xff;
     buf[7] = (value >> 56) & 0xff;
+  }
+}
+
+inline uint8_t DecodeFixed8(const char* ptr) {
+  if (kLittleEndian) {
+    // Load the raw bytes
+    uint8_t result;
+    memcpy(&result, ptr, sizeof(result));  // gcc optimizes this to a plain load
+    return result;
+  } else {
+    return static_cast<uint8_t>(static_cast<unsigned char>(ptr[0]));
+  }
+}
+
+inline uint16_t DecodeFixed16(const char* ptr) {
+  if (kLittleEndian) {
+    // Load the raw bytes
+    uint16_t result;
+    memcpy(&result, ptr, sizeof(result));  // gcc optimizes this to a plain load
+    return result;
+  } else {
+    return ((static_cast<uint16_t>(static_cast<unsigned char>(ptr[0]))) |
+            (static_cast<uint16_t>(static_cast<unsigned char>(ptr[1])) << 8));
   }
 }
 
@@ -80,6 +120,55 @@ inline uint64_t DecodeFixed64(const char* ptr) {
     uint64_t hi = DecodeFixed32(ptr + 4);
     return (hi << 32) | lo;
   }
+}
+
+inline uint64_t EncodeDoubleToUInt64(double value) {
+  uint64_t result = 0;
+
+  __builtin_memcpy(&result, &value, sizeof(value));
+
+  if ((result >> 63) == 1) {
+    // signed bit would be zero
+    result ^= 0xffffffffffffffff;
+  } else {
+    // signed bit would be one
+    result |= 0x8000000000000000;
+  }
+
+  return result;
+
+  // uint64_t encodedValue;
+  // std::memcpy(&encodedValue, &value, sizeof(value));
+  // return encodedValue;
+}
+
+inline double DecodeDoubleFromUInt64(uint64_t value) {
+  if ((value >> 63) == 0) {
+    value ^= 0xffffffffffffffff;
+  } else {
+    value &= 0x7fffffffffffffff;
+  }
+
+  double result = 0;
+  __builtin_memcpy(&result, &value, sizeof(result));
+
+  return result;
+  // double decodedValue;
+  // std::memcpy(&decodedValue, &value, sizeof(decodedValue));
+  // return decodedValue;
+}
+
+inline void EncodeSizedString(std::string* str, std::string& value) {
+  char buf[4];
+  EncodeFixed32(buf, value.size());
+  str->append(buf, sizeof(buf));
+  str->append(value);
+}
+
+inline void DecodeSizedString(rocksdb::Slice* input, std::string* value) {
+  uint32_t size = DecodeFixed32(input->data());
+  *value = std::string(input->data() + 4, size);
+  input->remove_prefix(size);
 }
 
 }  // namespace storage

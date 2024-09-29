@@ -348,6 +348,18 @@ class Redis {
   Status TrimStream(int32_t& count, StreamMetaValue& stream_meta, const rocksdb::Slice& key, StreamAddTrimArgs& args,
                     rocksdb::ReadOptions& read_options);
 
+  // Vector Search storage apis
+  Status PutHnswIndexMetaData(const rocksdb::Slice& index_key, HnswMetaValue& meta_value);
+  Status GetHnswIndexMetaData(const rocksdb::Slice& index_key, HnswMetaValue& meta_value);
+  Status PutHnswNodeMetaData(std::string& node_key, uint16_t level, HnswNodeMetaData& node_data);
+  Status GetHnswNodeMetaData(std::string& node_key, uint16_t level, HnswNodeMetaData& node_data);
+  // TODO: construct edge_key within or above?
+  Status AddHnswEdge(std::string& edge_key);
+  Status RemoveHnswEdge(std::string& edge_key);
+  Status HnswNodeDecodeNeighbours(std::string& node_key, uint16_t level, std::vector<std::string>& neighbours);
+  Status HnswNodeAddNeighbour(std::string& node_key, uint16_t level, std::string& neighbour_key);
+  Status HnswNodeRemoveNeighbour(std::string& node_key, uint16_t level, std::string& neighbour_key);
+
   void ScanDatabase();
   void ScanStrings();
   void ScanHashes();

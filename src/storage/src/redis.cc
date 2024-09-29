@@ -142,6 +142,16 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
   }
   stream_data_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(stream_data_cf_table_ops));
 
+  // search column-family options
+  rocksdb::ColumnFamilyOptions search_data_cf_ops(storage_options.options);
+  search_data_cf_ops.compaction_filter_factory =
+      std::make_shared<BaseDataFilterFactory>(&db_, &handles_, DataType::kSearch);
+  rocksdb::BlockBasedTableOptions serach_data_cf_table_ops(table_ops);
+  if (!storage_options.share_block_cache && storage_options.block_cache_size > 0) {
+    serach_data_cf_table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
+  }
+  search_data_cf_ops.table_factory.reset(rocksdb::NewBlockBasedTableFactory(serach_data_cf_table_ops));
+
   std::vector<rocksdb::ColumnFamilyDescriptor> column_families;
   // meta & string cf
   column_families.emplace_back(rocksdb::kDefaultColumnFamilyName, meta_cf_ops);
@@ -156,6 +166,8 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
   column_families.emplace_back("zset_score_cf", zset_score_cf_ops);
   // stream CF
   column_families.emplace_back("stream_data_cf", stream_data_cf_ops);
+  // search CF
+  column_families.emplace_back("search_data_cf", search_data_cf_ops);
   return rocksdb::DB::Open(db_ops, db_path, column_families, &handles_, &db_);
 }
 
@@ -200,6 +212,7 @@ Status Redis::CompactRange(const rocksdb::Slice* begin, const rocksdb::Slice* en
   db_->CompactRange(default_compact_range_options_, handles_[kZsetsDataCF], begin, end);
   db_->CompactRange(default_compact_range_options_, handles_[kZsetsScoreCF], begin, end);
   db_->CompactRange(default_compact_range_options_, handles_[kStreamsDataCF], begin, end);
+  db_->CompactRange(default_compact_range_options_, handles_[kSearchDataCF], begin, end);
   return Status::OK();
 }
 
