@@ -1178,6 +1178,52 @@ Status Storage::XInfo(const Slice& key, StreamInfoResult &result) {
   return inst->XInfo(key, result);
 }
 
+Status Storage::PutHnswIndexMetaData(const Slice& index_key, HnswMetaValue& meta_value) {
+  auto& inst = GetDBInstance(index_key);
+  return inst->PutHnswIndexMetaData(index_key, meta_value);
+}
+
+Status Storage::GetHnswIndexMetaData(const Slice& index_key, HnswMetaValue& meta_value) {
+  auto& inst = GetDBInstance(index_key);
+  return inst->GetHnswIndexMetaData(index_key, meta_value);
+}
+
+Status Storage::PutHnswNodeMetaData(std::string& node_key, uint16_t level, HnswNodeMetaData& node_meta) {
+  auto& inst = GetDBInstance(node_key);
+  return inst->PutHnswNodeMetaData(node_key, level, node_meta);
+}
+
+Status Storage::GetHnswNodeMetaData(std::string& node_key, uint16_t level, HnswNodeMetaData& node_meta) {
+  auto& inst = GetDBInstance(node_key);
+  return inst->GetHnswNodeMetaData(node_key, level, node_meta);
+}
+
+Status Storage::AddHnswEdge(std::string& edge_key) {
+  auto& inst = GetDBInstance(edge_key);
+  return inst->AddHnswEdge(edge_key);
+}
+
+Status Storage::RemoveHnswEdge(std::string& edge_key) {
+  auto& inst = GetDBInstance(edge_key);
+  return inst->RemoveHnswEdge(edge_key);
+}
+
+Status Storage::HnswNodeDecodeNeighbours(std::string& node_key, uint16_t level, std::vector<std::string>& neighbours) {
+  auto& inst = GetDBInstance(node_key);
+  return inst->HnswNodeDecodeNeighbours(node_key, level, neighbours);
+}
+
+Status Storage::HnswNodeAddNeighbour(std::string& node_key, uint16_t level, std::string& neighbour_key) {
+  auto& inst = GetDBInstance(node_key);
+  return inst->HnswNodeAddNeighbour(node_key, level, neighbour_key);
+}
+
+Status Storage::HnswNodeRemoveNeighbour(std::string& node_key, uint16_t level, std::string& neighbour_key) {
+  auto& inst = GetDBInstance(node_key);
+  return inst->HnswNodeRemoveNeighbour(node_key, level, neighbour_key);
+}
+
+
 // Keys Commands
 int32_t Storage::Expire(const Slice& key, int64_t ttl_millsec) {
   auto& inst = GetDBInstance(key);

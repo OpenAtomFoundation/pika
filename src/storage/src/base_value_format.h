@@ -18,11 +18,11 @@
 
 namespace storage {
 
-enum class DataType : uint8_t { kStrings = 0, kHashes = 1, kSets = 2, kLists = 3, kZSets = 4, kStreams = 5, kNones = 6, kAll = 7 };
+enum class DataType : uint8_t { kStrings = 0, kHashes = 1, kSets = 2, kLists = 3, kZSets = 4, kStreams = 5, kSearch = 6, kNones = 7, kAll = 8 };
 constexpr int DataTypeNum = int(DataType::kNones);
 
-constexpr char DataTypeTag[] = { 'k', 'h', 's', 'l', 'z', 'x', 'n', 'a'};
-constexpr char* DataTypeStrings[] = { "string", "hash", "set", "list", "zset", "streams", "none", "all"};
+constexpr char DataTypeTag[] = { 'k', 'h', 's', 'l', 'z', 'x', 'i', 'n', 'a'};
+constexpr char* DataTypeStrings[] = { "string", "hash", "set", "list", "zset", "streams", "search", "none", "all"};
 
 constexpr char* DataTypeToString(DataType type) {
   if (type < DataType::kStrings || type > DataType::kNones) {

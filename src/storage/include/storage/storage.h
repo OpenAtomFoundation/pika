@@ -25,6 +25,7 @@
 #include "slot_indexer.h"
 #include "pstd/include/pstd_mutex.h"
 #include "src/base_data_value_format.h"
+#include "src/search_format.h"
 
 namespace storage {
 
@@ -954,6 +955,16 @@ class Storage {
                std::vector<std::string>& reserved_keys);
   Status XInfo(const Slice& key, StreamInfoResult &result);
   // Keys Commands
+
+  Status PutHnswIndexMetaData(const Slice& index_key, HnswMetaValue& meta_value);
+  Status GetHnswIndexMetaData(const Slice& index_key, HnswMetaValue& meta_value);
+  Status PutHnswNodeMetaData(std::string& node_key, uint16_t level, HnswNodeMetaData& node_meta);
+  Status GetHnswNodeMetaData(std::string& node_key, uint16_t level, HnswNodeMetaData& node_meta);
+  Status AddHnswEdge(std::string& edge_key);
+  Status RemoveHnswEdge(std::string& edge_key);
+  Status HnswNodeDecodeNeighbours(std::string& node_key, uint16_t level, std::vector<std::string>& neighbours);
+  Status HnswNodeAddNeighbour(std::string& node_key, uint16_t level, std::string& neighbour_key);
+  Status HnswNodeRemoveNeighbour(std::string& node_key, uint16_t level, std::string& neighbour_key);
 
   // Note:
   // While any error happens, you need to check type_status for
