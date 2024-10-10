@@ -1465,7 +1465,8 @@ Status PikaCache::ZRemrangebylex(std::string& key, std::string &min, std::string
   }
 }
 
-Status PikaCache::ZPopMin(std::string& key, int64_t count, std::vector<storage::ScoreMember>* score_members, const std::shared_ptr<DB>& db) {
+Status PikaCache::ZPopMin(std::string &key, int64_t count, std::vector<storage::ScoreMember> *score_members,
+                          const std::shared_ptr<DB> &db) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
 
@@ -1479,7 +1480,8 @@ Status PikaCache::ZPopMin(std::string& key, int64_t count, std::vector<storage::
   }
 }
 
-Status PikaCache::ZPopMax(std::string& key, int64_t count, std::vector<storage::ScoreMember>* score_members, const std::shared_ptr<DB>& db) {
+Status PikaCache::ZPopMax(std::string &key, int64_t count, std::vector<storage::ScoreMember> *score_members,
+                          const std::shared_ptr<DB> &db) {
   int cache_index = CacheIndex(key);
   std::lock_guard lm(*cache_mutexs_[cache_index]);
 
