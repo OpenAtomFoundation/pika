@@ -26,7 +26,7 @@ Pika can be deployed in a single-machine master-slave mode (slaveof) or in a [Co
 
 ## Pika Storage Engine Architecture
 
-* Supports multiple platforms: CentOS, Ubuntu, macOS
+* Supports multiple platforms: CentOS, Ubuntu, macOS, Rocky Linux
 * Multi-threaded model
 * Based on the RocksDB storage engine
 * Multiple granularity data caching model

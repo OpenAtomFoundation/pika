@@ -2,16 +2,16 @@ apiVersion: apps.kubeblocks.io/v1alpha1
 kind: ComponentDefinition
 metadata:
   name: pika-codis-proxy
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "pika.labels" . | nindent 4 }}
 spec:
   provider: pika
   description: A pika codis proxy component definition
   serviceKind: pika-codis-proxy
-  serviceVersion: 3.5.3
+  serviceVersion: {{ .Chart.AppVersion }}
   services:
     - name: proxy
-      serviceName: proxy
       spec:
         ports:
           - name: proxy

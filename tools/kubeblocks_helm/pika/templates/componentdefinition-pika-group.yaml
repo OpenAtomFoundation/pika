@@ -2,16 +2,16 @@ apiVersion: apps.kubeblocks.io/v1alpha1
 kind: ComponentDefinition
 metadata:
   name: pika-group
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "pika.labels" . | nindent 4 }}
 spec:
   provider: pika
   description: A pika group component definition
   serviceKind: pika-group
-  serviceVersion: 3.5.3
+  serviceVersion: {{ .Chart.AppVersion }}
   services:
     - name: pika
-      serviceName: pika
       spec:
         ports:
           - name: pika
@@ -29,6 +29,8 @@ spec:
       namespace: {{ .Release.Namespace }}
       volumeName: script
       defaultMode: 0555
+  volumes:
+    - name: data
   lifecycleActions:
     postProvision:
       customHandler:
@@ -50,6 +52,20 @@ spec:
           optional: true
           host: Optional
   runtime:
+    initContainers:
+      - name: init-config
+        image: busybox:1.28
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sh
+          - -ec
+          - |
+            if [ ! -f "/data/pika.conf" ];then cp /etc/pika/pika.conf /data/pika.conf; fi
+        volumeMounts:
+          - name: config
+            mountPath: /etc/pika
+          - name: data
+            mountPath: /data     
     containers:
       - name: pika
         image: {{ include "pika.image" . }}
@@ -66,7 +82,7 @@ spec:
           - "/pika/bin/pika"
         args:
           - "-c"
-          - "/etc/pika/pika.conf"
+          - "/data/pika.conf"
       - name: codis-admin
         image: {{ include "codis.image" . }}
         imagePullPolicy: {{ include "codis.imagePullPolicy" . }}

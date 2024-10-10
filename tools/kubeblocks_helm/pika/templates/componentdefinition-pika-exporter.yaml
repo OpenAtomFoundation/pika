@@ -2,6 +2,7 @@ apiVersion: apps.kubeblocks.io/v1alpha1
 kind: ComponentDefinition
 metadata:
   name: pika-exporter
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "pika.labels" . | nindent 4 }}
 spec:
@@ -11,7 +12,6 @@ spec:
   serviceVersion: {{ .Chart.AppVersion }}
   services:
     - name: expoter
-      serviceName: expoter
       spec:
         ports:
           - name: expoter
@@ -21,6 +21,7 @@ spec:
   configs:
     - name: pika-config
       templateRef: pika-conf-template
+      namespace: {{ .Release.Namespace }}
       volumeName: config
   vars:
     ## reference to the pika-codis-dashboard service
@@ -34,6 +35,9 @@ spec:
   runtime:
     initContainers:
       - name: wait-codis-dashboard
+        env:
+          - name: DASHBOARD_ADDR
+            value: "$(KB_CLUSTER_NAME)-codis-dashboard"
         image: busybox:1.28
         command:
           - 'sh'
@@ -49,6 +53,9 @@ spec:
         volumeMounts:
           - name: config
             mountPath: /etc/pika
+        env:
+          - name: DASHBOARD_ADDR
+            value: "$(KB_CLUSTER_NAME)-codis-dashboard"
         command:
           - "/pika/bin/pika_exporter"
         args:

@@ -80,8 +80,7 @@ class ZSetsScoreFilter : public rocksdb::CompactionFilter {
       return true;
     }
 
-    int64_t unix_time;
-    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
+    pstd::TimeType unix_time = pstd::NowMillis();
     if (cur_meta_etime_ != 0 && cur_meta_etime_ < static_cast<uint64_t>(unix_time)) {
       TRACE("Drop[Timeout]");
       return true;

@@ -21,7 +21,6 @@ image:
     repository: bitnami/etcd
     tag: 3.5.9
     pullPolicy: IfNotPresent
-
 roleProbe:
   pika:
     failureThreshold: 2
@@ -43,9 +42,6 @@ roleProbe:
     failureThreshold: 2
     periodSeconds: 1
     timeoutSeconds: 1
-
-clusterVersionOverride: 3.5.3
 nameOverride: ""
 fullnameOverride: ""
-
 clusterDomain: ".cluster.local"

@@ -532,6 +532,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   // used for execute multikey command into different slots
   virtual void Split(const HintKeys& hint_keys) = 0;
   virtual void Merge() = 0;
+  virtual bool IsTooLargeKey(const int &max_sz) { return false; }
 
   int8_t SubCmdIndex(const std::string& cmdName);  // if the command no subCommand，return -1；
 
@@ -578,6 +579,9 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   uint32_t GetCmdId() const { return cmdId_; };
   bool CheckArg(uint64_t num) const;
 
+  bool IsCacheMissedInRtc() const;
+  void SetCacheMissedInRtc(bool value);
+
  protected:
   // enable copy, used default copy
   // Cmd(const Cmd&);
@@ -606,6 +610,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   uint64_t do_duration_ = 0;
   uint32_t cmdId_ = 0;
   uint32_t aclCategory_ = 0;
+  bool cache_missed_in_rtc_{false};
 
  private:
   virtual void DoInitial() = 0;

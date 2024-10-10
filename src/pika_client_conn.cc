@@ -36,7 +36,7 @@ PikaClientConn::PikaClientConn(int fd, const std::string& ip_port, net::Thread* 
 }
 
 std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
-                                           const std::shared_ptr<std::string>& resp_ptr) {
+                                           const std::shared_ptr<std::string>& resp_ptr, bool cache_miss_in_rtc) {
   // Get command info
   std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
   if (!c_ptr) {
@@ -47,6 +47,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     }
     return tmp_ptr;
   }
+  c_ptr->SetCacheMissedInRtc(cache_miss_in_rtc);
   c_ptr->SetConn(shared_from_this());
   c_ptr->SetResp(resp_ptr);
 
@@ -273,6 +274,7 @@ void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& 
   time_stat_->Reset();
   if (async) {
     auto arg = new BgTaskArg();
+    arg->cache_miss_in_rtc_ = false;
     arg->redis_cmds = argvs;
     time_stat_->enqueue_ts_ = time_stat_->before_queue_ts_ = pstd::NowMicros();
     arg->conn_ptr = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
@@ -288,7 +290,8 @@ void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& 
     bool is_admin_cmd = g_pika_conf->is_admin_cmd(opt);
 
     //we don't intercept pipeline batch (argvs.size() > 1)
-    if (argvs.size() == 1 && IsInterceptedByRTC(opt) &&
+    if (g_pika_conf->rtc_cache_read_enabled() &&
+        argvs.size() == 1 && IsInterceptedByRTC(opt) &&
         PIKA_CACHE_NONE != g_pika_conf->cache_mode() &&
         !IsInTxn()) {
       // read in cache
@@ -296,13 +299,14 @@ void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& 
         delete arg;
         return;
       }
+      arg->cache_miss_in_rtc_ = true;
       time_stat_->before_queue_ts_ = pstd::NowMicros();
     }
 
     g_pika_server->ScheduleClientPool(&DoBackgroundTask, arg, is_slow_cmd, is_admin_cmd);
     return;
   }
-  BatchExecRedisCmd(argvs);
+  BatchExecRedisCmd(argvs, false);
 }
 
 void PikaClientConn::DoBackgroundTask(void* arg) {
@@ -320,15 +324,15 @@ void PikaClientConn::DoBackgroundTask(void* arg) {
     }
   }
 
-  conn_ptr->BatchExecRedisCmd(bg_arg->redis_cmds);
+  conn_ptr->BatchExecRedisCmd(bg_arg->redis_cmds, bg_arg->cache_miss_in_rtc_);
 }
 
-void PikaClientConn::BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs) {
+void PikaClientConn::BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs, bool cache_miss_in_rtc) {
   resp_num.store(static_cast<int32_t>(argvs.size()));
   for (const auto& argv : argvs) {
     std::shared_ptr<std::string> resp_ptr = std::make_shared<std::string>();
     resp_array.push_back(resp_ptr);
-    ExecRedisCmd(argv, resp_ptr);
+    ExecRedisCmd(argv, resp_ptr, cache_miss_in_rtc);
   }
   time_stat_->process_done_ts_ = pstd::NowMicros();
   TryWriteResp();
@@ -348,6 +352,12 @@ bool PikaClientConn::ReadCmdInCache(const net::RedisCmdArgsType& argv, const std
   }
   // Initial
   c_ptr->Initial(argv, current_db_);
+  // dont store cmd with too large key(only Get/HGet cmd can reach here)
+  // the cmd with large key should be non-exist in cache, except for pre-stored
+  if (c_ptr->IsTooLargeKey(g_pika_conf->max_key_size_in_cache())) {
+    resp_num--;
+    return false;
+  }
   //acl check
   int8_t subCmdIndex = -1;
   std::string errKey;
@@ -363,9 +373,6 @@ bool PikaClientConn::ReadCmdInCache(const net::RedisCmdArgsType& argv, const std
     return false;
   }
   //only read command(Get, HGet) will reach here, no need of record lock
-  if (c_ptr->db_->cache()->CacheStatus() != PIKA_CACHE_STATUS_OK) {
-    return false;
-  }
   bool read_status = c_ptr->DoReadCommandInCache();
   auto cmdstat_map = g_pika_cmd_table_manager->GetCommandStatMap();
   resp_num--;
@@ -508,7 +515,8 @@ void PikaClientConn::ExitTxn() {
   }
 }
 
-void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, std::shared_ptr<std::string>& resp_ptr) {
+void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, std::shared_ptr<std::string>& resp_ptr,
+                                  bool cache_miss_in_rtc) {
   // get opt
   std::string opt = argv[0];
   pstd::StringToLower(opt);
@@ -519,7 +527,7 @@ void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, std::shared_ptr<s
     }
   }
 
-  std::shared_ptr<Cmd> cmd_ptr = DoCmd(argv, opt, resp_ptr);
+  std::shared_ptr<Cmd> cmd_ptr = DoCmd(argv, opt, resp_ptr, cache_miss_in_rtc);
   *resp_ptr = std::move(cmd_ptr->res().message());
   resp_num--;
 }

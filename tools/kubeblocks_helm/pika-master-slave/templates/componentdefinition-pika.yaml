@@ -1,0 +1,89 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentDefinition
+metadata:
+  name: pika
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "pika.labels" . | nindent 4 }}
+spec:
+  provider: pika
+  description: Pika component definition
+  serviceKind: pika
+  serviceVersion: {{ .Chart.AppVersion }}
+  services:
+    - name: pika
+      spec:
+        ports:
+          - name: pika
+            port: 9221
+            targetPort: pika
+  updateStrategy: Serial
+  configs:
+    - name: config
+      templateRef: pika-master-slave-conf-template
+      namespace: {{ .Release.Namespace }}
+      volumeName: config
+  volumes:
+    - name: data
+  lifecycleActions:
+    postProvision:
+      customHandler:
+        image: {{ include "redis.image" .}}
+        exec:
+          command:
+           - /bin/bash
+           - -c
+           - |
+             IFS=',' read -r -a pod_name_array <<< ${KB_CLUSTER_COMPONENT_POD_NAME_LIST}
+             # Ergodic name array
+             headless=".pika-master-slave-cluster-pika-headless"
+             for i in "${!pod_name_array[@]}"; do
+               pod_name=${pod_name_array[${i}]}
+               # Extracting the digital portion of the pod
+               pod_number=$(echo "${pod_name}" | grep -o '[0-9]*')
+               # If the pod number is greater than 0
+               if (( pod_number > 0 )); then
+                 pod0_svc=${pod_name_array[0]}${headless}
+                 echo "exec:redis-cli -h ${pod_name}${headless} -p 9221 slaveof ${pod0_svc}:9221"
+                 redis-cli -h "${pod_name}${headless}" -p 9221 slaveof "${pod0_svc}" 9221
+               fi
+             done
+        preCondition: ComponentReady
+  runtime:
+    initContainers:
+      - name: init-config
+        image: busybox:1.28
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sh
+          - -ec
+          - |
+            if [ ! -f "/data/pika.conf" ];then cp /etc/pika/pika.conf /data/pika.conf; fi
+        volumeMounts:
+          - name: config
+            mountPath: /etc/pika
+          - name: data
+            mountPath: /data  
+    containers:
+      - name: pika
+        image: {{ include "pika.image" . }}
+        imagePullPolicy: {{ include "pika.imagePullPolicy" . }}
+        ports:
+          - name: pika
+            containerPort: 9221
+        volumeMounts:
+          - name: config
+            mountPath: /etc/pika
+          - name: data
+            mountPath: /data
+        env:
+          - name: CURRENT_POD_HOST_IP
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: status.hostIP
+        command:
+          - "/pika/bin/pika"
+        args:
+          - "-c"
+          - "/data/pika.conf"

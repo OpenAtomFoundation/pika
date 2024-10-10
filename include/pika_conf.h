@@ -77,6 +77,10 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return log_path_;
   }
+  int log_retention_time() {
+    std::shared_lock l(rwlock_);
+    return log_retention_time_;
+  }
   std::string log_level() {
     std::shared_lock l(rwlock_);
     return log_level_;
@@ -174,6 +178,13 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return max_total_wal_size_;
   }
+  bool enable_db_statistics() {
+    return enable_db_statistics_;
+  }
+  int db_statistics_level() {
+    std::shared_lock l(rwlock_);
+    return db_statistics_level_;
+  }
   int64_t max_client_response_size() {
     std::shared_lock l(rwlock_);
     return max_client_response_size_;
@@ -259,7 +270,7 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return compression_;
   }
-  int target_file_size_base() {
+  int64_t target_file_size_base() {
     std::shared_lock l(rwlock_);
     return target_file_size_base_;
   }
@@ -320,6 +331,10 @@ class PikaConf : public pstd::BaseConf {
   bool share_block_cache() {
     std::shared_lock l(rwlock_);
     return share_block_cache_;
+  }
+  bool wash_data() {
+    std::shared_lock l(rwlock_);
+    return wash_data_;
   }
   bool enable_partitioned_index_filters() {
     std::shared_lock l(rwlock_);
@@ -412,6 +427,7 @@ class PikaConf : public pstd::BaseConf {
   void SetCacheMode(const int value) { cache_mode_ = value; }
   void SetCacheStartDirection(const int value) { zset_cache_start_direction_ = value; }
   void SetCacheItemsPerKey(const int value) { zset_cache_field_num_per_key_ = value; }
+  void SetCacheMaxKeySize(const int value) { max_key_size_in_cache_ = value; }
   void SetCacheMaxmemory(const int64_t value) { cache_maxmemory_ = value; }
   void SetCacheMaxmemoryPolicy(const int value) { cache_maxmemory_policy_ = value; }
   void SetCacheMaxmemorySamples(const int value) { cache_maxmemory_samples_ = value; }
@@ -468,6 +484,7 @@ class PikaConf : public pstd::BaseConf {
 
   // Immutable config items, we don't use lock.
   bool daemonize() { return daemonize_; }
+  bool rtc_cache_read_enabled() { return rtc_cache_read_enabled_; }
   std::string pidfile() { return pidfile_; }
   int binlog_file_size() { return binlog_file_size_; }
   std::vector<rocksdb::CompressionType> compression_per_level();
@@ -881,6 +898,7 @@ class PikaConf : public pstd::BaseConf {
   void SetCacheDisableFlag() { tmp_cache_disable_flag_ = true; }
   int zset_cache_start_direction() { return zset_cache_start_direction_; }
   int zset_cache_field_num_per_key() { return zset_cache_field_num_per_key_; }
+  int max_key_size_in_cache() { return max_key_size_in_cache_; }
   int cache_maxmemory_policy() { return cache_maxmemory_policy_; }
   int cache_maxmemory_samples() { return cache_maxmemory_samples_; }
   int cache_lfu_decay_time() { return cache_lfu_decay_time_; }
@@ -904,6 +922,7 @@ class PikaConf : public pstd::BaseConf {
   int db_sync_speed_ = 0;
   std::string slaveof_;
   std::string log_path_;
+  int log_retention_time_;
   std::string log_level_;
   std::string db_path_;
   int db_instance_num_ = 0;
@@ -923,6 +942,8 @@ class PikaConf : public pstd::BaseConf {
   int64_t thread_migrate_keys_num_ = 0;
   int64_t max_write_buffer_size_ = 0;
   int64_t max_total_wal_size_ = 0;
+  bool enable_db_statistics_ = false;
+  int db_statistics_level_ = 0;
   int max_write_buffer_num_ = 0;
   int min_write_buffer_number_to_merge_ = 1;
   int level0_stop_writes_trigger_ =  36;
@@ -930,6 +951,7 @@ class PikaConf : public pstd::BaseConf {
   int level0_file_num_compaction_trigger_ = 4;
   int64_t max_client_response_size_ = 0;
   bool daemonize_ = false;
+  bool rtc_cache_read_enabled_ = false;
   int timeout_ = 0;
   std::string server_id_;
   std::string run_id_;
@@ -1011,7 +1033,7 @@ class PikaConf : public pstd::BaseConf {
   // Critical configure items
   //
   bool write_binlog_ = false;
-  int target_file_size_base_ = 0;
+  int64_t target_file_size_base_ = 0;
   int64_t max_compaction_bytes_ = 0;
   int binlog_file_size_ = 0;
 
@@ -1029,6 +1051,7 @@ class PikaConf : public pstd::BaseConf {
   std::atomic_int cache_bit_ = 1;
   std::atomic_int zset_cache_start_direction_ = 0;
   std::atomic_int zset_cache_field_num_per_key_ = 512;
+  std::atomic_int max_key_size_in_cache_ = 512;
   std::atomic_int cache_maxmemory_policy_ = 1;
   std::atomic_int cache_maxmemory_samples_ = 5;
   std::atomic_int cache_lfu_decay_time_ = 1;
@@ -1053,6 +1076,9 @@ class PikaConf : public pstd::BaseConf {
 
   //Internal used metrics Persisted by pika.conf
   std::unordered_set<std::string> internal_used_unfinished_full_sync_;
+
+  // for wash data from 4.0.0 to 4.0.1
+  bool wash_data_;
 };
 
 #endif

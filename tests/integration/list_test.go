@@ -1291,5 +1291,28 @@ var _ = Describe("List Commands", func() {
 		//	Expect(lRange.Err()).NotTo(HaveOccurred())
 		//	Expect(lRange.Val()).To(Equal([]string{"san"}))
 		//})
+
+		It("should lpush and rpushx", func() {
+			lpush := client.LPush(ctx, "list1", 1, 2, 3, 4)
+			Expect(lpush.Err()).NotTo(HaveOccurred())
+			Expect(lpush.Val()).To(Equal(int64(4)))
+
+			getRes, err := client.Get(ctx, "list1").Result()
+			Expect(err).To(HaveOccurred())  // An error is expected since listkey is a list, not a string
+			Expect(getRes).To(Equal("")) 
+
+			lrang := client.LRange(ctx, "list1", 0, -1)
+			Expect(lrang.Err()).NotTo(HaveOccurred())
+			Expect(lrang.Val()).To(Equal([]string{"4", "3", "2", "1"}))
+
+			rpush := client.RPushX(ctx, "list1", 5)
+			Expect(rpush.Err()).NotTo(HaveOccurred())
+			Expect(rpush.Val()).To(Equal(int64(5)))
+
+			lrang = client.LRange(ctx, "list1", 0, -1)
+			Expect(lrang.Err()).NotTo(HaveOccurred())
+			Expect(lrang.Val()).To(Equal([]string{"4", "3", "2", "1", "5"}))
+
+		})
 	})
 })

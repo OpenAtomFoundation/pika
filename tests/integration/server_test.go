@@ -5,7 +5,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
+	"os"
+	"path/filepath"
 	. "github.com/bsm/ginkgo/v2"
 	. "github.com/bsm/gomega"
 	"github.com/redis/go-redis/v9"
@@ -177,6 +178,97 @@ var _ = Describe("Server", func() {
 			Expect(val).To(ContainSubstring("Background append only file rewriting"))
 		})
 
+		It("should BgSave", func() {
+			res := client.Set(ctx, "bgsava_key1", "bgsava_value1", 0)
+			Expect(res.Err()).NotTo(HaveOccurred())
+			_ = client.Set(ctx, "bgsava_key2", "bgsava_value2", 0)
+			Expect(res.Err()).NotTo(HaveOccurred())
+
+			lastSaveBefore, err := client.LastSave(ctx).Result()
+			Expect(err).NotTo(HaveOccurred())
+			
+			currentDir, err := os.Getwd()
+			Expect(err).NotTo(HaveOccurred())
+		
+			var pikaDir string
+			for currentDir != "/" {
+				if filepath.Base(currentDir) == "pika" {
+					pikaDir = currentDir
+					break
+				}
+				currentDir = filepath.Dir(currentDir)
+			}
+			Expect(pikaDir).NotTo(BeEmpty(), "Could not find 'pika' directory")
+			
+			var dumpDirs []string
+			err = filepath.WalkDir(pikaDir, func(path string, info os.DirEntry, err error) error {
+				if err != nil {
+					return err
+				}
+				if info.IsDir() && info.Name() == "dump" {
+					absPath, err := filepath.Abs(path)
+					if err != nil {
+						return err
+					}
+					dumpDirs = append(dumpDirs, absPath)
+				}
+				return nil
+			})
+			Expect(err).NotTo(HaveOccurred(), "Error while searching for 'dump' directories")
+			Expect(len(dumpDirs)).To(BeNumerically(">", 0), "No 'dump' directories found in 'pika'")
+
+			shortestDumpDir := dumpDirs[0]
+			for _, dir := range dumpDirs {
+				if len(dir) < len(shortestDumpDir) {
+					shortestDumpDir = dir
+				}
+			}
+
+			dumpConfig := client.ConfigGet(ctx, "dump-path")
+			Expect(dumpConfig.Err()).NotTo(HaveOccurred())
+			originalDumpPath, ok := dumpConfig.Val()["dump-path"]
+			Expect(ok).To(BeTrue())
+			
+			dumpPath := filepath.Join(filepath.Dir(shortestDumpDir), originalDumpPath)
+
+			res2, err2 := client.BgSave(ctx).Result()
+			Expect(err2).NotTo(HaveOccurred())
+			Expect(res.Err()).NotTo(HaveOccurred())
+			Expect(res2).To(ContainSubstring("Background saving started"))
+
+			startTime := time.Now()			
+			maxWaitTime := 10 * time.Second
+				
+			for {
+				lastSaveAfter, err := client.LastSave(ctx).Result()
+				Expect(err).NotTo(HaveOccurred())
+
+				if lastSaveAfter > lastSaveBefore {
+					break
+				}
+
+				if time.Since(startTime) > maxWaitTime {
+					Fail("BGSAVE did not complete within the expected time")
+				}
+
+				time.Sleep(500 * time.Millisecond)
+			}
+
+
+			files, err := os.ReadDir(dumpPath)
+    		Expect(err).NotTo(HaveOccurred(), "Failed to read dump_path")
+   			Expect(len(files)).To(BeNumerically(">", 0), "dump_tmp directory is empty, BGSAVE failed to create a file")
+		})
+		
+		It("should FlushDb", func() {
+			res := client.Do(ctx, "flushdb")
+			Expect(res.Err()).NotTo(HaveOccurred())
+			Expect(res.Val()).To(Equal("OK"))
+
+			keys, err := client.Keys(ctx, "*").Result()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(keys).To(BeEmpty())
+		})
 		// Test scenario: Execute the del command, after executing bgsave, the get data will be wrong
 		//It("should BgSave", func() {
 		//	res := client.Set(ctx, "bgsava_key", "bgsava_value", 0)
@@ -462,44 +554,56 @@ var _ = Describe("Server", func() {
 			Expect(info.Val()).To(ContainSubstring(`used_cpu_sys`))
 		})
 
-        It("should Info keyspace hits", func() {
-            sRem := client.SRem(ctx, "keyspace_hits", "one")
-            Expect(sRem.Err()).NotTo(HaveOccurred())
-            sAdd := client.SAdd(ctx, "keyspace_hits", "one")
-            Expect(sAdd.Err()).NotTo(HaveOccurred())
+    It("should Info keyspace hits", func() {
+      sRem := client.SRem(ctx, "keyspace_hits", "one")
+      Expect(sRem.Err()).NotTo(HaveOccurred())
+      sAdd := client.SAdd(ctx, "keyspace_hits", "one")
+      Expect(sAdd.Err()).NotTo(HaveOccurred())
 
-            info := client.Info(ctx, "stats")
-            Expect(info.Err()).NotTo(HaveOccurred())
-            Expect(info.Val()).NotTo(Equal(""))
-            Expect(info.Val()).To(ContainSubstring("keyspace_hits"))
-            Expect(info.Val()).To(ContainSubstring("keyspace_misses"))
-            oldInfoKeyspaceHitsStr := extractKeyspaceHits(info.Val(), "keyspace_hits")
-            oldInfoKeyspaceHits, err := strconv.ParseInt(oldInfoKeyspaceHitsStr, 10, 64)
-            Expect(err).NotTo(HaveOccurred())
-            oldInfoKeyspaceMissesStr := extractKeyspaceHits(info.Val(), "keyspace_misses")
-            oldInfoKeyspaceMisses, err := strconv.ParseInt(oldInfoKeyspaceMissesStr, 10, 64)
-            Expect(err).NotTo(HaveOccurred())
+      info := client.Info(ctx, "stats")
+      Expect(info.Err()).NotTo(HaveOccurred())
+      Expect(info.Val()).NotTo(Equal(""))
+      Expect(info.Val()).To(ContainSubstring("keyspace_hits"))
+      Expect(info.Val()).To(ContainSubstring("keyspace_misses"))
+      oldInfoKeyspaceHitsStr := extractKeyspaceHits(info.Val(), "keyspace_hits")
+      oldInfoKeyspaceHits, err := strconv.ParseInt(oldInfoKeyspaceHitsStr, 10, 64)
+      Expect(err).NotTo(HaveOccurred())
+      oldInfoKeyspaceMissesStr := extractKeyspaceHits(info.Val(), "keyspace_misses")
+      oldInfoKeyspaceMisses, err := strconv.ParseInt(oldInfoKeyspaceMissesStr, 10, 64)
+      Expect(err).NotTo(HaveOccurred())
 
-            Expect(client.SMembers(ctx, "keyspace_hits").Err()).NotTo(HaveOccurred())
-            Expect(client.SMembers(ctx, "keyspace_misses").Err()).NotTo(HaveOccurred())
+      Expect(client.SMembers(ctx, "keyspace_hits").Err()).NotTo(HaveOccurred())
+      Expect(client.SMembers(ctx, "keyspace_misses").Err()).NotTo(HaveOccurred())
 
-            newInfo := client.Info(ctx, "stats")
-            Expect(newInfo.Err()).NotTo(HaveOccurred())
-            Expect(newInfo.Val()).NotTo(Equal(""))
-            Expect(newInfo.Val()).To(ContainSubstring("keyspace_hits"))
-            Expect(newInfo.Val()).To(ContainSubstring("keyspace_misses"))
-            newInfoKeyspaceHitsStr := extractKeyspaceHits(newInfo.Val(), "keyspace_hits")
-            newInfoKeyspaceHits, err := strconv.ParseInt(newInfoKeyspaceHitsStr, 10, 64)
-            Expect(err).NotTo(HaveOccurred())
-            newInfoKeyspaceMissesStr := extractKeyspaceHits(newInfo.Val(), "keyspace_misses")
-            newInfoKeyspaceMisses, err := strconv.ParseInt(newInfoKeyspaceMissesStr, 10, 64)
-            Expect(err).NotTo(HaveOccurred())
+      newInfo := client.Info(ctx, "stats")
+      Expect(newInfo.Err()).NotTo(HaveOccurred())
+      Expect(newInfo.Val()).NotTo(Equal(""))
+      Expect(newInfo.Val()).To(ContainSubstring("keyspace_hits"))
+      Expect(newInfo.Val()).To(ContainSubstring("keyspace_misses"))
+      newInfoKeyspaceHitsStr := extractKeyspaceHits(newInfo.Val(), "keyspace_hits")
+      newInfoKeyspaceHits, err := strconv.ParseInt(newInfoKeyspaceHitsStr, 10, 64)
+      Expect(err).NotTo(HaveOccurred())
+      newInfoKeyspaceMissesStr := extractKeyspaceHits(newInfo.Val(), "keyspace_misses")
+      newInfoKeyspaceMisses, err := strconv.ParseInt(newInfoKeyspaceMissesStr, 10, 64)
+      Expect(err).NotTo(HaveOccurred())
 
-            Expect(newInfoKeyspaceHits - oldInfoKeyspaceHits).To(Equal(int64(1)))
-            Expect(newInfoKeyspaceMisses - oldInfoKeyspaceMisses).To(Equal(int64(1)))
+      Expect(newInfoKeyspaceHits - oldInfoKeyspaceHits).To(Equal(int64(1)))
+      Expect(newInfoKeyspaceMisses - oldInfoKeyspaceMisses).To(Equal(int64(1)))
 
-            Expect(client.SRem(ctx, "keyspace_hits", "one").Err()).NotTo(HaveOccurred())
-        })
+      Expect(client.SRem(ctx, "keyspace_hits", "one").Err()).NotTo(HaveOccurred())
+    })
+    
+		It("should Info after second", func() {
+			info := client.Info(ctx)
+			time.Sleep(1 * time.Second)
+			Expect(info.Err()).NotTo(HaveOccurred())
+			Expect(info.Val()).NotTo(Equal(""))
+
+			info = client.Info(ctx, "all")
+			time.Sleep(1 * time.Second)
+			Expect(info.Err()).NotTo(HaveOccurred())
+			Expect(info.Val()).NotTo(Equal(""))
+		})
 
 		It("should Info cpu", func() {
 			info := client.Info(ctx, "cpu")
