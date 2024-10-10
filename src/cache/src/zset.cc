@@ -405,5 +405,83 @@ Status RedisCache::ZRemrangebylex(std::string& key, std::string &min, std::strin
   return Status::OK();
 }
 
+Status RedisCache::ZPopMin(std::string& key, int64_t count, std::vector<storage::ScoreMember>* score_members) {
+  zitem* items = nullptr;
+  unsigned long items_size = 0;
+  robj* kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
+  DEFER {
+    DecrObjectsRefCount(kobj);
+  };
+
+  int ret = RcZrange(cache_, kobj, 0, -1, &items, &items_size);
+  if (C_OK != ret) {
+    if (REDIS_KEY_NOT_EXIST == ret) {
+      return Status::NotFound("key not in cache");
+    }
+    return Status::Corruption("RcZrange failed");
+  }
+
+  unsigned long to_return = std::min(static_cast<unsigned long>(count), items_size);
+  for (unsigned long i = 0; i < to_return; ++i) {
+    storage::ScoreMember sm;
+    sm.score = items[i].score;
+    sm.member.assign(items[i].member, sdslen(items[i].member));
+    score_members->push_back(sm);
+  }
+
+  robj** members_obj = (robj**)zcallocate(sizeof(robj*) * items_size);
+  for (unsigned long i = 0; i < items_size; ++i) {
+    members_obj[i] = createObject(OBJ_STRING, sdsnewlen(items[i].member, sdslen(items[i].member)));
+  }
+  DEFER {
+    FreeObjectList(members_obj, items_size);
+  };
+
+  RcZRem(cache_, kobj, members_obj, to_return);
+
+  FreeZitemList(items, items_size);
+  return Status::OK();
+}
+
+Status RedisCache::ZPopMax(std::string& key, int64_t count, std::vector<storage::ScoreMember>* score_members) {
+  zitem* items = nullptr;
+  unsigned long items_size = 0;
+  robj* kobj = createObject(OBJ_STRING, sdsnewlen(key.data(), key.size()));
+  DEFER {
+    DecrObjectsRefCount(kobj);
+  };
+
+  int ret = RcZrange(cache_, kobj, 0, -1, &items, &items_size);
+  if (C_OK != ret) {
+    if (REDIS_KEY_NOT_EXIST == ret) {
+      return Status::NotFound("key not in cache");
+    }
+    return Status::Corruption("RcZrange failed");
+  }
+
+  unsigned long to_return = std::min(static_cast<unsigned long>(count), items_size);
+  for (unsigned long i = items_size - to_return; i < items_size; ++i) {
+    storage::ScoreMember sm;
+    sm.score = items[i].score;
+    sm.member.assign(items[i].member, sdslen(items[i].member));
+    score_members->push_back(sm);
+  }
+
+  robj** members_obj = (robj**)zcallocate(sizeof(robj*) * items_size);
+  for (unsigned long i = items_size - 1; i >= 0; --i) {
+    members_obj[items_size - 1 - i] = createObject(OBJ_STRING, sdsnewlen(items[i].member, sdslen(items[i].member)));
+  }
+
+  DEFER {
+    FreeObjectList(members_obj, items_size);
+  };
+
+  RcZRem(cache_, kobj, members_obj, to_return);
+
+  FreeZitemList(items, items_size);
+  return Status::OK();
+}
+
+
 }  // namespace cache
 /* EOF */

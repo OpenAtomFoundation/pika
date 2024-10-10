@@ -1507,6 +1507,17 @@ void ZPopmaxCmd::Do() {
   }
 }
 
+void ZPopmaxCmd::DoThroughDB(){
+  Do();
+}
+
+void ZPopmaxCmd::DoUpdateCache(){
+  std::vector<storage::ScoreMember> score_members;
+  if(s_.ok() || s_.IsNotFound()){
+    db_->cache()->ZPopMax(key_, count_, &score_members, db_);
+  }
+}
+
 void ZPopminCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZPopmin);
@@ -1520,6 +1531,17 @@ void ZPopminCmd::DoInitial() {
     if (pstd::string2int(argv_[2].data(), argv_[2].size(), static_cast<int64_t *>(&count_)) == 0) {
       res_.SetRes(CmdRes::kInvalidInt);
     }
+  }
+}
+
+void ZPopminCmd::DoThroughDB(){
+  Do();
+}
+
+void ZPopminCmd::DoUpdateCache(){
+  std::vector<storage::ScoreMember> score_members;
+  if(s_.ok() || s_.IsNotFound()){
+    db_->cache()->ZPopMin(key_, count_, &score_members, db_);
   }
 }
 

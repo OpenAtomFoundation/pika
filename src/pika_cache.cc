@@ -1465,6 +1465,34 @@ Status PikaCache::ZRemrangebylex(std::string& key, std::string &min, std::string
   }
 }
 
+Status PikaCache::ZPopMin(std::string& key, int64_t count, std::vector<storage::ScoreMember>* score_members, const std::shared_ptr<DB>& db) {
+  int cache_index = CacheIndex(key);
+  std::lock_guard lm(*cache_mutexs_[cache_index]);
+
+  auto cache_obj = caches_[cache_index];
+  Status s;
+
+  if (cache_obj->Exists(key)) {
+    return cache_obj->ZPopMin(key, count, score_members);
+  } else {
+    return Status::NotFound("key not in cache");
+  }
+}
+
+Status PikaCache::ZPopMax(std::string& key, int64_t count, std::vector<storage::ScoreMember>* score_members, const std::shared_ptr<DB>& db) {
+  int cache_index = CacheIndex(key);
+  std::lock_guard lm(*cache_mutexs_[cache_index]);
+
+  auto cache_obj = caches_[cache_index];
+  Status s;
+
+  if (cache_obj->Exists(key)) {
+    return cache_obj->ZPopMax(key, count, score_members);
+  } else {
+    return Status::NotFound("key not in cache");
+  }
+}
+
 /*-----------------------------------------------------------------------------
  * Bit Commands
  *----------------------------------------------------------------------------*/
