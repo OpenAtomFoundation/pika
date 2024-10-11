@@ -2,6 +2,8 @@ package pika_integration
 
 import (
 	"context"
+	"strconv"
+	"strings"
 	"time"
 	"os"
 	"path/filepath"
@@ -9,6 +11,20 @@ import (
 	. "github.com/bsm/gomega"
 	"github.com/redis/go-redis/v9"
 )
+
+
+func extractKeyspaceHits(infoVal string, kWords string) string {
+	lines := strings.Split(infoVal, "\n")
+	for _, line := range lines {
+		if strings.Contains(line, kWords+":") {
+			parts := strings.Split(line, ":")
+			if len(parts) == 2 {
+				return strings.TrimSpace(parts[1])
+			}
+		}
+	}
+	return "0"
+}
 
 var _ = Describe("Server", func() {
 	ctx := context.TODO()
@@ -538,6 +554,45 @@ var _ = Describe("Server", func() {
 			Expect(info.Val()).To(ContainSubstring(`used_cpu_sys`))
 		})
 
+		It("should Info keyspace hits", func() {
+			sRem := client.SRem(ctx, "keyspace_hits", "one")
+			Expect(sRem.Err()).NotTo(HaveOccurred())
+			sAdd := client.SAdd(ctx, "keyspace_hits", "one")
+			Expect(sAdd.Err()).NotTo(HaveOccurred())
+
+			info := client.Info(ctx, "stats")
+			Expect(info.Err()).NotTo(HaveOccurred())
+			Expect(info.Val()).NotTo(Equal(""))
+			Expect(info.Val()).To(ContainSubstring("keyspace_hits"))
+			Expect(info.Val()).To(ContainSubstring("keyspace_misses"))
+			oldInfoKeyspaceHitsStr := extractKeyspaceHits(info.Val(), "keyspace_hits")
+			oldInfoKeyspaceHits, err := strconv.ParseInt(oldInfoKeyspaceHitsStr, 10, 64)
+			Expect(err).NotTo(HaveOccurred())
+			oldInfoKeyspaceMissesStr := extractKeyspaceHits(info.Val(), "keyspace_misses")
+			oldInfoKeyspaceMisses, err := strconv.ParseInt(oldInfoKeyspaceMissesStr, 10, 64)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(client.SMembers(ctx, "keyspace_hits").Err()).NotTo(HaveOccurred())
+			Expect(client.SMembers(ctx, "keyspace_misses").Err()).NotTo(HaveOccurred())
+
+			newInfo := client.Info(ctx, "stats")
+			Expect(newInfo.Err()).NotTo(HaveOccurred())
+			Expect(newInfo.Val()).NotTo(Equal(""))
+			Expect(newInfo.Val()).To(ContainSubstring("keyspace_hits"))
+			Expect(newInfo.Val()).To(ContainSubstring("keyspace_misses"))
+			newInfoKeyspaceHitsStr := extractKeyspaceHits(newInfo.Val(), "keyspace_hits")
+			newInfoKeyspaceHits, err := strconv.ParseInt(newInfoKeyspaceHitsStr, 10, 64)
+			Expect(err).NotTo(HaveOccurred())
+			newInfoKeyspaceMissesStr := extractKeyspaceHits(newInfo.Val(), "keyspace_misses")
+			newInfoKeyspaceMisses, err := strconv.ParseInt(newInfoKeyspaceMissesStr, 10, 64)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(newInfoKeyspaceHits - oldInfoKeyspaceHits).To(Equal(int64(1)))
+			Expect(newInfoKeyspaceMisses - oldInfoKeyspaceMisses).To(Equal(int64(1)))
+
+			Expect(client.SRem(ctx, "keyspace_hits", "one").Err()).NotTo(HaveOccurred())
+		})
+    
 		It("should Info after second", func() {
 			info := client.Info(ctx)
 			time.Sleep(1 * time.Second)

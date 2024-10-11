@@ -998,7 +998,12 @@ uint64_t PikaServer::ServerCurrentQps() { return statistic_.server_stat.qps.last
 
 uint64_t PikaServer::accumulative_connections() { return statistic_.server_stat.accumulative_connections.load(); }
 
+long long PikaServer::ServerKeyspaceHits() { return statistic_.server_stat.keyspace_hits.load(); } 
+long long PikaServer::ServerKeyspaceMisses() { return statistic_.server_stat.keyspace_misses.load(); }
+
 void PikaServer::incr_accumulative_connections() { ++(statistic_.server_stat.accumulative_connections); }
+void PikaServer::incr_server_keyspace_hits() { ++(statistic_.server_stat.keyspace_hits); }
+void PikaServer::incr_server_keyspace_misses() { ++(statistic_.server_stat.keyspace_misses); }
 
 // only one thread invoke this right now
 void PikaServer::ResetLastSecQuerynum() {
