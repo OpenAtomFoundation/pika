@@ -483,7 +483,7 @@ private:
   rocksdb::WriteOptions default_write_options_;
   rocksdb::ReadOptions default_read_options_;
   rocksdb::CompactRangeOptions default_compact_range_options_;
-  std::atomic<bool> in_compact_flag_;
+  std::atomic<bool> kIncomplete_;
 
   // For Scan
   std::unique_ptr<LRUCache<std::string, std::string>> scan_cursors_store_;
