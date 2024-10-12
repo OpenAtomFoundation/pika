@@ -20,7 +20,9 @@ type Request struct {
 
 	OpStr string
 	OpFlag
-
+	OpFlagChecker
+	CustomCheckFunc
+	
 	Database              int32
 	ReceiveTime           int64
 	SendToServerTime      int64
