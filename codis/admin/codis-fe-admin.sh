@@ -18,6 +18,9 @@ CODIS_FE_DAEMON_FILE=$CODIS_LOG_DIR/codis-fe.out
 COORDINATOR_NAME="filesystem"
 COORDINATOR_ADDR="/tmp/codis"
 CODIS_FE_ADDR="0.0.0.0:9090"
+CODIS_FE_TLS=1
+CODIS_FE_TLS_KEY="/usr/local/src/pika/codis/key.pem"
+CODIS_FE_TLS_CERT="/usr/local/src/pika/codis/cert.pem"
 
 echo $CODIS_FE_CONF_FILE
 
@@ -36,7 +39,7 @@ start)
       fi
     fi
     nohup "$CODIS_FE_BIN" "--assets-dir=${CODIS_FE_ASSETS_DIR}" "--$COORDINATOR_NAME=$COORDINATOR_ADDR" \
-    "--log=$CODIS_FE_LOG_FILE" "--pidfile=$CODIS_FE_PID_FILE" "--log-level=INFO" "--listen=$CODIS_FE_ADDR" > "$CODIS_FE_DAEMON_FILE" 2>&1 < /dev/null &
+    "--tls=$CODIS_FE_TLS" "--tls-key=$CODIS_FE_TLS_KEY" "--tls-cert=$CODIS_FE_TLS_CERT" "--log=$CODIS_FE_LOG_FILE" "--pidfile=$CODIS_FE_PID_FILE" "--log-level=INFO" "--listen=$CODIS_FE_ADDR" > "$CODIS_FE_DAEMON_FILE" 2>&1 < /dev/null &
     ;;
 start-foreground)
     $CODIS_FE_BIN "--assets-dir=${CODIS_FE_ASSETS_DIR}" "--$COORDINATOR_NAME=$COORDINATOR_ADDR" \

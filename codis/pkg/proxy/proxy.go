@@ -4,6 +4,7 @@
 package proxy
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
@@ -103,18 +104,54 @@ func New(config *Config) (*Proxy, error) {
 
 func (p *Proxy) setup(config *Config) error {
 	proto := config.ProtoType
-	if l, err := net.Listen(proto, config.ProxyAddr); err != nil {
-		return errors.Trace(err)
-	} else {
-		p.lproxy = l
 
-		x, err := utils.ReplaceUnspecifiedIP(proto, l.Addr().String(), config.HostProxy)
+	var l net.Listener
+	var err error
+
+	if config.ProxyTLS {
+		log.Printf("TLS configuration: cert = %s, key = %s", config.ProxyTLSCert, config.ProxyTLSKey)
+
+		// Load the TLS certificate
+		cert, err := tls.LoadX509KeyPair(config.ProxyTLSCert, config.ProxyTLSKey)
 		if err != nil {
-			return err
+			return errors.Trace(err)
 		}
-		p.model.ProtoType = proto
-		p.model.ProxyAddr = x
+
+		// Set up TLS configuration to use TLS 1.2 or higher
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			MinVersion:   tls.VersionTLS12,
+		}
+
+		// Create a TLS listener
+		l, err = tls.Listen(proto, config.ProxyAddr, tlsConfig)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	} else {
+		log.Printf("Setting up a non-TLS listener")
+
+		// Create a non-TLS listener
+		l, err = net.Listen(proto, config.ProxyAddr)
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
+
+	// Common setup for both TLS and non-TLS
+	p.lproxy = l
+
+	// Replace unspecified IP address with the specific host proxy address
+	x, err := utils.ReplaceUnspecifiedIP(proto, l.Addr().String(), config.HostProxy)
+	if err != nil {
+		log.Errorf("Failed to replace unspecified IP: %s", err)
+		return err
+	}
+
+	// Update proxy model
+	p.model.ProtoType = proto
+	p.model.ProxyAddr = x
+
 
 	proto = "tcp"
 	if l, err := net.Listen(proto, config.AdminAddr); err != nil {

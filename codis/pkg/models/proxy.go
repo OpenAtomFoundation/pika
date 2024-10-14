@@ -11,6 +11,9 @@ type Proxy struct {
 
 	ProtoType string `json:"proto_type"`
 	ProxyAddr string `json:"proxy_addr"`
+	ProxyTLS  bool   `json:"proxy_tls"`
+	ProxyTLSCert string `json:"proxy_tls_cert"`
+	ProxyTLSKey string `json:"proxy_tls_key"`
 
 	JodisPath string `json:"jodis_path,omitempty"`
 

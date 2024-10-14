@@ -21,6 +21,9 @@ admin_addr = "0.0.0.0:11080"
 
 # Set bind address for proxy, proto_type can be "tcp", "tcp4", "tcp6", "unix" or "unixpacket".
 proto_type = "tcp4"
+#proxy_tls = true
+#proxy_tls_cert = "/usr/local/src/pika/codis/cert.pem"
+#proxy_tls_key = "/usr/local/src/pika/codis/key.pem"
 proxy_addr = "0.0.0.0:19000"
 
 # Set jodis address & session timeout
