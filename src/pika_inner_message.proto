@@ -1,6 +1,8 @@
 syntax = "proto2";
 package InnerMessage;
 
+option go_package = "./proto/inner";
+
 enum Type {
   kMetaSync        = 1;
   kTrySync         = 2;

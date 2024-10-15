@@ -1,0 +1,18 @@
+# pika_server, this port is pika replication port.
+pika_server : 127.0.0.1:11221
+# For data from one DB of one pika, a separate MQ topic is created,
+# and the name of the topic is the dbname of the pika
+kafka_servers:
+  - 127.0.0.1:9092
+redis_servers:
+  - 127.0.0.1:6379
+# retry times while send message failed
+retries : 0
+# retry interval while send message failed(ms)
+retry_interval: 10
+parallel_thread_size: 1
+# the size of the cached channel in pika cdc
+buffer_msg_numbers: 10
+
+
+

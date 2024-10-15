@@ -74,3 +74,4 @@ pkg
 !codis/cmd/fe/assets/**
 
 tests/tmp
+tools/pika_cdc/pika/proto
