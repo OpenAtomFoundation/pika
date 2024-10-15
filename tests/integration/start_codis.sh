@@ -1,10 +1,16 @@
 #!/bin/bash
 
-#pkill -9 pika
-#pkill -9 codis
-#rm -rf /tmp/codis
-#rm -rf codis_data_1
-#rm -rf codis_data_2
+# sugguest clear these before starting codis
+# pkill -9 pika
+# pkill -9 codis
+# rm -rf /tmp/codis
+# rm -rf codis_data*
+# rm -rf acl*data
+# rm -rf dump
+# rm -rf db
+# rm -rf log
+# rm -rf slave_data
+# rm -rf master_data
 
 CODIS_DASHBOARD_ADDR=127.0.0.1:18080
 
@@ -39,6 +45,8 @@ echo 'startup codis dashboard and codis proxy'
 
 sleep 20
 
+# if start failed, maybe for your struct/class that be defined NOT be used
+# or addtional introduced packages
 echo 'assign codis slots to groups and resync groups'
 ./bin/codis-admin --dashboard=$CODIS_DASHBOARD_ADDR --create-group --gid=1
 ./bin/codis-admin --dashboard=$CODIS_DASHBOARD_ADDR --create-group --gid=2

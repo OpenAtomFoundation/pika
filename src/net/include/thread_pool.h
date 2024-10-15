@@ -8,22 +8,16 @@
 
 #include <pthread.h>
 #include <atomic>
-#include <queue>
 #include <string>
+#include <vector>
 
 #include "net/include/net_define.h"
+#include "net/include/random.h"
 #include "pstd/include/pstd_mutex.h"
 
 namespace net {
 
-using TaskFunc = void (*)(void *);
-
-struct Task {
-  Task() = default;
-  TaskFunc func = nullptr;
-  void* arg = nullptr;
-  Task(TaskFunc _func, void* _arg) : func(_func), arg(_arg) {}
-};
+using TaskFunc = void (*)(void*);
 
 struct TimeTask {
   uint64_t exec_time;
@@ -37,7 +31,13 @@ class ThreadPool : public pstd::noncopyable {
  public:
   class Worker {
    public:
-    explicit Worker(ThreadPool* tp) : start_(false), thread_pool_(tp){};
+    struct Arg {
+      Arg(void* p, int i) : arg(p), idx(i) {}
+      void* arg;
+      int idx;
+    };
+
+    explicit Worker(ThreadPool* tp, int idx = 0) : start_(false), thread_pool_(tp), idx_(idx), arg_(tp, idx){};
     static void* WorkerMain(void* arg);
 
     int start();
@@ -48,9 +48,11 @@ class ThreadPool : public pstd::noncopyable {
     std::atomic<bool> start_;
     ThreadPool* const thread_pool_;
     std::string worker_name_;
+    int idx_;
+    Arg arg_;
   };
 
-  explicit ThreadPool(size_t worker_num, size_t max_queue_size, std::string  thread_pool_name = "ThreadPool");
+  explicit ThreadPool(size_t worker_num, size_t max_queue_size, std::string thread_pool_name = "ThreadPool");
   virtual ~ThreadPool();
 
   int start_thread_pool();
@@ -67,21 +69,73 @@ class ThreadPool : public pstd::noncopyable {
   std::string thread_pool_name();
 
  private:
-  void runInThread();
+  void runInThread(const int idx = 0);
 
-  size_t worker_num_;
+ public:
+  struct AdaptationContext {
+    std::atomic<int32_t> value;
+
+    explicit AdaptationContext() : value(0) {}
+  };
+
+ private:
+  struct Node {
+    Node* link_older = nullptr;
+    Node* link_newer = nullptr;
+
+    // true if task is TimeTask
+    bool is_time_task;
+    TimeTask task;
+
+    Node(TaskFunc func, void* arg) : is_time_task(false), task(0, func, arg) {}
+    Node(uint64_t exec_time, TaskFunc func, void* arg) : is_time_task(true), task(exec_time, func, arg) {}
+
+    inline void Exec() { task.func(task.arg); }
+    inline Node* Next() { return link_newer; }
+  };
+
+  // re-push some timer tasks which has been poped
+  void ReDelaySchedule(Node* nodes);
+
+  static inline void AsmVolatilePause() {
+#if defined(__i386__) || defined(__x86_64__)
+    asm volatile("pause");
+#elif defined(__aarch64__)
+    asm volatile("wfe");
+#elif defined(__powerpc64__)
+    asm volatile("or 27,27,27");
+#endif
+    // it's okay for other platforms to be no-ops
+  }
+
+  Node* CreateMissingNewerLinks(Node* head, int* cnt);
+  bool LinkOne(Node* node, std::atomic<Node*>* newest_node);
+
+  uint16_t task_idx_;
+
+  const uint8_t nworkers_per_link_ = 1;  // numer of workers per link
+  const uint8_t nlinks_;                 // number of links (upper around)
+  std::vector<std::atomic<Node*>> newest_node_;
+  std::atomic<int> node_cnt_;  // for task
+  std::vector<std::atomic<Node*>> time_newest_node_;
+  std::atomic<int> time_node_cnt_;  // for time task
+
+  const int queue_slow_size_;  // default value: min(worker_num_ * 10, max_queue_size_)
   size_t max_queue_size_;
+
+  const uint64_t max_yield_usec_;
+  const uint64_t slow_yield_usec_;
+
+  AdaptationContext adp_ctx;
+
+  const size_t worker_num_;
   std::string thread_pool_name_;
-  std::queue<Task> queue_;
-  std::priority_queue<TimeTask> time_queue_;
   std::vector<Worker*> workers_;
   std::atomic<bool> running_;
   std::atomic<bool> should_stop_;
 
-  pstd::Mutex mu_;
-  pstd::CondVar rsignal_;
-  pstd::CondVar wsignal_;
-
+  std::vector<pstd::Mutex> mu_;
+  std::vector<pstd::CondVar> rsignal_;
 };
 
 }  // namespace net
