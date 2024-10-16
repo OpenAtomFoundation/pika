@@ -193,12 +193,12 @@ void DB::CompactRange(const storage::DataType& type, const std::string& start, c
   storage_->CompactRange(type, start, end);
 }
 
-void DB::LongestNotCompactiontSstCompact(const storage::DataType& type) {
+void DB::LongestNotCompactionSstCompact(const storage::DataType& type) {
   std::lock_guard rwl(dbs_rw_);
   if (!opened_) {
     return;
   }
-  storage_->LongestNotCompactiontSstCompact(type);
+  storage_->LongestNotCompactionSstCompact(type);
 }
 
 void DB::DoKeyScan(void* arg) {

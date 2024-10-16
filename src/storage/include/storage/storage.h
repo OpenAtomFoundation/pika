@@ -75,7 +75,7 @@ struct StorageOptions {
   size_t small_compaction_threshold = 5000;
   size_t small_compaction_duration_threshold = 10000;
   struct CompactParam {
-    // for LongestNotCompactiontSstCompact function
+    // for LongestNotCompactionSstCompact function
     int compact_every_num_of_files_;
     int force_compact_file_age_seconds_;
     int force_compact_min_delete_ratio_;
@@ -1091,12 +1091,12 @@ class Storage {
   Status DoCompactSpecificKey(const DataType& type, const std::string& key);
 
   /**
-   * LongestNotCompactiontSstCompact will execute the compact command for any cf in the given type
+   * LongestNotCompactionSstCompact will execute the compact command for any cf in the given type
    * @param type. data type like `kStrings`
    * @param sync. if true, block function
    * @return Status
   */
-  Status LongestNotCompactiontSstCompact(const DataType &type, bool sync = false);
+  Status LongestNotCompactionSstCompact(const DataType &type, bool sync = false);
 
   Status SetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
   Status SetSmallCompactionThreshold(uint32_t small_compaction_threshold);

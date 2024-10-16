@@ -1728,7 +1728,7 @@ Status Storage::RunBGTask() {
     if (task.operation == kCleanAll) {
       DoCompactRange(task.type, "", "");
     } else if (task.operation == kCompactOldestOrBestDeleteRatioSst) {
-      LongestNotCompactiontSstCompact(task.type, true);
+      LongestNotCompactionSstCompact(task.type, true);
     } else if (task.operation == kCompactRange) {
       if (task.argv.size() == 1) {
         DoCompactSpecificKey(task.type, task.argv[0]);
@@ -1741,12 +1741,12 @@ Status Storage::RunBGTask() {
   return Status::OK();
 }
 
-Status Storage::LongestNotCompactiontSstCompact(const DataType &type, bool sync) {
+Status Storage::LongestNotCompactionSstCompact(const DataType &type, bool sync) {
   if (sync) {
     Status s;
     for (const auto& inst : insts_) {
       std::vector<rocksdb::Status> compact_result_vec;
-      s = inst->LongestNotCompactiontSstCompact(type, &compact_result_vec);
+      s = inst->LongestNotCompactionSstCompact(type, &compact_result_vec);
       for (auto compact_result : compact_result_vec) {
         if (!compact_result.ok()) {
           LOG(ERROR) << compact_result.ToString();

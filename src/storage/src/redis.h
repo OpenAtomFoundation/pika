@@ -7,6 +7,7 @@
 #define SRC_REDIS_H_
 
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -106,8 +107,8 @@ class Redis {
 
   virtual Status CompactRange(const rocksdb::Slice* begin, const rocksdb::Slice* end);
 
-  virtual Status LongestNotCompactiontSstCompact(const DataType& option_type, std::vector<Status>* compact_result_vec,
-                                                 const ColumnFamilyType& type = kMetaAndData);
+  virtual Status LongestNotCompactionSstCompact(const DataType& option_type, std::vector<Status>* compact_result_vec,
+                                                const ColumnFamilyType& type = kMetaAndData);
 
   virtual Status GetProperty(const std::string& property, uint64_t* out);
 
@@ -467,6 +468,29 @@ private:
   inline Status SetFirstOrLastID(const rocksdb::Slice& key, StreamMetaValue& stream_meta, bool is_set_first,
                                  rocksdb::ReadOptions& read_options);
 
+  class MyEventListener : public rocksdb::EventListener {
+   public:
+    void OnTableFileDeleted(const rocksdb::TableFileDeletionInfo& info) override {
+      mu_.lock();
+      deletedFileNameInOBDCompact_.emplace(info.file_path);
+      mu_.unlock();
+    }
+
+    static void Clear() {
+      std::lock_guard<std::mutex> lk(mu_);
+      deletedFileNameInOBDCompact_.clear();
+    }
+
+    static bool Contains(const std::string& str) {
+      std::lock_guard<std::mutex> lk(mu_);
+      return deletedFileNameInOBDCompact_.find(str) != deletedFileNameInOBDCompact_.end();
+    }
+
+    static std::mutex mu_;
+    // deleted file(.sst) name in OBD compacting
+    static std::set<std::string> deletedFileNameInOBDCompact_;
+  };
+
 public:
  inline rocksdb::WriteOptions GetDefaultWriteOptions() const { return default_write_options_; }
 
@@ -483,7 +507,7 @@ private:
   rocksdb::WriteOptions default_write_options_;
   rocksdb::ReadOptions default_read_options_;
   rocksdb::CompactRangeOptions default_compact_range_options_;
-  std::atomic<bool> kIncomplete_;
+  std::atomic<bool> in_compact_flag_;
 
   // For Scan
   std::unique_ptr<LRUCache<std::string, std::string>> scan_cursors_store_;

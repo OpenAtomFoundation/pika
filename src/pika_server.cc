@@ -517,7 +517,7 @@ Status PikaServer::DoSameThingEveryDB(const TaskType& type) {
         db_item.second->Compact(storage::DataType::kAll);
         break;
       case TaskType::kCompactOldestOrBestDeleteRatioSst:
-        db_item.second->LongestNotCompactiontSstCompact(storage::DataType::kAll);
+        db_item.second->LongestNotCompactionSstCompact(storage::DataType::kAll);
         break;
       default:
         break;
