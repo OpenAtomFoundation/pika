@@ -12,7 +12,6 @@
 #include "src/lists_filter.h"
 #include "src/base_filter.h"
 #include "src/zsets_filter.h"
-// #include "src/user_collected_properties.h"
 #include "pstd/include/pstd_string.h"
 #include "pstd/include/pstd_defer.h"
 
@@ -76,10 +75,10 @@ class MyTablePropertiesCollector : public rocksdb::TablePropertiesCollector {
     switch (type) {
       case rocksdb::EntryType::kEntryPut: {
         if (start_key_.empty() || comparator_->Compare(start_key_, key) > 0) {
-          start_key_ = key;
+          start_key_ = key.ToString();
         }
         if (stop_key_.empty() || comparator_->Compare(stop_key_, key) < 0) {
-          stop_key_ = key;
+          stop_key_ = key.ToString();
         }
         break;
       }
@@ -100,8 +99,8 @@ class MyTablePropertiesCollector : public rocksdb::TablePropertiesCollector {
     properties->emplace("total_keys", encoded);
     pstd::PutFixed64(&encoded, deleted_keys_);
     properties->emplace("deleted_keys", encoded);
-    properties->emplace("start_key", start_key_.ToString());
-    properties->emplace("stop_key", stop_key_.ToString());
+    properties->emplace("start_key", start_key_);
+    properties->emplace("stop_key", stop_key_);
     return rocksdb::Status::OK();
   }
 
@@ -112,8 +111,8 @@ class MyTablePropertiesCollector : public rocksdb::TablePropertiesCollector {
     properties.emplace("total_keys", encoded);
     pstd::PutFixed64(&encoded, deleted_keys_);
     properties.emplace("deleted_keys", encoded);
-    properties.emplace("start_key", start_key_.ToString());
-    properties.emplace("stop_key", stop_key_.ToString());
+    properties.emplace("start_key", start_key_);
+    properties.emplace("stop_key", stop_key_);
 
     return properties;
   }
@@ -125,8 +124,8 @@ class MyTablePropertiesCollector : public rocksdb::TablePropertiesCollector {
  private:
   uint64_t total_keys_;
   uint64_t deleted_keys_;
-  rocksdb::Slice start_key_;
-  rocksdb::Slice stop_key_;
+  std::string start_key_;
+  std::string stop_key_;
   const rocksdb::Comparator* comparator_;
   const int force_compact_min_delete_ratio_;
 };
