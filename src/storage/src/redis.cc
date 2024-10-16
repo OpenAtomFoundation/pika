@@ -366,10 +366,13 @@ Status Redis::LongestNotCompactionSstCompact(const DataType& option_type, std::v
         }
       }
 
-      // it is not needed to check if the bound was reached,
-      // because pros is subset of metadata.
-      while (file_path.substr(file_path.find_last_of('/')) != metadata_iter->name) {
+      while (metadata_iter != metadata.end() && file_path.substr(file_path.find_last_of('/')) != metadata_iter->name) {
         ++metadata_iter;
+      }
+      if (metadata_iter == metadata.end()) {
+        // we reach here only in this case: some sst files has been created
+        // before calling GetPropertiesOfAllTables and after calling GetLiveFilesMetaData.
+        break;
       }
 
       start_key = metadata_iter->smallestkey;
