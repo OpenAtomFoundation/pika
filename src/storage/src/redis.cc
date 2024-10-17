@@ -5,14 +5,21 @@
 
 #include <sstream>
 
+#include "pstd_coding.h"
 #include "rocksdb/env.h"
+#include "rocksdb/metadata.h"
 
 #include "src/redis.h"
 #include "src/lists_filter.h"
 #include "src/base_filter.h"
 #include "src/zsets_filter.h"
+#include "pstd/include/pstd_string.h"
+#include "pstd/include/pstd_defer.h"
 
 namespace storage {
+
+std::mutex Redis::MyEventListener::mu_;
+std::set<std::string> Redis::MyEventListener::deletedFileNameInOBDCompact_;
 
 constexpr const char* ErrTypeMessage = "WRONGTYPE";
 
@@ -21,7 +28,7 @@ const rocksdb::Comparator* ListsDataKeyComparator() {
   return &ldkc;
 }
 
-rocksdb::Comparator* ZSetsScoreKeyComparator() {
+const rocksdb::Comparator* ZSetsScoreKeyComparator() {
   static ZSetsScoreKeyComparatorImpl zsets_score_key_compare;
   return &zsets_score_key_compare;
 }
@@ -64,12 +71,13 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
   rocksdb::BlockBasedTableOptions table_ops(storage_options.table_options);
   table_ops.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10, true));
 
-  rocksdb::DBOptions db_ops(storage_options.options);
-  db_ops.create_missing_column_families = true;
+  auto force_compact_min_delete_ratio = storage_->GetStorageOptions().compact_param_.force_compact_min_delete_ratio_;
+  rocksdb::Options ops(storage_options.options);
+  ops.create_missing_column_families = true;
   if (storage_options.enable_db_statistics) {
     db_statistics_ = rocksdb::CreateDBStatistics();
     db_statistics_->set_stats_level(static_cast<rocksdb::StatsLevel>(storage_options.db_statistics_level));
-    db_ops.statistics = db_statistics_;
+    ops.statistics = db_statistics_;
   }
 
   /*
@@ -156,7 +164,8 @@ Status Redis::Open(const StorageOptions& storage_options, const std::string& db_
   column_families.emplace_back("zset_score_cf", zset_score_cf_ops);
   // stream CF
   column_families.emplace_back("stream_data_cf", stream_data_cf_ops);
-  return rocksdb::DB::Open(db_ops, db_path, column_families, &handles_, &db_);
+  ops.listeners.emplace_back(std::make_shared<MyEventListener>());
+  return rocksdb::DB::Open(ops, db_path, column_families, &handles_, &db_);
 }
 
 Status Redis::GetScanStartPoint(const DataType& type, const Slice& key, const Slice& pattern, int64_t cursor, std::string* start_point) {
@@ -200,6 +209,225 @@ Status Redis::CompactRange(const rocksdb::Slice* begin, const rocksdb::Slice* en
   db_->CompactRange(default_compact_range_options_, handles_[kZsetsDataCF], begin, end);
   db_->CompactRange(default_compact_range_options_, handles_[kZsetsScoreCF], begin, end);
   db_->CompactRange(default_compact_range_options_, handles_[kStreamsDataCF], begin, end);
+  return Status::OK();
+}
+
+void SelectColumnFamilyHandles(const DataType& option_type, const ColumnFamilyType& type,
+                               std::vector<int>& handleIdxVec) {
+  switch (option_type) {
+    case DataType::kStrings:
+      handleIdxVec.push_back(kMetaCF);
+      break;
+    case DataType::kHashes:
+      if (type == kMeta || type == kMetaAndData) {
+        handleIdxVec.push_back(kMetaCF);
+      }
+      if (type == kData || type == kMetaAndData) {
+        handleIdxVec.push_back(kHashesDataCF);
+      }
+      break;
+    case DataType::kSets:
+      if (type == kMeta || type == kMetaAndData) {
+        handleIdxVec.push_back(kMetaCF);
+      }
+      if (type == kData || type == kMetaAndData) {
+        handleIdxVec.push_back(kSetsDataCF);
+      }
+      break;
+    case DataType::kLists:
+      if (type == kMeta || type == kMetaAndData) {
+        handleIdxVec.push_back(kMetaCF);
+      }
+      if (type == kData || type == kMetaAndData) {
+        handleIdxVec.push_back(kListsDataCF);
+      }
+      break;
+    case DataType::kZSets:
+      if (type == kMeta || type == kMetaAndData) {
+        handleIdxVec.push_back(kMetaCF);
+      }
+      if (type == kData || type == kMetaAndData) {
+        handleIdxVec.push_back(kZsetsDataCF);
+        handleIdxVec.push_back(kZsetsScoreCF);
+      }
+      break;
+    case DataType::kStreams:
+      if (type == kMeta || type == kMetaAndData) {
+        handleIdxVec.push_back(kMetaCF);
+      }
+      if (type == kData || type == kMetaAndData) {
+        handleIdxVec.push_back(kStreamsDataCF);
+      }
+      break;
+    case DataType::kAll:
+      for (auto s = kMetaCF; s <= kStreamsDataCF; s = static_cast<ColumnFamilyIndex>(s + 1)) {
+        handleIdxVec.push_back(s);
+      }
+      break;
+    default:
+      break;
+  }
+}
+
+Status Redis::LongestNotCompactionSstCompact(const DataType& option_type, std::vector<Status>* compact_result_vec,
+                                              const ColumnFamilyType& type) {
+  bool no_compact = false;
+  bool to_comapct = true;
+  if (!in_compact_flag_.compare_exchange_weak(no_compact, to_comapct, std::memory_order_relaxed,
+                                              std::memory_order_relaxed)) {
+    return Status::Busy("compact running");
+  }
+
+  DEFER { in_compact_flag_.store(false); };
+  std::vector<int> handleIdxVec;
+  SelectColumnFamilyHandles(option_type, type, handleIdxVec);
+  if (handleIdxVec.size() == 0) {
+    return Status::Corruption("Invalid data type");
+  }
+
+  if (compact_result_vec) {
+    compact_result_vec->clear();
+  }
+
+  // sort it for convenience to traverse
+  std::vector<rocksdb::LiveFileMetaData> metadata;
+  db_->GetLiveFilesMetaData(&metadata);
+  std::sort(metadata.begin(), metadata.end(), [](const auto& a, const auto& b) { return a.name < b.name; });
+
+  for (auto idx : handleIdxVec) {
+    rocksdb::TablePropertiesCollection props;
+    Status s = db_->GetPropertiesOfAllTables(handles_[idx], &props);
+    if (!s.ok()) {
+      if (compact_result_vec) {
+        compact_result_vec->push_back(
+            Status::Corruption(handles_[idx]->GetName() +
+                               " LongestNotCompactionSstCompact GetPropertiesOfAllTables error: " + s.ToString()));
+      }
+      continue;
+    }
+
+    // clear deleted sst file records because we use these only in OBD-compact
+    MyEventListener::Clear();
+
+    // The main goal of compaction was reclaimed the disk space and removed
+    // the tombstone. It seems that compaction scheduler was unnecessary here when
+    // the live files was too few, Hard code to 1 here.
+    if (props.size() <= 1) {
+      // LOG(WARNING) << "LongestNotCompactionSstCompact " << handles_[idx]->GetName() << " only one file";
+      if (compact_result_vec) {
+        compact_result_vec->push_back(Status::OK());
+      }
+      continue;
+    }
+
+    size_t max_files_to_compact = 1;
+    const StorageOptions& storageOptions = storage_->GetStorageOptions();
+    if (props.size() / storageOptions.compact_param_.compact_every_num_of_files_ > max_files_to_compact) {
+      max_files_to_compact = props.size() / storageOptions.compact_param_.compact_every_num_of_files_;
+    }
+
+    // sort it for convenience to traverse
+    std::vector<std::pair<std::string, std::shared_ptr<const rocksdb::TableProperties>>> props_vec(props.begin(),
+                                                                                                   props.end());
+    std::sort(props_vec.begin(), props_vec.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+
+    int64_t now =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+            .count();
+
+    auto force_compact_min_ratio =
+        static_cast<double>(storageOptions.compact_param_.force_compact_min_delete_ratio_) / 100.0;
+    auto best_delete_min_ratio = static_cast<double>(storageOptions.compact_param_.best_delete_min_ratio_) / 100.0;
+
+    std::string best_filename;
+    double best_delete_ratio = 0;
+    uint64_t total_keys = 0, deleted_keys = 0;
+    rocksdb::Slice start_key, stop_key, best_start_key, best_stop_key;
+    Status compact_result;
+    auto metadata_iter = metadata.begin();
+    for (const auto& iter : props_vec) {
+      auto file_path = iter.first;
+
+      // maybe some sst files which occur in props_vec has been compacted in CompactRange,
+      // so these files should not be checked.
+      if (MyEventListener::Contains(file_path)) {
+        continue;
+      }
+
+      uint64_t file_creation_time = iter.second->file_creation_time;
+      if (file_creation_time == 0) {
+        // Fallback to the file Modification time to prevent repeatedly compacting the same file,
+        // file_creation_time is 0 which means the unknown condition in rocksdb
+        auto s = rocksdb::Env::Default()->GetFileModificationTime(file_path, &file_creation_time);
+        if (!s.ok()) {
+          LOG(WARNING) << handles_[idx]->GetName() << " Failed to get the file creation time: " << file_path << " in "
+                       << handles_[idx]->GetName() << ", err: " << s.ToString();
+          continue;
+        }
+      }
+
+      while (metadata_iter != metadata.end() && file_path.substr(file_path.find_last_of('/')) != metadata_iter->name) {
+        ++metadata_iter;
+      }
+      if (metadata_iter == metadata.end()) {
+        // we reach here only in this case: some sst files has been created
+        // before calling GetPropertiesOfAllTables and after calling GetLiveFilesMetaData.
+        break;
+      }
+
+      start_key = metadata_iter->smallestkey;
+      stop_key = metadata_iter->largestkey;
+      total_keys = metadata_iter->num_entries;
+      deleted_keys = metadata_iter->num_deletions;
+      ++metadata_iter;
+
+      double delete_ratio = static_cast<double>(deleted_keys) / static_cast<double>(total_keys);
+
+      // pick the file according to force compact policy
+      if (file_creation_time <
+              static_cast<uint64_t>(now / 1000 - storageOptions.compact_param_.force_compact_file_age_seconds_) &&
+          delete_ratio >= force_compact_min_ratio) {
+        compact_result = db_->CompactRange(default_compact_range_options_, &start_key, &stop_key);
+        if (--max_files_to_compact == 0) {
+          break;
+        }
+        continue;
+      }
+
+      // don't compact the SST created in x `dont_compact_sst_created_in_seconds_`.
+      if (file_creation_time >
+          static_cast<uint64_t>(now / 1000 - storageOptions.compact_param_.dont_compact_sst_created_in_seconds_)) {
+        continue;
+      }
+
+      // pick the file which has highest delete ratio
+      if (total_keys != 0 && delete_ratio > best_delete_ratio) {
+        best_delete_ratio = delete_ratio;
+        best_filename = iter.first;
+        best_start_key = start_key;
+        start_key.clear();
+        best_stop_key = stop_key;
+        stop_key.clear();
+      }
+    }
+
+    if (best_delete_ratio > best_delete_min_ratio && !best_start_key.empty() && !best_stop_key.empty()) {
+      compact_result =
+          db_->CompactRange(default_compact_range_options_, handles_[idx], &best_start_key, &best_stop_key);
+    }
+
+    if (!compact_result.ok()) {
+      if (compact_result_vec) {
+        compact_result_vec->push_back(
+            Status::Corruption(handles_[idx]->GetName() + " Failed to do compaction " + compact_result.ToString()));
+      }
+      continue;
+    }
+
+    if (compact_result_vec) {
+      compact_result_vec->push_back(Status::OK());
+    }
+  }
   return Status::OK();
 }
 
