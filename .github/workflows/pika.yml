@@ -33,8 +33,8 @@ jobs:
 
       - name: Install Deps
         run: |
-          sudo apt-get install -y autoconf libprotobuf-dev protobuf-compiler
-          sudo apt-get install -y clang-tidy-12
+          sudo apt-get update
+          sudo apt-get install -y autoconf libprotobuf-dev protobuf-compiler clang-tidy
 
       - name: Configure CMake
         # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
