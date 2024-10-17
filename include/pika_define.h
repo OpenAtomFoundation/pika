@@ -32,6 +32,7 @@
 class PikaServer;
 /* Global Const */
 constexpr int MAX_DB_NUM = 8;
+constexpr int FWRITE_USER_SPACE_BUF_SIZE = 512LL << 10;//512KB
 
 /* Port shift */
 const int kPortShiftRSync = 1000;

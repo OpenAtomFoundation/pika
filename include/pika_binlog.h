@@ -13,6 +13,7 @@
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/noncopyable.h"
 #include "include/pika_define.h"
+#include "net/src/dispatch_thread.h"
 
 std::string NewFileName(const std::string& name, uint32_t current);
 
@@ -76,6 +77,7 @@ class Binlog : public pstd::noncopyable {
   }
 
   void Close();
+  void FlushBufferedFile();
 
  private:
   pstd::Status Put(const char* item, int len);
@@ -108,6 +110,8 @@ class Binlog : public pstd::noncopyable {
   std::string filename_;
 
   std::atomic<bool> binlog_io_error_;
+
+  net::TimerTaskThread timer_task_thread_;
 };
 
 #endif

@@ -81,7 +81,7 @@ Binlog::Binlog(std::string  binlog_path, const int file_size)
     LOG(INFO) << "Binlog: Manifest file not exist, we create a new one.";
 
     profile = NewFileName(filename_, pro_num_);
-    s = pstd::NewWritableFile(profile, queue_);
+    s = pstd::NewBufferedWritableFile(profile, queue_, FWRITE_USER_SPACE_BUF_SIZE);
     if (!s.ok()) {
       LOG(FATAL) << "Binlog: new " << filename_ << " " << s.ToString();
     }
@@ -112,7 +112,7 @@ Binlog::Binlog(std::string  binlog_path, const int file_size)
 
     profile = NewFileName(filename_, pro_num_);
     DLOG(INFO) << "Binlog: open profile " << profile;
-    s = pstd::AppendWritableFile(profile, queue_, version_->pro_offset_);
+    s = pstd::BufferedAppendableFile(profile, queue_, FWRITE_USER_SPACE_BUF_SIZE, version_->pro_offset_);
     if (!s.ok()) {
       LOG(FATAL) << "Binlog: Open file " << profile << " error " << s.ToString();
     }
@@ -120,13 +120,27 @@ Binlog::Binlog(std::string  binlog_path, const int file_size)
     uint64_t filesize = queue_->Filesize();
     DLOG(INFO) << "Binlog: filesize is " << filesize;
   }
-
   InitLogFile();
+
+  timer_task_thread_.AddTimerTask("flush_binlog_task", 500, true,
+                                [this] { this->FlushBufferedFile(); });
+  timer_task_thread_.StartThread();
 }
 
 Binlog::~Binlog() {
   std::lock_guard l(mutex_);
+  timer_task_thread_.StopThread();
   Close();
+}
+
+void Binlog::FlushBufferedFile() {
+  std::lock_guard l(mutex_);
+  if (!opened_.load()) {
+    return;
+  }
+  if (queue_) {
+    queue_->Flush();
+  }
 }
 
 void Binlog::Close() {
@@ -210,7 +224,7 @@ Status Binlog::Put(const char* item, int len) {
   if (filesize > file_size_) {
     std::unique_ptr<pstd::WritableFile> queue;
     std::string profile = NewFileName(filename_, pro_num_ + 1);
-    s = pstd::NewWritableFile(profile, queue);
+    s = pstd::NewBufferedWritableFile(profile, queue, FWRITE_USER_SPACE_BUF_SIZE);
     if (!s.ok()) {
       LOG(ERROR) << "Binlog: new " << filename_ << " " << s.ToString();
       return s;
@@ -263,9 +277,9 @@ Status Binlog::EmitPhysicalRecord(RecordType t, const char* ptr, size_t n, int* 
   s = queue_->Append(pstd::Slice(buf, kHeaderSize));
   if (s.ok()) {
     s = queue_->Append(pstd::Slice(ptr, n));
-    if (s.ok()) {
-      s = queue_->Flush();
-    }
+//    if (s.ok()) {
+//      s = queue_->Flush();
+//    }
   }
   block_offset_ += static_cast<int32_t>(kHeaderSize + n);
 
@@ -387,7 +401,7 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset, uint32_t
     pstd::DeleteFile(profile);
   }
 
-  pstd::NewWritableFile(profile, queue_);
+  pstd::NewBufferedWritableFile(profile, queue_, FWRITE_USER_SPACE_BUF_SIZE);
   Binlog::AppendPadding(queue_.get(), &pro_offset);
 
   pro_num_ = pro_num;
@@ -426,7 +440,7 @@ Status Binlog::Truncate(uint32_t pro_num, uint64_t pro_offset, uint64_t index) {
     version_->StableSave();
   }
 
-  Status s = pstd::AppendWritableFile(profile, queue_, version_->pro_offset_);
+  Status s = pstd::BufferedAppendableFile(profile, queue_, FWRITE_USER_SPACE_BUF_SIZE, version_->pro_offset_);
   if (!s.ok()) {
     return s;
   }
