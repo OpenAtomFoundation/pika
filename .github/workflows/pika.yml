@@ -1,22 +1,18 @@
-name: Pika
+name: Pika CI Pipeline
 
 on:
   push:
-    branches: [ "unstable", "3.5" , "4.0"]
+    branches: ["unstable", "3.5", "4.0"]
   pull_request:
-    branches: [ "unstable", "3.5" , "4.0"]
+    branches: ["unstable", "3.5", "4.0"]
 
 env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: RelWithDebInfo
   ARTIFACT_PIKA_NAME: artifact-pika
 
 jobs:
   build_on_ubuntu:
-    # The CMake configure and build commands are platform-agnostic and should work equally well on Windows or Mac.
-    # You can convert this to a matrix build if you need cross-platform coverage.
-    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-    runs-on: ubuntu22
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -26,50 +22,51 @@ jobs:
         with:
           go-version: 1.19
 
-      - name: ccache
+      - name: Set up ccache
         uses: hendrikmuhs/ccache-action@v1.2.13
         with:
           key: ubuntu-latest
 
-      - name: Install Deps
+      - name: Install Dependencies
         run: |
-          sudo apt-get install -y autoconf libprotobuf-dev protobuf-compiler
-          sudo apt-get install -y clang-tidy-12
+          sudo apt-get update
+          sudo apt-get install -y autoconf libprotobuf-dev protobuf-compiler clang-tidy
 
       - name: Configure CMake
-        # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-        # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
+                -DUSE_PIKA_TOOLS=ON \
+                -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address \
+                -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+                -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: Build
-        # Build your program with the given configuration
-        run: cmake --build build --config ${{ env.BUILD_TYPE }}
+        run: |
+          cmake --build build --config $BUILD_TYPE
 
       - name: Cleanup
         run: |
-          rm -rf  ./deps
+          rm -rf ./deps
           rm -rf ./buildtrees
 
-      - uses: actions/upload-artifact@v3
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ env.ARTIFACT_PIKA_NAME }}
           path: ${{ github.workspace }}/build/pika
 
-      - name: Test
+      - name: Run Tests
         working-directory: ${{ github.workspace }}/build
-        # Execute tests defined by the CMake configuration.
-        # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-        run: ctest -C ${{ env.BUILD_TYPE }} --verbose
+        run: ctest -C $BUILD_TYPE --verbose
 
-      - name: Unit Test
+      - name: Run Unit Tests
         working-directory: ${{ github.workspace }}
         run: ./pikatests.sh all clean
 
-        # master on port 9221, slave on port 9231, all with 2 db
-      - name: Start codis, pika master and pika slave
+      - name: Start Services for Integration Tests
         working-directory: ${{ github.workspace }}/build
         run: |
-          echo "hello"
+          set -e
           chmod +x ../tests/integration/start_master_and_slave.sh
           ../tests/integration/start_master_and_slave.sh
           chmod +x ../tests/integration/start_codis.sh
@@ -90,55 +87,44 @@ jobs:
       image: rockylinux:9
 
     steps:
-      - name: Install deps
+      - name: Install Dependencies
         run: |
           dnf update -y
-          dnf install -y bash cmake wget git autoconf gcc perl-Digest-SHA tcl which tar g++ tar epel-release gcc-c++ libstdc++-devel gcc-toolset-13
+          dnf install -y epel-release
+          dnf install -y bash cmake wget git autoconf gcc perl-Digest-SHA tcl which tar gcc-c++ libstdc++-devel clang make automake
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: 1.19
 
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Configure CMake
         run: |
-          source /opt/rh/gcc-toolset-13/enable
-          cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address .
-
-      - uses: actions/cache@v3
-        with:
-          path: ${{ github.workspace }}/deps
-          key: ${{ runner.os }}-rocky-deps-${{ hashFiles('**/CMakeLists.txt') }}
-
-      - uses: actions/cache@v3
-        with:
-          path: ${{ github.workspace }}/buildtrees
-          key: ${{ runner.os }}-rocky-buildtrees-${{ hashFiles('**/CMakeLists.txt') }}
+          cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DUSE_PIKA_TOOLS=ON -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address
 
       - name: Build
         run: |
-          source /opt/rh/gcc-toolset-13/enable
-          cmake --build build --config ${{ env.BUILD_TYPE }}
+          cmake --build build --config $BUILD_TYPE
 
       - name: Cleanup
         run: |
-          rm -rf  ./deps
+          rm -rf ./deps
           rm -rf ./buildtrees
 
-      - name: Test
+      - name: Run Tests
         working-directory: ${{ github.workspace }}/build
-        run: ctest -C ${{ env.BUILD_TYPE }}
+        run: ctest -C $BUILD_TYPE
 
-      - name: Unit Test
+      - name: Run Unit Tests
         working-directory: ${{ github.workspace }}
         run: ./pikatests.sh all clean
 
-      - name: Start codis, pika master and pika slave
+      - name: Start Services for Integration Tests
         working-directory: ${{ github.workspace }}/build
         run: |
           chmod +x ../tests/integration/start_master_and_slave.sh
@@ -166,41 +152,39 @@ jobs:
         with:
           go-version: 1.19
 
-      - name: ccache
+      - name: Set up ccache
         uses: hendrikmuhs/ccache-action@v1.2.13
         with:
           key: macos-12
 
-      - name: Install Deps
+      - name: Install Dependencies
         run: |
           brew update
-          brew install --overwrite python@3.12 autoconf protobuf llvm wget git
-          brew install gcc@10 automake cmake make binutils
+          brew install python@3.12 autoconf protobuf llvm wget git gcc@10 automake cmake make binutils
 
       - name: Configure CMake
         run: |
-          export CC=/usr/local/opt/gcc@10/bin/gcc-10 
-          cmake -B build -DCMAKE_C_COMPILER=/usr/local/opt/gcc@10/bin/gcc-10 -DUSE_PIKA_TOOLS=ON -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache
+          export CC=/usr/local/opt/gcc@10/bin/gcc-10
+          cmake -B build -DCMAKE_C_COMPILER=$CC -DUSE_PIKA_TOOLS=ON -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_CXX_FLAGS_DEBUG=-fsanitize=address -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: Build
         run: |
-          cmake --build build --config ${{ env.BUILD_TYPE }}
+          cmake --build build --config $BUILD_TYPE
 
       - name: Cleanup
         run: |
-          rm -rf  ./deps
+          rm -rf ./deps
           rm -rf ./buildtrees
 
-      - name: Test
+      - name: Run Tests
         working-directory: ${{ github.workspace }}/build
-        run: ctest -C ${{ env.BUILD_TYPE }} --verbose
+        run: ctest -C $BUILD_TYPE --verbose
 
-      - name: Unit Test
+      - name: Run Unit Tests
         working-directory: ${{ github.workspace }}
-        run: |
-          ./pikatests.sh all clean
+        run: ./pikatests.sh all clean
 
-      - name: Start codis, pika master and pika slave
+      - name: Start Services for Integration Tests
         working-directory: ${{ github.workspace }}/build
         run: |
           chmod +x ../tests/integration/start_master_and_slave.sh
@@ -218,11 +202,12 @@ jobs:
           sh integrate_test.sh
 
   build_pika_image:
-    name: Build Pika Docker image
+    name: Build Pika Docker Image
     runs-on: ubuntu-latest
     needs: build_on_ubuntu
+
     steps:
-      - name: Check out the repo
+      - name: Check out the Repo
         uses: actions/checkout@v4
 
       - name: Set up QEMU
@@ -231,9 +216,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Extract metadata (tags, labels) for Docker
+      - name: Extract Metadata for Docker
         id: meta
-        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        uses: docker/metadata-action@v4
         with:
           images: pikadb/pika
 
@@ -242,7 +227,7 @@ jobs:
           name: ${{ env.ARTIFACT_PIKA_NAME }}
           path: artifact/
 
-      - name: Build Docker image
+      - name: Build Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
