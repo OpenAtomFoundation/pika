@@ -6,9 +6,7 @@
 #ifndef NET_INCLUDE_NET_DEFINE_H_
 #define NET_INCLUDE_NET_DEFINE_H_
 
-#include <functional>
 #include <iostream>
-#include <map>
 
 namespace net {
 
