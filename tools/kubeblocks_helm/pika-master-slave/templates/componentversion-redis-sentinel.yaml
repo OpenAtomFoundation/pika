@@ -1,50 +1,35 @@
 apiVersion: apps.kubeblocks.io/v1alpha1
 kind: ComponentDefinition
 metadata:
-  name: pika-exporter
+  name: redis-sentinel
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "pika.labels" . | nindent 4 }}
 spec:
-  provider: pika
-  description: A pika exporter component definition
-  serviceKind: redis-sentinel
-  serviceVersion: {{ .Chart.AppVersion }}
-  services:
-    - name: expoter
-      spec:
-        ports:
-          - name: expoter
-            port: 9121
-            targetPort: expoter
+  clusterSize: 3
+  podSecurityContext:
+    runAsUser: 1000
+    fsGroup: 1000
+  redisSentinelConfig:
+    redisReplicationName: redis-replication
+  kubernetesConfig:
+    image: 'quay.io/opstree/redis-sentinel:v7.0.7'
+    imagePullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 101m
+        memory: 128Mi
+      limits:
+        cpu: 101m
+        memory: 128Mi
   updateStrategy: Serial
   configs:
     - name: pika-config
       templateRef: pika-conf-template
       namespace: {{ .Release.Namespace }}
       volumeName: config
-  vars:
-    ## reference to the pika-codis-dashboard service
-    - name: DASHBOARD_ADDR
-      valueFrom:
-        serviceVarRef:
-          compDef: pika-codis-dashboard
-          name: dashboard
-          optional: true
-          host: Optional
-  runtime:
-    initContainers:
-      - name: wait-codis-dashboard
-        env:
-          - name: DASHBOARD_ADDR
-            value: "$(KB_CLUSTER_NAME)-codis-dashboard"
-        image: busybox:1.28
-        command:
-          - 'sh'
-          - '-c'
-          - "until nc -z ${DASHBOARD_ADDR} 18080; do echo waiting for codis dashboard; sleep 2; done;"
-    containers:
-      - name: pika-exporter
+ containers:
+      - name: redis-sentinel
         image: {{ include "pikaExporter.image" . }}
         imagePullPolicy: {{ include "pikaExporter.imagePullPolicy" . }}
         ports:
