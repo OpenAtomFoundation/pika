@@ -1,0 +1,65 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: ComponentDefinition
+metadata:
+  name: pika-exporter
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "pika.labels" . | nindent 4 }}
+spec:
+  provider: pika
+  description: A pika exporter component definition
+  serviceKind: pika-exporter
+  serviceVersion: {{ .Chart.AppVersion }}
+  services:
+    - name: expoter
+      spec:
+        ports:
+          - name: expoter
+            port: 9121
+            targetPort: expoter
+  updateStrategy: Serial
+  configs:
+    - name: pika-config
+      templateRef: pika-conf-template
+      namespace: {{ .Release.Namespace }}
+      volumeName: config
+  vars:
+    ## reference to the pika-codis-dashboard service
+    - name: DASHBOARD_ADDR
+      valueFrom:
+        serviceVarRef:
+          compDef: pika-codis-dashboard
+          name: dashboard
+          optional: true
+          host: Optional
+  runtime:
+    initContainers:
+      - name: wait-codis-dashboard
+        env:
+          - name: DASHBOARD_ADDR
+            value: "$(KB_CLUSTER_NAME)-codis-dashboard"
+        image: busybox:1.28
+        command:
+          - 'sh'
+          - '-c'
+          - "until nc -z ${DASHBOARD_ADDR} 18080; do echo waiting for codis dashboard; sleep 2; done;"
+    containers:
+      - name: pika-exporter
+        image: {{ include "pikaExporter.image" . }}
+        imagePullPolicy: {{ include "pikaExporter.imagePullPolicy" . }}
+        ports:
+          - name: expoter
+            containerPort: 9121
+        volumeMounts:
+          - name: config
+            mountPath: /etc/pika
+        env:
+          - name: DASHBOARD_ADDR
+            value: "$(KB_CLUSTER_NAME)-codis-dashboard"
+        command:
+          - "/pika/bin/pika_exporter"
+        args:
+          - "-config"
+          - "/etc/pika/info.toml"
+          - "-codis.addr"
+          - "http://$(DASHBOARD_ADDR):18080/topom"
