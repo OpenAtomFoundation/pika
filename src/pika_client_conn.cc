@@ -236,7 +236,7 @@ void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t do_dur
           }
         }
       }
-      LOG(ERROR) << "ip_port: " << ip_port() << ", db: " << current_db_ << ", command:" << slow_log
+      LOG(INFO) << "ip_port: " << ip_port() << ", db: " << current_db_ << ", command:" << slow_log
                  << ", command_size: " << cmd_size - 1 << ", arguments: " << argv.size()
                  << ", total_time(ms): " << time_stat_->total_time() / 1000
                  << ", before_queue_time(ms): " << time_stat_->before_queue_time() / 1000
