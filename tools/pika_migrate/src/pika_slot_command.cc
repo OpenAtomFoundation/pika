@@ -1501,7 +1501,6 @@ void SlotsMgrtExecWrapperCmd::DoInitial() {
   }
   auto it = argv_.begin() + 1;
   key_ = *it++;
-  pstd::StringToLower(key_);
   return;
 }
 
